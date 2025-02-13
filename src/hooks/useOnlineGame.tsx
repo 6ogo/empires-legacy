@@ -5,12 +5,16 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 import { createInitialGameState } from "@/lib/game-utils";
+import { useAuth } from "@/hooks/useAuth";
 
 export const useOnlineGame = () => {
   const [gameId, setGameId] = useState<number | null>(null);
   const [roomId, setRoomId] = useState<string>("");
   const [joinRoomId, setJoinRoomId] = useState<string>("");
   const [isHost, setIsHost] = useState(false);
+  const [connectedPlayers, setConnectedPlayers] = useState<{ username: string }[]>([]);
+  const [turnTimer, setTurnTimer] = useState<number>(120); // 2 minutes in seconds
+  const { profile } = useAuth();
 
   const handleCreateGame = async (numPlayers: number, boardSize: number) => {
     const initialState = createInitialGameState(numPlayers, boardSize);
@@ -36,6 +40,7 @@ export const useOnlineGame = () => {
         setGameId(data.id);
         setRoomId(data.room_id);
         setIsHost(true);
+        setConnectedPlayers([{ username: profile?.username || 'Host' }]);
         toast.success(`Game created! Room ID: ${data.room_id}`);
         return { initialState, data };
       }
@@ -103,14 +108,42 @@ export const useOnlineGame = () => {
     }
   };
 
+  useEffect(() => {
+    if (gameId) {
+      const channel = supabase.channel(`game_${gameId}`)
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const players = Object.values(state).flat().map((p: any) => ({
+            username: p.username
+          }));
+          setConnectedPlayers(players);
+        })
+        .subscribe();
+
+      if (profile?.username) {
+        channel.track({
+          username: profile.username,
+          online_at: new Date().toISOString(),
+        });
+      }
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [gameId, profile?.username]);
+
   return {
     gameId,
     roomId,
     joinRoomId,
     setJoinRoomId,
     isHost,
+    connectedPlayers,
     handleCreateGame,
     handleJoinGame,
     handleStartAnyway,
+    turnTimer,
+    setTurnTimer,
   };
 };

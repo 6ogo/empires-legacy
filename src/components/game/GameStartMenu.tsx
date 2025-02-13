@@ -14,6 +14,7 @@ interface GameStartMenuProps {
   onJoinRoomIdChange: (value: string) => void;
   isHost?: boolean;
   onStartAnyway?: () => void;
+  connectedPlayers?: { username: string }[];
 }
 
 const GameStartMenu: React.FC<GameStartMenuProps> = ({
@@ -26,6 +27,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
   onJoinRoomIdChange,
   isHost,
   onStartAnyway,
+  connectedPlayers = [],
 }) => {
   return (
     <div className="text-center text-white">
@@ -48,9 +50,26 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
       {gameStatus === "waiting" && (
         <div className="text-center">
           <h2 className="text-2xl mb-4">Waiting for players...</h2>
-          {isHost && (
+          <div className="mb-6">
+            <h3 className="text-xl mb-2">Room ID: <span className="font-mono">{joinRoomId}</span></h3>
+            <p className="text-sm text-gray-400">Share this code with other players to join</p>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-xl mb-2">Connected Players:</h3>
+            <ul className="space-y-2">
+              {connectedPlayers.map((player, index) => (
+                <li key={index} className="text-lg">
+                  {player.username}
+                  {index === 0 && " (Host)"}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {isHost && connectedPlayers.length >= 2 && (
             <Button onClick={onStartAnyway} className="mt-4">
-              Start Game Anyway
+              Start Game
             </Button>
           )}
         </div>
