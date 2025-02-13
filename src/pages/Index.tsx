@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { GameState, Territory } from "@/types/game";
+import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createInitialGameState } from "@/lib/game-utils";

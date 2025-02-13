@@ -29,10 +29,13 @@ const MainMenu: React.FC<MainMenuProps> = ({
   onShowLeaderboard,
   onShowStats,
 }) => {
+  // Convert gameStatus to the type expected by GameStartMenu by excluding 'stats'
+  const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
+
   return (
     <div className="container mx-auto p-4">
       <GameStartMenu
-        gameStatus={gameStatus}
+        gameStatus={gameStartMenuStatus}
         gameMode={gameMode}
         onSelectMode={onSelectMode}
         onCreateGame={onCreateGame}
