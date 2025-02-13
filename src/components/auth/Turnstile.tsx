@@ -1,5 +1,5 @@
 
-import { Turnstile } from '@cloudflare/turnstile-react';
+import Turnstile from 'react-turnstile';
 import { useRef } from 'react';
 
 interface TurnstileProps {
@@ -12,8 +12,8 @@ export const TurnstileCaptcha = ({ onSuccess }: TurnstileProps) => {
   return (
     <Turnstile
       ref={turnstileRef}
-      sitekey="0x4AAAAAAA8rGkMocyc8drQ-"
-      onSuccess={onSuccess}
+      siteKey="0x4AAAAAAA8rGkMocyc8drQ-"
+      onVerify={onSuccess}
       className="mx-auto"
     />
   );
