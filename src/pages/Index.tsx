@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import HexGrid from "@/components/game/HexGrid";
 import ResourceDisplay from "@/components/game/ResourceDisplay";
 import GameControls from "@/components/game/GameControls";
 import BuildingMenu from "@/components/game/BuildingMenu";
-import { GameState, Territory, Resources } from "@/types/game";
+import { GameState, Territory, Resources, PlayerColor } from "@/types/game";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createClient } from '@supabase/supabase-js';
@@ -46,12 +47,12 @@ const generateInitialTerritories = (): Territory[] => {
 
 const createInitialGameState = (numPlayers: number): GameState => ({
   players: Array.from({ length: numPlayers }, (_, i) => ({
-    id: `player${i + 1}` as const,
+    id: `player${i + 1}` as PlayerColor, // Fix: Cast to PlayerColor
     resources: { gold: 100, wood: 50, stone: 50, food: 50 },
     territories: [],
   })),
   territories: generateInitialTerritories(),
-  currentPlayer: "player1",
+  currentPlayer: "player1" as PlayerColor,
   phase: "setup",
   turn: 1,
 });
@@ -107,11 +108,13 @@ const Index = () => {
           : player
       );
 
-      const updatedState = {
+      const nextPlayer = gameState.currentPlayer === "player1" ? "player2" as PlayerColor : "player1" as PlayerColor;
+
+      const updatedState: GameState = {
         ...gameState,
         territories: updatedTerritories,
         players: updatedPlayers,
-        currentPlayer: gameState.currentPlayer === "player1" ? "player2" : "player1",
+        currentPlayer: nextPlayer,
       };
 
       try {
