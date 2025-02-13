@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import * as Icons from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 
 interface Achievement {
   id: number;
@@ -21,10 +20,12 @@ interface Achievement {
   xp_reward: number;
   category: string;
   requirement_count: number;
+  created_at: string;
 }
 
 interface UserAchievement {
   id: string;
+  user_id: string;
   achievement_id: number;
   earned_at: string;
   achievement: Achievement;
@@ -33,7 +34,7 @@ interface UserAchievement {
 const Achievements = () => {
   const { user } = useAuth();
 
-  const { data: achievements } = useQuery({
+  const { data: achievements } = useQuery<Achievement[]>({
     queryKey: ['achievements'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,11 +43,11 @@ const Achievements = () => {
         .order('xp_reward', { ascending: true });
       
       if (error) throw error;
-      return data as Achievement[];
+      return data;
     },
   });
 
-  const { data: userAchievements } = useQuery({
+  const { data: userAchievements } = useQuery<UserAchievement[]>({
     queryKey: ['user_achievements', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,7 +56,7 @@ const Achievements = () => {
         .eq('user_id', user?.id);
       
       if (error) throw error;
-      return data as UserAchievement[];
+      return data as unknown as UserAchievement[];
     },
     enabled: !!user,
   });

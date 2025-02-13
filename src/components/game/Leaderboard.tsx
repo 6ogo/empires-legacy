@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/hooks/useAuth";
@@ -53,6 +52,10 @@ const Leaderboard = () => {
             total_wins: profile.total_wins,
             economic_wins: profile.economic_wins,
             domination_wins: profile.domination_wins,
+            xp: profile.xp || 0,
+            level: profile.level || 1,
+            last_username_change: profile.last_username_change,
+            achievements: profile.achievements || [],
           }));
           setProfiles(transformedProfiles);
         }

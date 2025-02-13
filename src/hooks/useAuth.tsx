@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -81,15 +82,14 @@ export const useAuth = () => {
           total_wins: data.total_wins,
           economic_wins: data.economic_wins,
           domination_wins: data.domination_wins,
-          xp: data.xp,
-          level: data.level,
+          xp: data.xp || 0,
+          level: data.level || 1,
           last_username_change: data.last_username_change,
-          achievements: data.achievements,
+          achievements: data.achievements || [],
         };
 
         setProfile(transformedProfile);
       } else {
-        // Handle case where profile doesn't exist
         console.log('No profile found for user:', userId);
         setProfile(null);
       }
