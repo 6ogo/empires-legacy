@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { GameState, Territory, Resources } from "@/types/game";
+import { GameState, Territory } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
-import GameBoard from "@/components/game/GameBoard";
 import { createInitialGameState } from "@/lib/game-utils";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
 import { useGameActions } from "@/hooks/useGameActions";
-import GameStartMenu from "@/components/game/GameStartMenu";
-import GameUpdatesPanel from "@/components/game/GameUpdatesPanel";
-import Leaderboard from "@/components/game/Leaderboard";
-import Stats from "@/components/game/Stats";
+import MainMenu from "@/components/game/MainMenu";
+import PreGameScreens from "@/components/game/PreGameScreens";
+import GameScreen from "@/components/game/GameScreen";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -42,7 +39,6 @@ const Index = () => {
     handleEndTurn,
     handleEndPhase,
     handleGiveUp,
-    collectResources,
   } = useGameActions(gameState, setGameState, gameMode, gameId);
 
   const handleBuild = (buildingType: string) => {
@@ -236,58 +232,31 @@ const Index = () => {
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-        {showLeaderboard ? (
-          <div className="p-4">
-            <button
-              onClick={() => setShowLeaderboard(false)}
-              className="mb-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
-            >
-              Back to Menu
-            </button>
-            <Leaderboard />
-          </div>
-        ) : gameStatus === "stats" ? (
-          <div className="container mx-auto p-4">
-            <button
-              onClick={() => setGameStatus("menu")}
-              className="mb-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
-            >
-              Back to Menu
-            </button>
-            <Stats />
-          </div>
-        ) : (
-          <div className="container mx-auto p-4">
-            <GameStartMenu
-              gameStatus={gameStatus}
-              gameMode={gameMode}
-              onSelectMode={(mode) => {
-                setGameMode(mode);
-                setGameStatus("mode_select");
-              }}
-              onCreateGame={onCreateGame}
-              onJoinGame={onJoinGame}
-              joinRoomId={joinRoomId}
-              onJoinRoomIdChange={setJoinRoomId}
-              isHost={isHost}
-              onStartAnyway={handleStartAnyway}
-            />
-            <div className="flex gap-4 mt-4 justify-center">
-              <button
-                onClick={() => setShowLeaderboard(true)}
-                className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
-              >
-                View Leaderboard
-              </button>
-              <button
-                onClick={() => setGameStatus("stats")}
-                className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
-              >
-                View Statistics
-              </button>
-            </div>
-          </div>
-        )}
+        <PreGameScreens
+          showLeaderboard={showLeaderboard}
+          gameStatus={gameStatus}
+          onBackToMenu={() => {
+            setShowLeaderboard(false);
+            setGameStatus("menu");
+          }}
+        >
+          <MainMenu
+            gameStatus={gameStatus}
+            gameMode={gameMode}
+            onSelectMode={(mode) => {
+              setGameMode(mode);
+              setGameStatus("mode_select");
+            }}
+            onCreateGame={onCreateGame}
+            onJoinGame={onJoinGame}
+            joinRoomId={joinRoomId}
+            onJoinRoomIdChange={setJoinRoomId}
+            isHost={isHost}
+            onStartAnyway={handleStartAnyway}
+            onShowLeaderboard={() => setShowLeaderboard(true)}
+            onShowStats={() => setGameStatus("stats")}
+          />
+        </PreGameScreens>
       </div>
     );
   }
@@ -295,19 +264,16 @@ const Index = () => {
   if (!gameState) return null;
 
   return (
-    <>
-      <GameBoard
-        gameState={gameState}
-        selectedTerritory={selectedTerritory}
-        onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
-        onEndTurn={handleEndTurn}
-        onEndPhase={handleEndPhase}
-        onBuild={handleBuild}
-        onRecruit={handleRecruit}
-        onGiveUp={handleGiveUp}
-      />
-      <GameUpdatesPanel gameState={gameState} />
-    </>
+    <GameScreen
+      gameState={gameState}
+      selectedTerritory={selectedTerritory}
+      onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
+      onEndTurn={handleEndTurn}
+      onEndPhase={handleEndPhase}
+      onBuild={handleBuild}
+      onRecruit={handleRecruit}
+      onGiveUp={handleGiveUp}
+    />
   );
 };
 
