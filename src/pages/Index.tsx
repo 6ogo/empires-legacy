@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import HexGrid from "@/components/game/HexGrid";
 import ResourceDisplay from "@/components/game/ResourceDisplay";
 import GameControls from "@/components/game/GameControls";
 import BuildingMenu from "@/components/game/BuildingMenu";
-import { GameState, Territory } from "@/types/game";
+import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
 
 const generateInitialTerritories = (): Territory[] => {
@@ -101,9 +100,43 @@ const Index = () => {
       return;
     }
 
+    if (selectedTerritory.building) {
+      toast.error("This territory already has a building!");
+      return;
+    }
+
     const currentPlayer = gameState.players.find(
       (p) => p.id === gameState.currentPlayer
     )!;
+
+    const building = buildings.find((b) => b.id === buildingType)!;
+    
+    // Check if player can afford the building
+    const canAfford = Object.entries(building.cost).every(
+      ([resource, cost]) => 
+        currentPlayer.resources[resource as keyof typeof currentPlayer.resources] >= cost
+    );
+
+    if (!canAfford) {
+      toast.error("Not enough resources to build this!");
+      return;
+    }
+
+    // Deduct resources
+    const updatedPlayers = gameState.players.map((player) =>
+      player.id === gameState.currentPlayer
+        ? {
+            ...player,
+            resources: Object.entries(building.cost).reduce(
+              (acc, [resource, cost]) => ({
+                ...acc,
+                [resource]: player.resources[resource as keyof Resources] - cost,
+              }),
+              player.resources
+            ),
+          }
+        : player
+    );
 
     // Update territory with new building
     const updatedTerritories = gameState.territories.map((t) =>
@@ -115,9 +148,10 @@ const Index = () => {
     setGameState({
       ...gameState,
       territories: updatedTerritories,
+      players: updatedPlayers,
     });
 
-    toast.success(`Built ${buildingType} in selected territory!`);
+    toast.success(`Built ${building.name} in selected territory!`);
   };
 
   const collectResources = () => {
@@ -242,5 +276,50 @@ const Index = () => {
     </div>
   );
 };
+
+const buildings = [
+  {
+    id: "lumber_mill",
+    name: "Lumber Mill",
+    icon: "TreeDeciduous",
+    cost: { gold: 50, wood: 20 },
+    description: "+2 wood per turn",
+  },
+  {
+    id: "mine",
+    name: "Mine",
+    icon: "Mountain",
+    cost: { gold: 50, stone: 20 },
+    description: "+2 stone per turn",
+  },
+  {
+    id: "market",
+    name: "Market",
+    icon: "Store",
+    cost: { gold: 100, wood: 30 },
+    description: "+2 gold per turn",
+  },
+  {
+    id: "farm",
+    name: "Farm",
+    icon: "GalleryThumbnails",
+    cost: { gold: 50, wood: 20 },
+    description: "+2 food per turn",
+  },
+  {
+    id: "barracks",
+    name: "Barracks",
+    icon: "Sword",
+    cost: { gold: 150, wood: 50, stone: 50 },
+    description: "Enables unit training",
+  },
+  {
+    id: "fortress",
+    name: "Fortress",
+    icon: "Castle",
+    cost: { gold: 300, stone: 150 },
+    description: "+50% defense",
+  },
+];
 
 export default Index;
