@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -23,25 +22,6 @@ export interface UserProfile {
   level: number;
   last_username_change: string | null;
   achievements: Json[];
-}
-
-interface ProfileResponse {
-  id: string;
-  username: string | null;
-  verified: boolean | null;
-  email_verified: boolean | null;
-  preferences: Json | null;
-  avatar_url: string | null;
-  created_at: string;
-  total_gametime: number | null;
-  total_games_played: number | null;
-  total_wins: number | null;
-  economic_wins: number | null;
-  domination_wins: number | null;
-  xp: number | null;
-  level: number | null;
-  last_username_change: string | null;
-  achievements: Json[] | null;
 }
 
 export const useAuth = () => {
@@ -80,7 +60,7 @@ export const useAuth = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle() as { data: ProfileResponse | null; error: any };
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -96,15 +76,15 @@ export const useAuth = () => {
             : (data.preferences as { stayLoggedIn: boolean }) ?? { stayLoggedIn: false },
           avatar_url: data.avatar_url,
           created_at: data.created_at,
-          total_gametime: data.total_gametime ?? 0,
-          total_games_played: data.total_games_played ?? 0,
-          total_wins: data.total_wins ?? 0,
-          economic_wins: data.economic_wins ?? 0,
-          domination_wins: data.domination_wins ?? 0,
-          xp: data.xp ?? 0,
-          level: data.level ?? 1,
-          last_username_change: data.last_username_change,
-          achievements: data.achievements ?? [],
+          total_gametime: data.total_gametime || 0,
+          total_games_played: data.total_games_played || 0,
+          total_wins: data.total_wins || 0,
+          economic_wins: data.economic_wins || 0,
+          domination_wins: data.domination_wins || 0,
+          xp: 0,
+          level: 1,
+          last_username_change: null,
+          achievements: [],
         };
 
         setProfile(transformedProfile);

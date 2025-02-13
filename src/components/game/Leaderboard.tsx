@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/hooks/useAuth";
@@ -20,8 +21,29 @@ import {
 } from "@/components/ui/table";
 import { Trophy, Clock, GamepadIcon, Swords, Coins } from "lucide-react";
 
+// Extend the database profile type with our new fields
+interface ExtendedProfile {
+  id: string;
+  username: string | null;
+  verified: boolean;
+  email_verified: boolean;
+  preferences: { stayLoggedIn: boolean };
+  avatar_url: string | null;
+  created_at: string;
+  total_gametime: number;
+  total_games_played: number;
+  total_wins: number;
+  economic_wins: number;
+  domination_wins: number;
+  // Add default values for the new fields
+  xp?: number;
+  level?: number;
+  last_username_change?: string | null;
+  achievements?: Json[];
+}
+
 const Leaderboard = () => {
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [profiles, setProfiles] = useState<ExtendedProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,26 +58,27 @@ const Leaderboard = () => {
         if (error) throw error;
         
         if (data) {
-          // Transform the data to match UserProfile type
-          const transformedProfiles: UserProfile[] = data.map(profile => ({
+          // Transform the data and provide default values for new fields
+          const transformedProfiles: ExtendedProfile[] = data.map(profile => ({
             id: profile.id,
             username: profile.username,
-            verified: profile.verified,
-            email_verified: profile.email_verified,
+            verified: !!profile.verified,
+            email_verified: !!profile.email_verified,
             preferences: typeof profile.preferences === 'string' 
               ? JSON.parse(profile.preferences)
               : profile.preferences as { stayLoggedIn: boolean },
             avatar_url: profile.avatar_url,
             created_at: profile.created_at,
-            total_gametime: profile.total_gametime,
-            total_games_played: profile.total_games_played,
-            total_wins: profile.total_wins,
-            economic_wins: profile.economic_wins,
-            domination_wins: profile.domination_wins,
-            xp: profile.xp || 0,
-            level: profile.level || 1,
-            last_username_change: profile.last_username_change,
-            achievements: profile.achievements || [],
+            total_gametime: profile.total_gametime || 0,
+            total_games_played: profile.total_games_played || 0,
+            total_wins: profile.total_wins || 0,
+            economic_wins: profile.economic_wins || 0,
+            domination_wins: profile.domination_wins || 0,
+            // Add default values for new fields
+            xp: 0,
+            level: 1,
+            last_username_change: null,
+            achievements: [],
           }));
           setProfiles(transformedProfiles);
         }
@@ -174,9 +197,9 @@ const Leaderboard = () => {
 };
 
 interface LeaderboardTableProps {
-  data: UserProfile[];
+  data: ExtendedProfile[];
   columns: string[];
-  renderRow: (profile: UserProfile, index: number) => React.ReactNode;
+  renderRow: (profile: ExtendedProfile, index: number) => React.ReactNode;
 }
 
 const LeaderboardTable = ({ data, columns, renderRow }: LeaderboardTableProps) => (
