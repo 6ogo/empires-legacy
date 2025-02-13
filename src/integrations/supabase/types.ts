@@ -145,20 +145,29 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email_verified: boolean | null
           id: string
+          preferences: Json | null
           username: string | null
+          verified: boolean | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email_verified?: boolean | null
           id: string
+          preferences?: Json | null
           username?: string | null
+          verified?: boolean | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email_verified?: boolean | null
           id?: string
+          preferences?: Json | null
           username?: string | null
+          verified?: boolean | null
         }
         Relationships: []
       }
