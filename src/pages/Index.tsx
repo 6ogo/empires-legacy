@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import HexGrid from "@/components/game/HexGrid";
 import ResourceDisplay from "@/components/game/ResourceDisplay";
@@ -41,7 +42,7 @@ const generateInitialTerritories = (): Territory[] => {
 
 const createInitialGameState = (numPlayers: number): GameState => ({
   players: Array.from({ length: numPlayers }, (_, i) => ({
-    id: `player${i + 1}` as PlayerColor, // Fix: Cast to PlayerColor
+    id: `player${i + 1}` as PlayerColor,
     resources: { gold: 100, wood: 50, stone: 50, food: 50 },
     territories: [],
   })),
@@ -134,6 +135,7 @@ const Index = () => {
   };
 
   const handleBuild = (buildingType: string) => {
+    if (!gameState) return;
     if (!selectedTerritory) {
       toast.error("Select a territory to build in!");
       return;
@@ -151,9 +153,12 @@ const Index = () => {
 
     const currentPlayer = gameState.players.find(
       (p) => p.id === gameState.currentPlayer
-    )!;
+    );
 
-    const building = buildings.find((b) => b.id === buildingType)!;
+    if (!currentPlayer) return;
+
+    const building = buildings.find((b) => b.id === buildingType);
+    if (!building) return;
     
     const canAfford = Object.entries(building.cost).every(
       ([resource, cost]) => 
@@ -196,9 +201,13 @@ const Index = () => {
   };
 
   const collectResources = () => {
+    if (!gameState) return;
+
     const currentPlayer = gameState.players.find(
       (p) => p.id === gameState.currentPlayer
-    )!;
+    );
+
+    if (!currentPlayer) return;
 
     const ownedTerritories = gameState.territories.filter(
       (t) => t.owner === gameState.currentPlayer
@@ -237,6 +246,8 @@ const Index = () => {
   };
 
   const handleEndPhase = () => {
+    if (!gameState) return;
+
     const phases: GameState["phase"][] = [
       "resource",
       "building",
@@ -263,6 +274,8 @@ const Index = () => {
   };
 
   const handleEndTurn = () => {
+    if (!gameState) return;
+
     setGameState({
       ...gameState,
       turn: gameState.turn + 1,
@@ -272,10 +285,6 @@ const Index = () => {
 
     toast.success(`Turn ${gameState.turn + 1} begins!`);
   };
-
-  const currentPlayer = gameState.players.find(
-    (p) => p.id === gameState.currentPlayer
-  )!;
 
   if (!gameStarted) {
     return (
@@ -299,7 +308,21 @@ const Index = () => {
     );
   }
 
-  if (!gameState) return null;
+  if (!gameState) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Loading game state...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  const currentPlayer = gameState.players.find(
+    (p) => p.id === gameState.currentPlayer
+  );
+
+  if (!currentPlayer) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
