@@ -93,8 +93,9 @@ const Auth = () => {
         }
 
         // Set session persistence based on stayLoggedIn preference
-        await supabase.auth.updateSession({
-          data: { stayLoggedIn }
+        await supabase.auth.setSession({
+          access_token: data.session?.access_token || '',
+          refresh_token: data.session?.refresh_token || '',
         });
 
         toast.success("Signed in successfully!");

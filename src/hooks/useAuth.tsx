@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { Json } from "@/integrations/supabase/types";
 
 export interface UserProfile {
   id: string;
@@ -11,6 +12,8 @@ export interface UserProfile {
   preferences: {
     stayLoggedIn: boolean;
   };
+  avatar_url: string | null;
+  created_at: string;
 }
 
 export const useAuth = () => {
@@ -52,7 +55,21 @@ export const useAuth = () => {
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      
+      // Transform the data to match UserProfile type
+      const transformedProfile: UserProfile = {
+        id: data.id,
+        username: data.username,
+        verified: data.verified,
+        email_verified: data.email_verified,
+        preferences: typeof data.preferences === 'string' 
+          ? JSON.parse(data.preferences)
+          : data.preferences,
+        avatar_url: data.avatar_url,
+        created_at: data.created_at,
+      };
+
+      setProfile(transformedProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {

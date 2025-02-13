@@ -11,6 +11,12 @@ export interface Resources {
   food: number;
 }
 
+export interface Units {
+  infantry: number;
+  cavalry: number;
+  artillery: number;
+}
+
 export interface MilitaryUnit {
   type: string;
   health: number;
@@ -32,6 +38,7 @@ export interface Territory {
 export interface Player {
   id: PlayerColor;
   resources: Resources;
+  units: Units;
   territories: Territory[];
 }
 
