@@ -147,6 +147,7 @@ export type Database = {
           created_at: string
           email_verified: boolean | null
           id: string
+          is_guest: boolean | null
           preferences: Json | null
           username: string | null
           verified: boolean | null
@@ -156,6 +157,7 @@ export type Database = {
           created_at?: string
           email_verified?: boolean | null
           id: string
+          is_guest?: boolean | null
           preferences?: Json | null
           username?: string | null
           verified?: boolean | null
@@ -165,6 +167,7 @@ export type Database = {
           created_at?: string
           email_verified?: boolean | null
           id?: string
+          is_guest?: boolean | null
           preferences?: Json | null
           username?: string | null
           verified?: boolean | null
