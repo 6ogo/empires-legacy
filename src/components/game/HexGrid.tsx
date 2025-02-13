@@ -55,25 +55,6 @@ const HexGrid: React.FC<HexGridProps> = ({
     );
   };
 
-  const canPurchaseTerritory = (territory: Territory) => {
-    if (phase !== "building") return false;
-    if (territory.owner) return false;
-    if (!hasAdjacentOwnedTerritory(territory)) return false;
-    
-    const cost = {
-      gold: 50,
-      wood: 20,
-      stone: 20,
-      food: 20
-    };
-
-    const canAfford = Object.entries(cost).every(
-      ([resource, amount]) => playerResources[resource as keyof typeof playerResources] >= amount
-    );
-
-    return canAfford;
-  };
-
   const canClaimTerritory = (territory: Territory) => {
     if (phase !== "setup") return false;
     if (territory.owner) {
@@ -91,12 +72,36 @@ const HexGrid: React.FC<HexGridProps> = ({
       return false;
     }
 
+    // Check if territory is adjacent to opponent's territory
+    const hasAdjacentOpponentTerritory = territories.some(t => 
+      t.owner && t.owner !== currentPlayer && isAdjacent(t, territory)
+    );
+
+    if (hasAdjacentOpponentTerritory) {
+      toast.error("Starting territories cannot be adjacent to each other!");
+      return false;
+    }
+
     return true;
   };
 
-  const handleTerritoryClick = (territory: Territory) => {
-    if (!canInteractWithTerritory(territory)) return;
-    onTerritoryClick(territory);
+  const canPurchaseTerritory = (territory: Territory) => {
+    if (phase !== "building") return false;
+    if (territory.owner) return false;
+    if (!hasAdjacentOwnedTerritory(territory)) return false;
+    
+    const cost = {
+      gold: 50,
+      wood: 20,
+      stone: 20,
+      food: 20
+    };
+
+    const canAfford = Object.entries(cost).every(
+      ([resource, amount]) => playerResources[resource as keyof typeof playerResources] >= amount
+    );
+
+    return canAfford;
   };
 
   const canInteractWithTerritory = (territory: Territory) => {
@@ -131,6 +136,36 @@ const HexGrid: React.FC<HexGridProps> = ({
     );
   };
 
+  const renderRoad = (territory: Territory) => {
+    if (!territory.building || territory.building !== "road") return null;
+    
+    const adjacentTerritories = territories.filter(t => isAdjacent(territory, t));
+    return adjacentTerritories.map(adjTerritory => {
+      if (adjTerritory.owner !== territory.owner) return null;
+      
+      const start = getHexPosition(territory.coordinates.q, territory.coordinates.r);
+      const end = getHexPosition(adjTerritory.coordinates.q, adjTerritory.coordinates.r);
+      
+      return (
+        <line
+          key={`road-${territory.id}-${adjTerritory.id}`}
+          x1={start.x}
+          y1={start.y}
+          x2={end.x}
+          y2={end.y}
+          className="stroke-gray-400 stroke-2"
+          strokeLinecap="round"
+        />
+      );
+    });
+  };
+
+  const playerColors = {
+    player1: "fill-purple-500",
+    player2: "fill-orange-500",
+    neutral: "fill-gray-700"
+  };
+
   const resourceColors = {
     wood: "text-game-wood",
     stone: "text-game-stone",
@@ -162,6 +197,8 @@ const HexGrid: React.FC<HexGridProps> = ({
         className="w-full h-full"
       >
         <g>
+          {territories.map(territory => renderRoad(territory))}
+          
           {territories.map((territory) => {
             const { x, y } = getHexPosition(
               territory.coordinates.q,
@@ -185,7 +222,7 @@ const HexGrid: React.FC<HexGridProps> = ({
                   <polygon
                     points={getHexagonPoints()}
                     className={`
-                      ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
+                      ${territory.owner ? playerColors[territory.owner] : playerColors.neutral}
                       stroke-gray-400 stroke-2
                       transition-colors duration-300
                       ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
@@ -196,11 +233,11 @@ const HexGrid: React.FC<HexGridProps> = ({
                     <text
                       x="0"
                       y="-15"
-                      className="text-xs fill-white font-bold text-center select-none pointer-events-none"
+                      className="text-base fill-white font-bold text-center select-none pointer-events-none"
                       textAnchor="middle"
                       dominantBaseline="middle"
                     >
-                      {territory.building}
+                      {territory.building.replace(/_/g, ' ')}
                     </text>
                   )}
                   {territory.militaryUnit && (

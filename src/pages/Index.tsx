@@ -174,19 +174,19 @@ const Index = () => {
 
     const resourceGains = ownedTerritories.reduce(
       (acc, territory) => {
-        acc.gold += 5;
-        acc.wood += 3;
-        acc.stone += 3;
-        acc.food += 3;
+        acc.gold += 10;  // Increased base resources
+        acc.wood += 5;
+        acc.stone += 5;
+        acc.food += 5;
 
         Object.entries(territory.resources).forEach(([resource, amount]) => {
-          acc[resource as keyof typeof acc] += amount * 2;
+          acc[resource as keyof typeof acc] += amount * 3;  // Increased multiplier
         });
 
-        if (territory.building === "lumber_mill") acc.wood += 4;
-        if (territory.building === "mine") acc.stone += 4;
-        if (territory.building === "market") acc.gold += 4;
-        if (territory.building === "farm") acc.food += 4;
+        if (territory.building === "lumber_mill") acc.wood += 8;  // Increased building bonus
+        if (territory.building === "mine") acc.stone += 8;
+        if (territory.building === "market") acc.gold += 8;
+        if (territory.building === "farm") acc.food += 8;
 
         return acc;
       },
@@ -212,7 +212,11 @@ const Index = () => {
       players: updatedPlayers,
     });
 
-    toast.success("Resources collected!");
+    toast.success(
+      `Resources collected: ${Object.entries(resourceGains)
+        .map(([resource, amount]) => `${amount} ${resource}`)
+        .join(", ")}`
+    );
   };
 
   const handleBuild = async (buildingType: string) => {
@@ -287,14 +291,19 @@ const Index = () => {
       "movement",
       "combat",
     ];
+    
     const currentPhaseIndex = phases.indexOf(gameState.phase as any);
-    const nextPhase =
-      currentPhaseIndex === phases.length - 1
-        ? phases[0]
-        : phases[currentPhaseIndex + 1];
+    const nextPhase = currentPhaseIndex === phases.length - 1
+      ? phases[0]
+      : phases[currentPhaseIndex + 1];
 
     if (gameState.phase === "resource") {
       collectResources();
+    }
+
+    if (currentPhaseIndex === phases.length - 1) {
+      handleEndTurn();
+      return;
     }
 
     setGameState({
