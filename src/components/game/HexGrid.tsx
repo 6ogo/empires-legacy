@@ -45,7 +45,8 @@ const HexGrid: React.FC<HexGridProps> = ({
   const isAdjacent = (t1: Territory, t2: Territory) => {
     const dx = Math.abs(t1.coordinates.q - t2.coordinates.q);
     const dy = Math.abs(t1.coordinates.r - t2.coordinates.r);
-    return (dx === 1 && dy === 0) || (dx === 0 && dy === 1) || (dx === 1 && dy === 1);
+    const ds = Math.abs((t1.coordinates.q + t1.coordinates.r) - (t2.coordinates.q + t2.coordinates.r));
+    return (dx <= 1 && dy <= 1 && ds <= 1) && !(dx === 0 && dy === 0);
   };
 
   const hasAdjacentOwnedTerritory = (territory: Territory) => {
@@ -57,10 +58,7 @@ const HexGrid: React.FC<HexGridProps> = ({
   const canPurchaseTerritory = (territory: Territory) => {
     if (phase !== "building") return false;
     if (territory.owner) return false;
-    if (!hasAdjacentOwnedTerritory(territory)) {
-      toast.error("You can only purchase territories adjacent to your own!");
-      return false;
-    }
+    if (!hasAdjacentOwnedTerritory(territory)) return false;
     
     const cost = {
       gold: 50,
@@ -73,12 +71,7 @@ const HexGrid: React.FC<HexGridProps> = ({
       ([resource, amount]) => playerResources[resource as keyof typeof playerResources] >= amount
     );
 
-    if (!canAfford) {
-      toast.error("Insufficient resources to purchase this territory!");
-      return false;
-    }
-
-    return true;
+    return canAfford;
   };
 
   const canClaimTerritory = (territory: Territory) => {

@@ -156,7 +156,7 @@ const Index = () => {
       }
     }
 
-    toast.success(`Turn ${updatedState.turn} begins!`);
+    toast.success(`${nextPlayer}'s turn begins!`);
   };
 
   const collectResources = () => {
@@ -174,12 +174,23 @@ const Index = () => {
 
     const resourceGains = ownedTerritories.reduce(
       (acc, territory) => {
+        acc.gold += 5;
+        acc.wood += 3;
+        acc.stone += 3;
+        acc.food += 3;
+
         Object.entries(territory.resources).forEach(([resource, amount]) => {
-          acc[resource as keyof typeof acc] += amount;
+          acc[resource as keyof typeof acc] += amount * 2;
         });
+
+        if (territory.building === "lumber_mill") acc.wood += 4;
+        if (territory.building === "mine") acc.stone += 4;
+        if (territory.building === "market") acc.gold += 4;
+        if (territory.building === "farm") acc.food += 4;
+
         return acc;
       },
-      { gold: 2, wood: 1, stone: 1, food: 1 }
+      { gold: 0, wood: 0, stone: 0, food: 0 }
     );
 
     const updatedPlayers = gameState.players.map((player) =>
@@ -202,6 +213,68 @@ const Index = () => {
     });
 
     toast.success("Resources collected!");
+  };
+
+  const handleBuild = async (buildingType: string) => {
+    if (!gameState || !selectedTerritory) return;
+
+    const cost = {
+      lumber_mill: { gold: 50, wood: 20 },
+      mine: { gold: 50, stone: 20 },
+      market: { gold: 100, wood: 30 },
+      farm: { gold: 50, wood: 20 },
+      road: { wood: 25, stone: 25 },
+      barracks: { gold: 150, wood: 50, stone: 50 },
+      fortress: { gold: 300, stone: 150 },
+    }[buildingType];
+
+    if (!cost) return;
+
+    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
+    if (!currentPlayer) return;
+
+    const updatedResources = { ...currentPlayer.resources };
+    Object.entries(cost).forEach(([resource, amount]) => {
+      updatedResources[resource as keyof typeof updatedResources] -= amount;
+    });
+
+    const updatedTerritories = gameState.territories.map(t =>
+      t.id === selectedTerritory.id
+        ? { ...t, building: buildingType }
+        : t
+    );
+
+    const updatedPlayers = gameState.players.map(p =>
+      p.id === gameState.currentPlayer
+        ? { ...p, resources: updatedResources }
+        : p
+    );
+
+    const updatedState = {
+      ...gameState,
+      territories: updatedTerritories,
+      players: updatedPlayers,
+    };
+
+    setGameState(updatedState);
+
+    if (gameMode === "online" && gameId) {
+      try {
+        const { error } = await supabase
+          .from('games')
+          .update({ 
+            state: updatedState as unknown as Json,
+          })
+          .eq('id', gameId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error updating game:', error);
+        toast.error('Failed to update game state. Please try again.');
+      }
+    }
+
+    toast.success(`Built ${buildingType} in selected territory!`);
   };
 
   const handleEndPhase = () => {
@@ -270,20 +343,17 @@ const Index = () => {
 
     if (!currentPlayer) return;
 
-    // Update player resources
     const updatedResources = { ...currentPlayer.resources };
     Object.entries(unit.cost).forEach(([resource, cost]) => {
       updatedResources[resource as keyof typeof updatedResources] -= cost || 0;
     });
 
-    // Update territory with new unit
     const updatedTerritories = gameState.territories.map(t =>
       t.id === selectedTerritory.id
         ? { ...t, militaryUnit: unit }
         : t
     );
 
-    // Update players with new resources
     const updatedPlayers = gameState.players.map(p =>
       p.id === gameState.currentPlayer
         ? { ...p, resources: updatedResources }
@@ -362,7 +432,7 @@ const Index = () => {
       onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
-      onBuild={() => {}}
+      onBuild={handleBuild}
       onRecruit={handleRecruit}
       onGiveUp={handleGiveUp}
     />
