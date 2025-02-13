@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from "react";
-import { GameState } from "@/types/game";
+import { GameState, GameUpdate } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 import GameModeSelect from "@/components/game/GameModeSelect";
 import BoardSizeSelect from "@/components/game/BoardSizeSelect";
 import GameBoard from "@/components/game/GameBoard";
@@ -47,7 +49,7 @@ const Index = () => {
           if (error) throw error;
 
           if (data) {
-            setGameState(data.state as GameState);
+            setGameState(data.state as unknown as GameState);
             setGameStarted(true);
             setGameStatus(data.game_status === 'waiting' ? 'waiting' : 'playing');
             toast.success(`Game loaded!`);
@@ -67,7 +69,7 @@ const Index = () => {
           filter: `id=eq.${gameId}`
         }, (payload) => {
           const gameData = payload.new;
-          setGameState(gameData.state as GameState);
+          setGameState(gameData.state as unknown as GameState);
           if (gameData.game_status === 'playing') {
             setGameStatus('playing');
           }
@@ -102,7 +104,7 @@ const Index = () => {
   const onJoinGame = async () => {
     const data = await handleJoinGame();
     if (data) {
-      setGameState(data.state as GameState);
+      setGameState(data.state as unknown as GameState);
       setGameStarted(true);
       setGameStatus(data.joined_players + 1 === data.num_players ? 'playing' : 'waiting');
     }
