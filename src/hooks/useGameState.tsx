@@ -45,7 +45,9 @@ export const useGameState = (gameMode: "local" | "online" | null) => {
           : player
       );
 
-      const nextPlayer: PlayerColor = gameState.currentPlayer === "player1" ? "player2" : "player1";
+      // Find next player index
+      const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
+      const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
 
       const allPlayersHaveClaimed = updatedPlayers.every(
         player => player.territories.length === 1

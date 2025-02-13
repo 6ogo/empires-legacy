@@ -4,6 +4,7 @@ import { Json } from "@/integrations/supabase/types";
 
 export const generateInitialTerritories = (boardSize: number): Territory[] => {
   const territories: Territory[] = [];
+  // Increase radius based on number of players for larger boards
   const radius = Math.floor(Math.sqrt(boardSize) / 2);
 
   for (let q = -radius; q <= radius; q++) {
@@ -15,13 +16,14 @@ export const generateInitialTerritories = (boardSize: number): Territory[] => {
         const resources: Partial<Resources> = {};
         const resourceTypes = ['gold', 'wood', 'stone', 'food'] as const;
         
-        const numResources = Math.floor(Math.random() * 3) + 1;
+        // Increase number of resources per territory
+        const numResources = Math.floor(Math.random() * 2) + 2; // 2-3 resources per territory
         const selectedResources = [...resourceTypes]
           .sort(() => Math.random() - 0.5)
           .slice(0, numResources);
         
         selectedResources.forEach(resource => {
-          resources[resource] = Math.floor(Math.random() * 3) + 1;
+          resources[resource] = Math.floor(Math.random() * 4) + 2; // 2-5 resources per type
         });
 
         territories.push({
@@ -38,15 +40,20 @@ export const generateInitialTerritories = (boardSize: number): Territory[] => {
   return territories;
 };
 
-export const createInitialGameState = (numPlayers: number, boardSize: number): GameState => ({
-  players: Array.from({ length: numPlayers }, (_, i) => ({
-    id: `player${i + 1}` as PlayerColor,
-    resources: { gold: 100, wood: 50, stone: 50, food: 50 },
-    territories: [],
-  })),
-  territories: generateInitialTerritories(boardSize),
-  currentPlayer: "player1" as PlayerColor,
-  phase: "setup",
-  turn: 1,
-  updates: [],
-});
+export const createInitialGameState = (numPlayers: number, boardSize: number): GameState => {
+  // Scale board size based on number of players
+  const scaledBoardSize = Math.max(boardSize, numPlayers * 12);
+
+  return {
+    players: Array.from({ length: numPlayers }, (_, i) => ({
+      id: `player${i + 1}` as PlayerColor,
+      resources: { gold: 100, wood: 50, stone: 50, food: 50 },
+      territories: [],
+    })),
+    territories: generateInitialTerritories(scaledBoardSize),
+    currentPlayer: "player1",
+    phase: "setup",
+    turn: 1,
+    updates: [],
+  };
+};
