@@ -51,7 +51,8 @@ export const SignInForm = ({
         options: {
           data: {
             is_guest: true
-          }
+          },
+          emailRedirectTo: undefined // Disable email verification for guests
         }
       });
 
@@ -139,10 +140,10 @@ export const SignInForm = ({
             <Separator className="my-2" />
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={handleGuestLogin}
               disabled={isGuestLoading}
-              className="w-full"
+              className="w-full text-white bg-white/20 hover:bg-white/30"
             >
               {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
             </Button>
@@ -177,10 +178,10 @@ export const SignInForm = ({
             <Separator className="my-2" />
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={handleGuestLogin}
               disabled={isGuestLoading}
-              className="w-full"
+              className="w-full text-white bg-white/20 hover:bg-white/30"
             >
               {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
             </Button>
