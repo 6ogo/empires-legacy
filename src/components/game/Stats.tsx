@@ -35,7 +35,16 @@ const Stats = () => {
     );
   }
 
-  const chartData = stats?.map(player => ({
+  if (!stats || stats.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <h2 className="text-2xl font-semibold mb-4">No Statistics Available</h2>
+        <p className="text-gray-400">Play some games to see your statistics here!</p>
+      </div>
+    );
+  }
+
+  const chartData = stats.map(player => ({
     name: player.username || 'Anonymous',
     wins: player.total_wins,
     domination: player.domination_wins,

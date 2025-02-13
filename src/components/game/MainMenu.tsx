@@ -38,7 +38,8 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
   const handleMenuClick = () => {
-    onSelectMode(null as any);
+    // Reset both gameMode and status by setting mode to null
+    onSelectMode(null);
   };
 
   return (

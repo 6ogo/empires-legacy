@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/hooks/useAuth";
@@ -21,7 +20,6 @@ import {
 } from "@/components/ui/table";
 import { Trophy, Clock, GamepadIcon, Swords, Coins } from "lucide-react";
 
-// Extend the database profile type with our new fields
 interface ExtendedProfile {
   id: string;
   username: string | null;
@@ -35,7 +33,6 @@ interface ExtendedProfile {
   total_wins: number;
   economic_wins: number;
   domination_wins: number;
-  // Add default values for the new fields
   xp?: number;
   level?: number;
   last_username_change?: string | null;
@@ -58,7 +55,6 @@ const Leaderboard = () => {
         if (error) throw error;
         
         if (data) {
-          // Transform the data and provide default values for new fields
           const transformedProfiles: ExtendedProfile[] = data.map(profile => ({
             id: profile.id,
             username: profile.username,
@@ -74,7 +70,6 @@ const Leaderboard = () => {
             total_wins: profile.total_wins || 0,
             economic_wins: profile.economic_wins || 0,
             domination_wins: profile.domination_wins || 0,
-            // Add default values for new fields
             xp: 0,
             level: 1,
             last_username_change: null,
@@ -99,7 +94,27 @@ const Leaderboard = () => {
   };
 
   if (loading) {
-    return <div>Loading leaderboard...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (profiles.length === 0) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto bg-white/10 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-game-gold flex items-center gap-2">
+            <Trophy className="h-6 w-6" /> Leaderboard
+          </CardTitle>
+          <CardDescription>No players yet - be the first to play!</CardDescription>
+        </CardHeader>
+        <CardContent className="text-center py-12">
+          <p className="text-gray-400">Complete a game to appear on the leaderboard</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
