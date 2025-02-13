@@ -45,6 +45,22 @@ const MainMenu: React.FC<MainMenuProps> = ({
           <Button
             variant="outline"
             size="icon"
+            onClick={() => navigate('/')}
+            className="bg-white/10"
+            title="Go to Home"
+          >
+            <Home className="h-4 w-4" />
+          </Button>
+          {profile?.level && (
+            <div className="text-game-gold ml-4">
+              Level {profile.level} ({profile.xp} XP)
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
             onClick={onShowLeaderboard}
             className="bg-white/10"
             title="View Leaderboard"
@@ -63,26 +79,12 @@ const MainMenu: React.FC<MainMenuProps> = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/settings')}
             className="bg-white/10"
-            title="Go to Home"
           >
-            <Home className="h-4 w-4" />
+            <Settings className="h-4 w-4" />
           </Button>
-          {profile?.level && (
-            <div className="text-game-gold ml-4">
-              Level {profile.level} ({profile.xp} XP)
-            </div>
-          )}
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate('/settings')}
-          className="bg-white/10"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Center Content */}
