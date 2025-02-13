@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Territory } from "@/types/game";
 import { Trees, Mountain, Wheat, Coins } from "lucide-react";
@@ -212,7 +213,7 @@ const HexGrid: React.FC<HexGridProps> = ({
               <g
                 key={territory.id}
                 transform={`translate(${x}, ${y})`}
-                onClick={() => handleTerritoryClick(territory)}
+                onClick={() => onTerritoryClick(territory)}
                 className="origin-center"
               >
                 <g className={`

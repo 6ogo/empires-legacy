@@ -183,9 +183,14 @@ const Index = () => {
           acc[resource as keyof typeof acc] += amount * 3;  // Increased multiplier
         });
 
-        if (territory.building === "lumber_mill") acc.wood += 8;  // Increased building bonus
-        if (territory.building === "mine") acc.stone += 8;
-        if (territory.building === "market") acc.gold += 8;
+        if (territory.building === "lumber_mill") acc.wood += 20;  // Increased to 20
+        if (territory.building === "mine") acc.stone += 20;  // Increased to 20
+        if (territory.building === "market") {
+          acc.gold += 20;  // Increased to 20
+          acc.gold += (currentPlayer.resources.wood * 2);  // +2 gold per wood
+          acc.gold += (currentPlayer.resources.stone * 2); // +2 gold per stone
+          acc.gold += (currentPlayer.resources.food * 5);  // +5 gold per food
+        }
         if (territory.building === "farm") acc.food += 8;
 
         return acc;
@@ -212,10 +217,14 @@ const Index = () => {
       players: updatedPlayers,
     });
 
+    const marketBonus = ownedTerritories.some(t => t.building === "market")
+      ? ` (+${currentPlayer.resources.wood * 2} gold from wood, +${currentPlayer.resources.stone * 2} gold from stone, +${currentPlayer.resources.food * 5} gold from food)`
+      : '';
+
     toast.success(
       `Resources collected: ${Object.entries(resourceGains)
         .map(([resource, amount]) => `${amount} ${resource}`)
-        .join(", ")}`
+        .join(", ")}${marketBonus}`
     );
   };
 
