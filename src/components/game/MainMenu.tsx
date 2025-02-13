@@ -37,6 +37,13 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const { profile } = useAuth();
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
+  const handleHomeClick = () => {
+    if (gameStatus !== "menu") {
+      onSelectMode("local"); // Reset the game mode
+      navigate("/game"); // Navigate to game page
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-[#141B2C]">
       {/* Top Bar */}
@@ -45,9 +52,9 @@ const MainMenu: React.FC<MainMenuProps> = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/')}
+            onClick={handleHomeClick}
             className="bg-white/10"
-            title="Go to Home"
+            title="Go to Game Menu"
           >
             <Home className="h-4 w-4" />
           </Button>

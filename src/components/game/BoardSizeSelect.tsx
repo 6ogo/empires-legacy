@@ -42,6 +42,10 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
     setAvailableSizes(sizes.sort((a, b) => a - b));
   }, [numPlayers]);
 
+  const handleCreateGame = (size: number) => {
+    onCreateGame(numPlayers, size);
+  };
+
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -71,7 +75,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
           {availableSizes.map((size) => (
             <Button
               key={size}
-              onClick={() => onCreateGame(numPlayers, size)}
+              onClick={() => handleCreateGame(size)}
               className="px-8 py-6 text-xl bg-white/10 hover:bg-white/20 text-white transition-all"
             >
               {size} Hexes
