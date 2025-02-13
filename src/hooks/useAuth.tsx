@@ -52,26 +52,33 @@ export const useAuth = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
-      // Transform the data to match UserProfile type
-      const transformedProfile: UserProfile = {
-        id: data.id,
-        username: data.username,
-        verified: data.verified,
-        email_verified: data.email_verified,
-        preferences: typeof data.preferences === 'string' 
-          ? JSON.parse(data.preferences)
-          : data.preferences,
-        avatar_url: data.avatar_url,
-        created_at: data.created_at,
-      };
+      if (data) {
+        // Transform the data to match UserProfile type
+        const transformedProfile: UserProfile = {
+          id: data.id,
+          username: data.username,
+          verified: data.verified,
+          email_verified: data.email_verified,
+          preferences: typeof data.preferences === 'string' 
+            ? JSON.parse(data.preferences)
+            : data.preferences,
+          avatar_url: data.avatar_url,
+          created_at: data.created_at,
+        };
 
-      setProfile(transformedProfile);
+        setProfile(transformedProfile);
+      } else {
+        // Handle case where profile doesn't exist
+        console.log('No profile found for user:', userId);
+        setProfile(null);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
