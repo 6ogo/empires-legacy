@@ -22,7 +22,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
             <span className="font-semibold text-lg">{resources.gold}</span>
           </div>
         </HoverCardTrigger>
-        <HoverCardContent className="w-80">
+        <HoverCardContent className="w-80 z-50">
           <div className="flex flex-col space-y-2">
             <h4 className="font-semibold text-sm">Gold Income Sources</h4>
             <p className="text-sm">Base income: 10 per territory</p>
@@ -38,7 +38,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
             <span className="font-semibold text-lg">{resources.wood}</span>
           </div>
         </HoverCardTrigger>
-        <HoverCardContent className="w-80">
+        <HoverCardContent className="w-80 z-50">
           <div className="flex flex-col space-y-2">
             <h4 className="font-semibold text-sm">Wood Income Sources</h4>
             <p className="text-sm">Base income: 5 per territory</p>
@@ -55,7 +55,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
             <span className="font-semibold text-lg">{resources.stone}</span>
           </div>
         </HoverCardTrigger>
-        <HoverCardContent className="w-80">
+        <HoverCardContent className="w-80 z-50">
           <div className="flex flex-col space-y-2">
             <h4 className="font-semibold text-sm">Stone Income Sources</h4>
             <p className="text-sm">Base income: 5 per territory</p>
@@ -72,7 +72,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
             <span className="font-semibold text-lg">{resources.food}</span>
           </div>
         </HoverCardTrigger>
-        <HoverCardContent className="w-80">
+        <HoverCardContent className="w-80 z-50">
           <div className="flex flex-col space-y-2">
             <h4 className="font-semibold text-sm">Food Income Sources</h4>
             <p className="text-sm">Base income: 5 per territory</p>
