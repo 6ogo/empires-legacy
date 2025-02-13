@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trophy, Clock, GamepadIcon, Swords, Coins } from "lucide-react";
+import { Trophy, Clock, GamepadIcon, Swords, Coins, Loader } from "lucide-react";
 
 interface ExtendedProfile {
   id: string;
@@ -96,7 +96,7 @@ const Leaderboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader className="w-8 h-8 animate-spin" />
       </div>
     );
   }
