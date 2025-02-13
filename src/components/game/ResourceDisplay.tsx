@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Resources } from "@/types/game";
-import { Coins, Tree, Mountain, Wheat } from "lucide-react";
+import { Coins, Trees, Mountain, Wheat } from "lucide-react";
 
 interface ResourceDisplayProps {
   resources: Resources;
@@ -15,7 +15,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
         <span className="font-semibold">{resources.gold}</span>
       </div>
       <div className="flex items-center gap-2">
-        <Tree className="w-5 h-5 text-game-wood" />
+        <Trees className="w-5 h-5 text-game-wood" />
         <span className="font-semibold">{resources.wood}</span>
       </div>
       <div className="flex items-center gap-2">
