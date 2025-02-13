@@ -126,7 +126,7 @@ const Index = () => {
   };
 
   const handleTerritoryClick = async (territory: Territory) => {
-    if (!gameState || !gameId) return;
+    if (!gameState) return;
 
     if (gameState.phase === "setup") {
       if (territory.owner) {
@@ -149,39 +149,22 @@ const Index = () => {
 
       const nextPlayer = gameState.currentPlayer === "player1" ? "player2" : "player1";
 
-      const newUpdate: GameUpdate = {
-        type: "territory_claimed",
+      const newUpdate = {
+        type: "territory_claimed" as const,
         message: `${gameState.currentPlayer} claimed a territory`,
         timestamp: Date.now(),
       };
 
-      const updatedState: GameState = {
+      setGameState({
         ...gameState,
         territories: updatedTerritories,
         players: updatedPlayers,
         currentPlayer: nextPlayer,
         updates: [...gameState.updates, newUpdate],
-      };
+      });
 
-      try {
-        const { error } = await supabase
-          .from('games')
-          .update({ 
-            state: updatedState as unknown as Json,
-            current_player: updatedState.currentPlayer,
-            phase: updatedState.phase,
-          })
-          .eq('id', gameId);
-
-        if (error) throw error;
-
-        setGameState(updatedState);
-        toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
-      } catch (error) {
-        console.error('Error updating game:', error);
-        toast.error('Failed to update game state. Please try again.');
-      }
-    } else {
+      toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
+    } else if (gameState.phase === "building") {
       setSelectedTerritory(territory);
     }
   };
@@ -301,26 +284,30 @@ const Index = () => {
   const handleGiveUp = () => {
     if (!gameState) return;
     
-    const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
-    const remainingPlayers = gameState.players.filter(p => p.id !== gameState.currentPlayer);
-    
-    if (remainingPlayers.length === 1) {
-      // If only one player remains, they win
-      toast.success(`${remainingPlayers[0].id} wins!`);
-      setGameStarted(false);
-      setGameStatus("menu");
+    if (gameState.players.length === 2) {
+      const winner = gameState.players.find(p => p.id !== gameState.currentPlayer);
+      if (winner) {
+        toast.success(`${winner.id} wins!`);
+        setGameStarted(false);
+        setGameStatus("menu");
+      }
     } else {
-      // Remove current player and continue game
-      const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
-      const updatedPlayers = gameState.players.filter(p => p.id !== gameState.currentPlayer);
+      const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
+      const remainingPlayers = gameState.players.filter(p => p.id !== gameState.currentPlayer);
       
-      setGameState({
-        ...gameState,
-        players: updatedPlayers,
-        currentPlayer: nextPlayer,
-      });
-      
-      toast.info(`${gameState.currentPlayer} has given up!`);
+      if (remainingPlayers.length === 1) {
+        toast.success(`${remainingPlayers[0].id} wins!`);
+        setGameStarted(false);
+        setGameStatus("menu");
+      } else {
+        const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
+        setGameState({
+          ...gameState,
+          players: remainingPlayers,
+          currentPlayer: nextPlayer,
+        });
+        toast.info(`${gameState.currentPlayer} has given up!`);
+      }
     }
   };
 

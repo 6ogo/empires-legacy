@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Territory } from "@/types/game";
 import { Trees, Mountain, Wheat, Coins } from "lucide-react";
@@ -22,10 +21,8 @@ const HexGrid: React.FC<HexGridProps> = ({
   phase,
 }) => {
   const hexSize = 40;
-  
-  // These ratios create the proper spacing for a flat-topped hexagonal grid
-  const xSpacing = hexSize * 2;  // Reduced for tighter horizontal spacing
-  const ySpacing = hexSize * 1.8; // Adjusted for better vertical spacing
+  const xSpacing = hexSize * 2;
+  const ySpacing = hexSize * 1.8;
   
   const getHexagonPoints = () => {
     const points = [];
@@ -40,17 +37,31 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Using odd-q offset coordinates for better spacing
     const x = q * xSpacing + (r % 2) * (xSpacing / 2);
     const y = r * ySpacing;
     return { x, y };
   };
 
+  const isAdjacent = (t1: Territory, t2: Territory) => {
+    const dx = Math.abs(t1.coordinates.q - t2.coordinates.q);
+    const dy = Math.abs(t1.coordinates.r - t2.coordinates.r);
+    return (dx === 1 && dy === 0) || (dx === 0 && dy === 1) || (dx === 1 && dy === 1);
+  };
+
+  const hasAdjacentOwnedTerritory = (territory: Territory) => {
+    return territories.some(t => 
+      t.owner === currentPlayer && isAdjacent(t, territory)
+    );
+  };
+
   const canPurchaseTerritory = (territory: Territory) => {
-    if (phase !== "setup" && phase !== "building") return false;
+    if (phase !== "building") return false;
     if (territory.owner) return false;
+    if (!hasAdjacentOwnedTerritory(territory)) {
+      toast.error("You can only purchase territories adjacent to your own!");
+      return false;
+    }
     
-    // Base cost for territory purchase
     const cost = {
       gold: 50,
       wood: 20,
@@ -58,9 +69,25 @@ const HexGrid: React.FC<HexGridProps> = ({
       food: 20
     };
 
-    return Object.entries(cost).every(
+    const canAfford = Object.entries(cost).every(
       ([resource, amount]) => playerResources[resource as keyof typeof playerResources] >= amount
     );
+
+    if (!canAfford) {
+      toast.error("Insufficient resources to purchase this territory!");
+      return false;
+    }
+
+    return true;
+  };
+
+  const canClaimTerritory = (territory: Territory) => {
+    if (phase !== "setup") return false;
+    if (territory.owner) {
+      toast.error("This territory is already claimed!");
+      return false;
+    }
+    return true;
   };
 
   const handleTerritoryClick = (territory: Territory) => {
@@ -69,26 +96,8 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const canInteractWithTerritory = (territory: Territory) => {
-    if (phase === "setup") {
-      if (territory.owner) {
-        toast.error("This territory is already claimed!");
-        return false;
-      }
-      return true;
-    }
-
-    if (phase === "building") {
-      if (!territory.owner) {
-        if (canPurchaseTerritory(territory)) {
-          return true;
-        } else {
-          toast.error("Insufficient resources to purchase this territory!");
-          return false;
-        }
-      }
-      return territory.owner === currentPlayer;
-    }
-
+    if (phase === "setup") return canClaimTerritory(territory);
+    if (phase === "building") return canPurchaseTerritory(territory);
     return territory.owner === currentPlayer;
   };
 
@@ -132,14 +141,12 @@ const HexGrid: React.FC<HexGridProps> = ({
     gold: Coins
   };
 
-  // Calculate grid boundaries
   const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
   const minX = Math.min(...positions.map(p => p.x));
   const maxX = Math.max(...positions.map(p => p.x));
   const minY = Math.min(...positions.map(p => p.y));
   const maxY = Math.max(...positions.map(p => p.y));
   
-  // Add padding
   const padding = hexSize * 2;
   const viewBoxWidth = (maxX - minX) + padding * 2;
   const viewBoxHeight = (maxY - minY) + padding * 2;
@@ -165,41 +172,43 @@ const HexGrid: React.FC<HexGridProps> = ({
                 key={territory.id}
                 transform={`translate(${x}, ${y})`}
                 onClick={() => handleTerritoryClick(territory)}
-                className={`
-                  transition-transform duration-200
-                  ${isInteractable ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed'}
-                `}
+                className="origin-center"
               >
-                <polygon
-                  points={getHexagonPoints()}
-                  className={`
-                    ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
-                    stroke-gray-400 stroke-2
-                    transition-colors duration-300
-                    ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                    ${isInteractable ? "hover:stroke-white" : "opacity-75"}
-                  `}
-                />
-                {territory.building && (
-                  <text
-                    x="0"
-                    y="0"
-                    className="text-xs fill-white font-bold text-center select-none pointer-events-none"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    {territory.building}
-                  </text>
-                )}
-                <g>
-                  {resourceEntries.map(([resource, amount], index) => 
-                    renderResourceIcon(
-                      resource as keyof typeof resourceColors,
-                      amount,
-                      index,
-                      resourceEntries.length
-                    )
+                <g className={`
+                  transform-gpu transition-transform duration-200
+                  ${isInteractable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed opacity-75'}
+                `}>
+                  <polygon
+                    points={getHexagonPoints()}
+                    className={`
+                      ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
+                      stroke-gray-400 stroke-2
+                      transition-colors duration-300
+                      ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
+                      ${isInteractable ? "hover:stroke-white" : ""}
+                    `}
+                  />
+                  {territory.building && (
+                    <text
+                      x="0"
+                      y="0"
+                      className="text-xs fill-white font-bold text-center select-none pointer-events-none"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      {territory.building}
+                    </text>
                   )}
+                  <g>
+                    {resourceEntries.map(([resource, amount], index) => 
+                      renderResourceIcon(
+                        resource as keyof typeof resourceColors,
+                        amount,
+                        index,
+                        resourceEntries.length
+                      )
+                    )}
+                  </g>
                 </g>
               </g>
             );
