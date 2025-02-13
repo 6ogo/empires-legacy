@@ -5,7 +5,9 @@ import ResourceDisplay from "./ResourceDisplay";
 import GameControls from "./GameControls";
 import BuildingMenu from "./BuildingMenu";
 import RecruitmentMenu from "./RecruitmentMenu";
+import MobileMenu from "./MobileMenu";
 import { GameState, Territory } from "@/types/game";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GameBoardProps {
   gameState: GameState;
@@ -31,12 +33,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const currentPlayer = gameState.players.find(
     (p) => p.id === gameState.currentPlayer
   );
+  const isMobile = useIsMobile();
 
   if (!currentPlayer) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        <MobileMenu onGiveUp={onGiveUp} />
+        
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-game-gold">Empire's Legacy</h1>
           <p className="text-gray-400">
@@ -44,8 +49,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">
+        <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-4 gap-8'}`}>
+          <div className={isMobile ? 'order-2' : 'lg:col-span-3'}>
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 shadow-xl">
               <HexGrid
                 territories={gameState.territories}
@@ -74,6 +79,19 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 selectedTerritory={selectedTerritory}
               />
             )}
+            {!isMobile && (
+              <GameControls
+                gameState={gameState}
+                onEndTurn={onEndTurn}
+                onEndPhase={onEndPhase}
+                onGiveUp={onGiveUp}
+              />
+            )}
+          </div>
+        </div>
+
+        {isMobile && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/80 backdrop-blur-sm">
             <GameControls
               gameState={gameState}
               onEndTurn={onEndTurn}
@@ -81,7 +99,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
               onGiveUp={onGiveUp}
             />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

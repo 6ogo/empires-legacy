@@ -1,8 +1,9 @@
-
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Territory } from "@/types/game";
-import { Trees, Mountain, Wheat, Coins } from "lucide-react";
+import { Trees, Mountain, Wheat, Coins, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface HexGridProps {
   territories: Territory[];
@@ -21,10 +22,17 @@ const HexGrid: React.FC<HexGridProps> = ({
   playerResources,
   phase,
 }) => {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+
   const hexSize = 40;
   const xSpacing = hexSize * 2;
   const ySpacing = hexSize * 1.8;
-  
+
   const getHexagonPoints = () => {
     const points = [];
     for (let i = 0; i < 6; i++) {
@@ -191,13 +199,76 @@ const HexGrid: React.FC<HexGridProps> = ({
   const viewBoxWidth = (maxX - minX) + padding * 2;
   const viewBoxHeight = (maxY - minY) + padding * 2;
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      setPinchStart(distance);
+    } else if (e.touches.length === 1) {
+      setIsDragging(true);
+      setStartPos({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y,
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      const delta = distance / pinchStart;
+      setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
+      setPinchStart(distance);
+    } else if (isDragging) {
+      setPosition({
+        x: e.touches[0].clientX - startPos.x,
+        y: e.touches[0].clientY - startPos.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setPinchStart(0);
+  };
+
+  const [pinchStart, setPinchStart] = useState(0);
+
+  const zoomIn = () => setScale(prev => Math.min(prev * 1.2, 3));
+  const zoomOut = () => setScale(prev => Math.max(prev * 0.8, 0.5));
+
   return (
     <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
-      <svg 
-        viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
-        className="w-full h-full"
+      <div
+        ref={containerRef}
+        className="w-full h-full overflow-hidden touch-none"
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <g>
+        <svg 
+          viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
+          className="w-full h-full origin-center transition-transform"
+          style={{
+            transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+          }}
+        >
           {territories.map(territory => renderRoad(territory))}
           
           {territories.map((territory) => {
@@ -286,8 +357,29 @@ const HexGrid: React.FC<HexGridProps> = ({
               </g>
             );
           })}
-        </g>
-      </svg>
+        </svg>
+      </div>
+      
+      {isMobile && (
+        <div className="absolute bottom-4 right-4 flex gap-2">
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={zoomOut}
+            className="rounded-full bg-white/10 backdrop-blur-sm"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={zoomIn}
+            className="rounded-full bg-white/10 backdrop-blur-sm"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
