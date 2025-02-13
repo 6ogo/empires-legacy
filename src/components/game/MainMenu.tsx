@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import GameStartMenu from "./GameStartMenu";
@@ -39,12 +40,15 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
   const handleBackClick = () => {
-    if (gameStatus === "mode_select" || gameStatus === "stats") {
-      // Go back to main menu
+    if (gameStatus === "mode_select") {
+      // Go back to main menu from mode selection
+      onSelectMode(null);
+    } else if (gameStatus === "stats") {
+      // Go back to main menu from stats
       onSelectMode(null);
     } else if (gameStatus === "creating" || gameStatus === "joining" || gameStatus === "waiting") {
-      // Go back to mode selection by keeping the current game mode
-      onSelectMode(gameMode);
+      // Go back to main menu from any game setup screen
+      onSelectMode(null);
       onJoinRoomIdChange(''); // Clear the room ID when going back
     }
   };
