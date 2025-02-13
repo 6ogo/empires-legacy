@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -19,6 +19,28 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   onJoinRoomIdChange,
 }) => {
   const [numPlayers, setNumPlayers] = useState(2);
+  const [availableSizes, setAvailableSizes] = useState<number[]>([]);
+
+  useEffect(() => {
+    // Generate random board sizes based on player count
+    const sizes = [];
+    if (numPlayers === 2) {
+      sizes.push(
+        20,
+        Math.floor(Math.random() * (40 - 20) + 20),
+        Math.floor(Math.random() * (70 - 40) + 40),
+        Math.floor(Math.random() * (100 - 70) + 70)
+      );
+    } else {
+      sizes.push(
+        35,
+        Math.floor(Math.random() * (60 - 35) + 35),
+        Math.floor(Math.random() * (90 - 60) + 60),
+        Math.floor(Math.random() * (120 - 90) + 90)
+      );
+    }
+    setAvailableSizes(sizes.sort((a, b) => a - b));
+  }, [numPlayers]);
 
   return (
     <div className="space-y-8">
@@ -41,7 +63,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
       <div>
         <h2 className="text-2xl text-center mb-4">Select board size</h2>
         <div className="flex gap-4 justify-center">
-          {[20, 37, 61, 91].map((size) => (
+          {availableSizes.map((size) => (
             <Button
               key={size}
               onClick={() => onCreateGame(numPlayers, size)}

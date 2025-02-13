@@ -405,6 +405,26 @@ const Index = () => {
     toast.success(`Recruited ${unitType} in selected territory!`);
   };
 
+  const renderGameUpdates = () => {
+    if (!gameState) return null;
+
+    return (
+      <div className="fixed bottom-4 left-4 max-w-md bg-black/80 p-4 rounded-lg shadow-lg">
+        <h3 className="text-lg font-semibold mb-2">Game Updates</h3>
+        <div className="space-y-2 max-h-40 overflow-y-auto">
+          {gameState.updates.slice(-5).reverse().map((update, index) => (
+            <div key={index} className="text-sm text-gray-300">
+              <span className="text-xs text-gray-400">
+                {new Date(update.timestamp).toLocaleTimeString()} - 
+              </span>
+              {update.message}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
@@ -444,16 +464,19 @@ const Index = () => {
   if (!gameState) return null;
 
   return (
-    <GameBoard
-      gameState={gameState}
-      selectedTerritory={selectedTerritory}
-      onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
-      onEndTurn={handleEndTurn}
-      onEndPhase={handleEndPhase}
-      onBuild={handleBuild}
-      onRecruit={handleRecruit}
-      onGiveUp={handleGiveUp}
-    />
+    <>
+      <GameBoard
+        gameState={gameState}
+        selectedTerritory={selectedTerritory}
+        onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
+        onEndTurn={handleEndTurn}
+        onEndPhase={handleEndPhase}
+        onBuild={handleBuild}
+        onRecruit={handleRecruit}
+        onGiveUp={handleGiveUp}
+      />
+      {renderGameUpdates()}
+    </>
   );
 };
 
