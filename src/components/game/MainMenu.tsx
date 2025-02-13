@@ -41,7 +41,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
 
   const handleHomeClick = () => {
     if (gameStatus !== "menu") {
-      onSelectMode("local"); // Reset the game mode
+      onSelectMode(null); // Reset the game mode to null
       navigate("/game"); // Navigate to game page
     }
   };
