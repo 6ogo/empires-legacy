@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
@@ -9,6 +10,19 @@ import { useGameActions } from "@/hooks/useGameActions";
 import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
 import GameScreen from "@/components/game/GameScreen";
+
+// Helper function to validate GameState shape
+const isValidGameState = (state: any): state is GameState => {
+  return (
+    state &&
+    Array.isArray(state.players) &&
+    Array.isArray(state.territories) &&
+    typeof state.currentPlayer === 'string' &&
+    typeof state.phase === 'string' &&
+    typeof state.turn === 'number' &&
+    Array.isArray(state.updates)
+  );
+};
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -55,7 +69,15 @@ const Index = () => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus('playing');
-            setGameState(payload.new.state as GameState);
+            
+            // Safely cast the state with validation
+            const newState = payload.new.state;
+            if (isValidGameState(newState)) {
+              setGameState(newState);
+            } else {
+              console.error('Invalid game state received:', newState);
+              toast.error('Error loading game state');
+            }
           }
         })
         .subscribe();
@@ -85,10 +107,16 @@ const Index = () => {
   const onJoinGame = async () => {
     const data = await handleJoinGame();
     if (data) {
-      setGameState(data.state as GameState);
-      setGameStatus(data.game_status === 'playing' ? 'playing' : 'waiting');
-      if (data.game_status === 'playing') {
-        setGameStarted(true);
+      // Safely cast the state with validation
+      if (isValidGameState(data.state)) {
+        setGameState(data.state);
+        setGameStatus(data.game_status === 'playing' ? 'playing' : 'waiting');
+        if (data.game_status === 'playing') {
+          setGameStarted(true);
+        }
+      } else {
+        console.error('Invalid game state received:', data.state);
+        toast.error('Error loading game state');
       }
     }
   };
@@ -246,7 +274,7 @@ const Index = () => {
     <GameScreen
       gameState={gameState}
       selectedTerritory={selectedTerritory}
-      onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
+      onTerritoryClick={onTerritoryClick}
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={handleBuild}
