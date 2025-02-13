@@ -1,6 +1,10 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import GameStartMenu from "./GameStartMenu";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface MainMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
@@ -29,11 +33,26 @@ const MainMenu: React.FC<MainMenuProps> = ({
   onShowLeaderboard,
   onShowStats,
 }) => {
-  // Convert gameStatus to the type expected by GameStartMenu by excluding 'stats'
+  const navigate = useNavigate();
+  const { profile } = useAuth();
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
   return (
     <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        {profile?.level && (
+          <div className="text-game-gold">
+            Level {profile.level} ({profile.xp} XP)
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate('/settings')}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
       <GameStartMenu
         gameStatus={gameStartMenuStatus}
         gameMode={gameMode}

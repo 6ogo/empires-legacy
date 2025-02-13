@@ -18,6 +18,10 @@ export interface UserProfile {
   total_wins: number;
   economic_wins: number;
   domination_wins: number;
+  xp: number;
+  level: number;
+  last_username_change: string | null;
+  achievements: Json[];
 }
 
 export const useAuth = () => {
@@ -77,6 +81,10 @@ export const useAuth = () => {
           total_wins: data.total_wins,
           economic_wins: data.economic_wins,
           domination_wins: data.domination_wins,
+          xp: data.xp,
+          level: data.level,
+          last_username_change: data.last_username_change,
+          achievements: data.achievements,
         };
 
         setProfile(transformedProfile);
