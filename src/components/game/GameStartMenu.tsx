@@ -58,7 +58,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
           </div>
           
           <div className="mb-8">
-            <h3 className="text-xl mb-4">Connected Players</h3>
+            <h3 className="text-xl mb-4">Connected Players ({connectedPlayers.length})</h3>
             <ul className="space-y-2">
               {connectedPlayers.map((player, index) => (
                 <li key={index} className="text-lg">

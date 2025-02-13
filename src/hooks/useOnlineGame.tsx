@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { GameState } from "@/types/game";
 import { toast } from "sonner";
@@ -22,8 +23,6 @@ export const useOnlineGame = () => {
       timer = setInterval(() => {
         setTurnTimer((prev) => {
           if (prev <= 0) {
-            // When timer reaches 0, automatically end the turn
-            // This should be implemented in the game logic
             return 120; // Reset timer for next player
           }
           return prev - 1;
@@ -42,6 +41,9 @@ export const useOnlineGame = () => {
     const initialState = createInitialGameState(numPlayers, boardSize);
     
     try {
+      // Generate a unique 6-character room ID
+      const newRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
       const { data, error } = await supabase
         .from('games')
         .insert({
@@ -52,6 +54,7 @@ export const useOnlineGame = () => {
           num_players: numPlayers,
           game_status: 'waiting',
           joined_players: 1,
+          room_id: newRoomId,
         })
         .select('id, room_id')
         .single();
@@ -77,7 +80,7 @@ export const useOnlineGame = () => {
       const { data, error } = await supabase
         .from('games')
         .select('*')
-        .eq('room_id', joinRoomId)
+        .eq('room_id', joinRoomId.toUpperCase())
         .single();
 
       if (error) throw error;
@@ -99,6 +102,7 @@ export const useOnlineGame = () => {
         if (updateError) throw updateError;
 
         setGameId(data.id);
+        setRoomId(data.room_id);
         toast.success('Joined game successfully!');
         return data;
       }
@@ -140,14 +144,14 @@ export const useOnlineGame = () => {
           }));
           setConnectedPlayers(players);
         })
-        .subscribe();
-
-      if (profile?.username) {
-        channel.track({
-          username: profile.username,
-          online_at: new Date().toISOString(),
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED' && profile?.username) {
+            await channel.track({
+              username: profile.username,
+              online_at: new Date().toISOString(),
+            });
+          }
         });
-      }
 
       return () => {
         supabase.removeChannel(channel);
