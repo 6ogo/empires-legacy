@@ -1,23 +1,29 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
+import { SignInForm } from "@/components/auth/SignInForm";
+import { SignUpForm } from "@/components/auth/SignUpForm";
+import { useAuthForm } from "@/hooks/useAuthForm";
 
 const Auth = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const navigate = useNavigate();
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    username,
+    setUsername,
+    loading,
+    stayLoggedIn,
+    setStayLoggedIn,
+    handleSignIn,
+    handleSignUp,
+    handleGuestLogin,
+  } = useAuthForm();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -28,127 +34,6 @@ const Auth = () => {
     };
     checkSession();
   }, [navigate]);
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (signUpError) throw signUpError;
-
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              username,
-              preferences: { stayLoggedIn },
-              is_guest: false,
-            },
-          ]);
-
-        if (profileError) throw profileError;
-
-        toast.success("Verification email sent! Please check your inbox.");
-        toast.info("You'll need to verify your email before accessing all features.");
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        // Update stay logged in preference
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ preferences: { stayLoggedIn } })
-          .eq('id', data.user.id);
-
-        if (updateError) {
-          console.error('Error updating preferences:', updateError);
-        }
-
-        // Set session persistence based on stayLoggedIn preference
-        await supabase.auth.setSession({
-          access_token: data.session?.access_token || '',
-          refresh_token: data.session?.refresh_token || '',
-        });
-
-        toast.success("Signed in successfully!");
-        navigate("/");
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    setLoading(true);
-    try {
-      const { data: { user }, error } = await supabase.auth.signUp({
-        email: `guest_${Date.now()}@temporary.com`,
-        password: `guest${Date.now()}`,
-        options: {
-          data: {
-            username: `Guest_${Date.now().toString(36)}`,
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      if (user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: user.id,
-              username: `Guest_${Date.now().toString(36)}`,
-              is_guest: true,
-              preferences: { stayLoggedIn: false },
-            },
-          ]);
-
-        if (profileError) throw profileError;
-
-        toast.success("Continuing as guest");
-        navigate("/");
-      }
-    } catch (error: any) {
-      toast.error("Failed to continue as guest. Please try again.");
-      console.error('Guest login error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
@@ -162,132 +47,32 @@ const Auth = () => {
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
           <TabsContent value="signin">
-            <form onSubmit={handleSignIn}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="bg-white/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="bg-white/10"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="stay-logged-in"
-                    checked={stayLoggedIn}
-                    onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
-                  />
-                  <Label htmlFor="stay-logged-in" className="text-sm">Stay logged in</Label>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-game-gold hover:bg-game-gold/90"
-                  disabled={loading}
-                >
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
-                <Separator className="my-2" />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGuestLogin}
-                  disabled={loading}
-                  className="w-full"
-                >
-                  Continue as Guest
-                </Button>
-              </CardFooter>
-            </form>
+            <SignInForm
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              stayLoggedIn={stayLoggedIn}
+              setStayLoggedIn={setStayLoggedIn}
+              loading={loading}
+              onSubmit={handleSignIn}
+              onGuestLogin={handleGuestLogin}
+            />
           </TabsContent>
           <TabsContent value="signup">
-            <form onSubmit={handleSignUp}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="bg-white/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    minLength={3}
-                    className="bg-white/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="Choose a password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="bg-white/10"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="stay-logged-in-signup"
-                    checked={stayLoggedIn}
-                    onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
-                  />
-                  <Label htmlFor="stay-logged-in-signup" className="text-sm">Stay logged in</Label>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-game-gold hover:bg-game-gold/90"
-                  disabled={loading}
-                >
-                  {loading ? "Creating account..." : "Sign Up"}
-                </Button>
-                <Separator className="my-2" />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGuestLogin}
-                  disabled={loading}
-                  className="w-full"
-                >
-                  Continue as Guest
-                </Button>
-              </CardFooter>
-            </form>
+            <SignUpForm
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              username={username}
+              setUsername={setUsername}
+              stayLoggedIn={stayLoggedIn}
+              setStayLoggedIn={setStayLoggedIn}
+              loading={loading}
+              onSubmit={handleSignUp}
+              onGuestLogin={handleGuestLogin}
+            />
           </TabsContent>
         </Tabs>
       </Card>
