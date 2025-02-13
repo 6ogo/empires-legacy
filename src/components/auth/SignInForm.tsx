@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface SignInFormProps {
   email: string;
@@ -20,7 +21,6 @@ interface SignInFormProps {
   loading: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onMagicLinkLogin: (e: React.FormEvent) => Promise<void>;
-  onGuestLogin: () => Promise<void>;
 }
 
 export const SignInForm = ({
@@ -35,42 +35,48 @@ export const SignInForm = ({
   onMagicLinkLogin,
 }: SignInFormProps) => {
   const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGuestLogin = async () => {
     try {
       setIsGuestLoading(true);
       
-      // Get CAPTCHA token
-      const { data: { token }, error: captchaError } = await supabase.auth.mfa.challenge({ factorType: 'totp' });
-      if (captchaError) throw captchaError;
+      // Create a temporary email and password for the guest user
+      const tempEmail = `guest_${Date.now()}@temporary.com`;
+      const tempPassword = `temp_${Date.now()}`;
 
-      // Sign in anonymously with CAPTCHA token
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: `guest_${Date.now()}@temporary.com`,
-        password: `temp_${Date.now()}`,
+      const { data, error } = await supabase.auth.signUp({
+        email: tempEmail,
+        password: tempPassword,
         options: {
-          captchaToken: token
+          data: {
+            is_guest: true
+          }
         }
       });
 
       if (error) throw error;
 
-      // Create anonymous profile
       if (data.user) {
+        // Create guest profile
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
               id: data.user.id,
               username: `Guest_${Date.now().toString(36)}`,
-              is_anonymous: true,
+              is_guest: true,
+              verified: false,
+              email_verified: false,
+              preferences: { stayLoggedIn: false }
             }
           ]);
 
         if (profileError) throw profileError;
+        
+        toast.success("Logged in as guest!");
+        navigate("/game");
       }
-
-      toast.success("Logged in as guest!");
     } catch (error: any) {
       console.error('Guest login error:', error);
       toast.error(error.message || 'Failed to login as guest');

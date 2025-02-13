@@ -110,11 +110,6 @@ export const useAuthForm = () => {
     }
   };
 
-  const handleGuestLogin = async () => {
-    navigate("/game");
-    toast.success("Welcome to Empire's Legacy!");
-  };
-
   return {
     email,
     setEmail,
@@ -128,6 +123,5 @@ export const useAuthForm = () => {
     handleSignIn,
     handleSignUp,
     handleMagicLinkLogin,
-    handleGuestLogin,
   };
 };
