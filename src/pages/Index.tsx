@@ -1,23 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { GameState, Territory, GameUpdate } from "@/types/game";
+import { GameState } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
 import GameModeSelect from "@/components/game/GameModeSelect";
 import BoardSizeSelect from "@/components/game/BoardSizeSelect";
 import GameBoard from "@/components/game/GameBoard";
 import { createInitialGameState } from "@/lib/game-utils";
+import { useGameState } from "@/hooks/useGameState";
+import { useOnlineGame } from "@/hooks/useOnlineGame";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
-  const [gameId, setGameId] = useState<number | null>(null);
-  const [roomId, setRoomId] = useState<string>("");
-  const [joinRoomId, setJoinRoomId] = useState<string>("");
   const [gameStatus, setGameStatus] = useState<"menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting">("menu");
   const [gameMode, setGameMode] = useState<"local" | "online" | null>(null);
-  const [isHost, setIsHost] = useState(false);
+
+  const {
+    gameState,
+    setGameState,
+    selectedTerritory,
+    setSelectedTerritory,
+    handleTerritoryClick,
+  } = useGameState(gameMode);
+
+  const {
+    gameId,
+    roomId,
+    joinRoomId,
+    setJoinRoomId,
+    isHost,
+    handleCreateGame,
+    handleJoinGame,
+    handleStartAnyway,
+  } = useOnlineGame();
 
   useEffect(() => {
     if (gameId) {
@@ -32,7 +47,7 @@ const Index = () => {
           if (error) throw error;
 
           if (data) {
-            setGameState(data.state as unknown as GameState);
+            setGameState(data.state as GameState);
             setGameStarted(true);
             setGameStatus(data.game_status === 'waiting' ? 'waiting' : 'playing');
             toast.success(`Game loaded!`);
@@ -43,7 +58,6 @@ const Index = () => {
         }
       };
 
-      // Set up real-time subscription for game updates
       const channel = supabase
         .channel(`game_${gameId}`)
         .on('postgres_changes', {
@@ -53,7 +67,7 @@ const Index = () => {
           filter: `id=eq.${gameId}`
         }, (payload) => {
           const gameData = payload.new;
-          setGameState(gameData.state as unknown as GameState);
+          setGameState(gameData.state as GameState);
           if (gameData.game_status === 'playing') {
             setGameStatus('playing');
           }
@@ -68,7 +82,7 @@ const Index = () => {
     }
   }, [gameId]);
 
-  const handleCreateGame = async (numPlayers: number, boardSize: number) => {
+  const onCreateGame = async (numPlayers: number, boardSize: number) => {
     if (gameMode === "local") {
       const initialState = createInitialGameState(numPlayers, boardSize);
       setGameState(initialState);
@@ -77,184 +91,27 @@ const Index = () => {
       return;
     }
     
-    const initialState = createInitialGameState(numPlayers, boardSize);
-    
-    try {
-      const { data, error } = await supabase
-        .from('games')
-        .insert({
-          state: initialState as unknown as Json,
-          created_at: new Date().toISOString(),
-          current_player: initialState.currentPlayer,
-          phase: initialState.phase,
-          num_players: numPlayers,
-          game_status: 'waiting',
-          joined_players: 1,
-        })
-        .select('id, room_id')
-        .single();
-
-      if (error) throw error;
-      
-      if (data) {
-        setGameId(data.id);
-        setRoomId(data.room_id);
-        setGameState(initialState);
-        setGameStarted(true);
-        setGameStatus("waiting");
-        setIsHost(true);
-        toast.success(`Game created! Room ID: ${data.room_id}`);
-      }
-    } catch (error) {
-      console.error('Error creating game:', error);
-      toast.error('Failed to create game. Please try again.');
+    const result = await handleCreateGame(numPlayers, boardSize);
+    if (result) {
+      setGameState(result.initialState);
+      setGameStarted(true);
+      setGameStatus("waiting");
     }
   };
 
-  const handleStartAnyway = async () => {
-    if (!gameId) return;
+  const onJoinGame = async () => {
+    const data = await handleJoinGame();
+    if (data) {
+      setGameState(data.state as GameState);
+      setGameStarted(true);
+      setGameStatus(data.joined_players + 1 === data.num_players ? 'playing' : 'waiting');
+    }
+  };
 
-    try {
-      const { error } = await supabase
-        .from('games')
-        .update({ 
-          game_status: 'playing'
-        })
-        .eq('id', gameId);
-
-      if (error) throw error;
-
+  const onStartAnyway = async () => {
+    const success = await handleStartAnyway();
+    if (success) {
       setGameStatus('playing');
-      toast.success('Game started!');
-    } catch (error) {
-      console.error('Error starting game:', error);
-      toast.error('Failed to start game. Please try again.');
-    }
-  };
-
-  const handleJoinGame = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('games')
-        .select('*')
-        .eq('room_id', joinRoomId)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        if (data.joined_players >= data.num_players) {
-          toast.error('Game is full!');
-          return;
-        }
-
-        const { error: updateError } = await supabase
-          .from('games')
-          .update({ 
-            joined_players: data.joined_players + 1,
-            game_status: data.joined_players + 1 === data.num_players ? 'playing' : 'waiting'
-          })
-          .eq('id', data.id);
-
-        if (updateError) throw updateError;
-
-        setGameId(data.id);
-        setGameState(data.state as unknown as GameState);
-        setGameStarted(true);
-        setGameStatus(data.joined_players + 1 === data.num_players ? 'playing' : 'waiting');
-        toast.success('Joined game successfully!');
-      }
-    } catch (error) {
-      console.error('Error joining game:', error);
-      toast.error('Failed to join game. Please check the Room ID and try again.');
-    }
-  };
-
-  const handleTerritoryClick = async (territory: Territory) => {
-    if (!gameState) return;
-
-    // For online games, check if it's the player's turn
-    if (gameMode === "online" && gameState.currentPlayer !== `player${gameState.players.length - 1}`) {
-      toast.error("It's not your turn!");
-      return;
-    }
-
-    if (gameState.phase === "setup") {
-      if (territory.owner) {
-        toast.error("This territory is already claimed!");
-        return;
-      }
-
-      const currentPlayerTerritories = gameState.territories.filter(
-        t => t.owner === gameState.currentPlayer
-      );
-
-      if (currentPlayerTerritories.length >= 1) {
-        toast.error("You can only claim one starting territory!");
-        return;
-      }
-
-      const updatedTerritories = gameState.territories.map((t) =>
-        t.id === territory.id ? { ...t, owner: gameState.currentPlayer } : t
-      );
-
-      const updatedPlayers = gameState.players.map((player) =>
-        player.id === gameState.currentPlayer
-          ? {
-              ...player,
-              territories: [...player.territories, territory],
-            }
-          : player
-      );
-
-      const nextPlayer = gameState.currentPlayer === "player1" ? "player2" : "player1";
-
-      const allPlayersHaveClaimed = updatedPlayers.every(
-        player => player.territories.length === 1
-      );
-
-      const newUpdate = {
-        type: "territory_claimed" as const,
-        message: `${gameState.currentPlayer} claimed their starting territory`,
-        timestamp: Date.now(),
-      };
-
-      const updatedState = {
-        ...gameState,
-        territories: updatedTerritories,
-        players: updatedPlayers,
-        currentPlayer: nextPlayer,
-        phase: allPlayersHaveClaimed ? "resource" : "setup",
-        updates: [...gameState.updates, newUpdate],
-      };
-
-      setGameState(updatedState);
-
-      if (gameMode === "online" && gameId) {
-        try {
-          const { error } = await supabase
-            .from('games')
-            .update({ 
-              state: updatedState as unknown as Json,
-              current_player: nextPlayer,
-              phase: allPlayersHaveClaimed ? "resource" : "setup",
-            })
-            .eq('id', gameId);
-
-          if (error) throw error;
-        } catch (error) {
-          console.error('Error updating game:', error);
-          toast.error('Failed to update game state. Please try again.');
-        }
-      }
-
-      if (allPlayersHaveClaimed) {
-        toast.success("All players have claimed their starting territories. Moving to resource phase!");
-      } else {
-        toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
-      }
-    } else if (gameState.phase === "building") {
-      setSelectedTerritory(territory);
     }
   };
 
@@ -417,9 +274,9 @@ const Index = () => {
 
         {gameStatus === "mode_select" && (
           <BoardSizeSelect
-            onCreateGame={handleCreateGame}
+            onCreateGame={onCreateGame}
             gameMode={gameMode!}
-            onJoinGame={handleJoinGame}
+            onJoinGame={onJoinGame}
             joinRoomId={joinRoomId}
             onJoinRoomIdChange={(value) => setJoinRoomId(value)}
           />
@@ -429,7 +286,7 @@ const Index = () => {
           <div className="text-center">
             <h2 className="text-2xl mb-4">Waiting for players...</h2>
             {isHost && (
-              <Button onClick={handleStartAnyway} className="mt-4">
+              <Button onClick={onStartAnyway} className="mt-4">
                 Start Game Anyway
               </Button>
             )}
@@ -445,7 +302,7 @@ const Index = () => {
     <GameBoard
       gameState={gameState}
       selectedTerritory={selectedTerritory}
-      onTerritoryClick={handleTerritoryClick}
+      onTerritoryClick={(territory) => handleTerritoryClick(territory, gameId)}
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={() => {}}
