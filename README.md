@@ -1,69 +1,165 @@
-# Welcome to your Lovable project
 
-## Project info
+# Empire's Legacy
 
-**URL**: https://lovable.dev/projects/4ae2aecf-82a6-4400-9f8a-e795b871ad21
+## Overview
 
-## How can I edit this code?
+Empire's Legacy is a turn-based strategy game where players compete to build and expand their empires through resource management, territory control, and military conquest. The game combines elements of classic 4X games (eXplore, eXpand, eXploit, and eXterminate) with modern web technologies.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Multi-player Support**: Play with 2-6 players locally or online
+- **Resource Management**: Manage gold, wood, stone, and food resources
+- **Territory Control**: Claim and defend territories with different resource yields
+- **Building System**: Construct various buildings to boost production and military capabilities
+- **Combat System**: Strategic combat with different unit types and terrain bonuses
+- **Real-time Updates**: Watch game progress through the updates panel
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4ae2aecf-82a6-4400-9f8a-e795b871ad21) and start prompting.
+## Game Rules
 
-Changes made via Lovable will be committed automatically to this repo.
+### Setup Phase
 
-**Use your preferred IDE**
+1. Players take turns claiming their starting territories
+2. Each player receives initial resources:
+   - 100 Gold
+   - 50 Wood
+   - 50 Stone
+   - 50 Food
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Turn Structure
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Each turn consists of five phases:
 
-Follow these steps:
+1. **Resource Phase**
+   - Collect resources from controlled territories
+   - Base income per territory:
+     - 10 Gold
+     - 5 Wood
+     - 5 Stone
+     - 5 Food
+   - Buildings provide additional resources:
+     - Lumber Mill: +20 Wood
+     - Mine: +20 Stone
+     - Market: +20 Gold (plus trade bonuses)
+     - Farm: +8 Food
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. **Building Phase**
+   - Construct buildings in controlled territories
+   - Available buildings:
+     - Lumber Mill (Wood production)
+     - Mine (Stone production)
+     - Market (Gold and trade)
+     - Farm (Food production)
+     - Barracks (Military units)
+     - Fortress (Defense)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. **Recruitment Phase**
+   - Train military units if you have the required buildings
+   - Unit types:
+     - Infantry (100 Gold, 1 Food upkeep)
+     - Cavalry (200 Gold, 2 Food upkeep)
+     - Artillery (300 Gold, 2 Food upkeep)
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. **Movement Phase**
+   - Move units between adjacent territories
+   - Different terrain types affect movement costs
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+5. **Combat Phase**
+   - Initiate battles between opposing forces
+   - Combat considers:
+     - Unit types and numbers
+     - Terrain bonuses
+     - Building effects (e.g., Fortress defense bonus)
+
+### Victory Conditions
+
+Win the game by achieving one of the following:
+1. **Domination**: Control 75% of the map
+2. **Economic**: Accumulate 10,000 gold and control 3 trade centers
+3. **Military**: Capture all enemy capitals
+
+## Technologies Used
+
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- Shadcn/ui
+- Supabase (for online multiplayer)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Git
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/6ogo/empires-legacy.git
+
+# Navigate to project directory
+cd empires-legacy
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Playing Online
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Choose "Online Mode" when starting a game
+2. Create a new game or join an existing one with a Room ID
+3. Share the Room ID with other players to join
+4. Start the game when all players are ready
 
-**Use GitHub Codespaces**
+## Contributing
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+We welcome contributions! Here's how you can help:
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This project is built with .
+### Development Areas for Improvement
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. **Enhanced AI for Single Player**
+   - Implement computer-controlled opponents
+   - Add difficulty levels
 
-## How can I deploy this project?
+2. **Additional Game Features**
+   - More unit types and buildings
+   - Technology tree
+   - Diplomacy system
+   - Trade routes
 
-Simply open [Lovable](https://lovable.dev/projects/4ae2aecf-82a6-4400-9f8a-e795b871ad21) and click on Share -> Publish.
+3. **UI/UX Improvements**
+   - Better mobile responsiveness
+   - Animated battles
+   - Tutorial system
+   - Improved resource visualization
 
-## I want to use a custom domain - is that possible?
+4. **Technical Enhancements**
+   - Game state persistence
+   - Replay system
+   - Spectator mode
+   - Performance optimizations
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Built with [Lovable](https://lovable.dev)
+- UI Components from [shadcn/ui](https://ui.shadcn.com)
+- Icons from [Lucide](https://lucide.dev)
+
+## Support
+
+For support, please open an issue in the GitHub repository or join our [Discord community](https://discord.gg/your-discord-link).
