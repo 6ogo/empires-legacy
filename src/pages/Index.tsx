@@ -5,6 +5,13 @@ import GameControls from "@/components/game/GameControls";
 import BuildingMenu from "@/components/game/BuildingMenu";
 import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL!,
+  process.env.REACT_APP_SUPABASE_ANON_KEY!
+);
 
 const generateInitialTerritories = (): Territory[] => {
   const territories: Territory[] = [];
@@ -14,17 +21,21 @@ const generateInitialTerritories = (): Territory[] => {
     for (let r = -radius; r <= radius; r++) {
       const s = -q - r;
       if (Math.abs(s) <= radius) {
+        const resources: Partial<Resources> = {};
+        const resourceTypes = ['gold', 'wood', 'stone', 'food'] as const;
+        
+        resourceTypes.forEach(resource => {
+          if (Math.random() < 0.6) {
+            resources[resource] = Math.floor(Math.random() * 3) + 1;
+          }
+        });
+
         territories.push({
           id: `${q},${r},${s}`,
           type: "plains",
           owner: null,
           coordinates: { q, r, s },
-          resources: {
-            gold: Math.floor(Math.random() * 3),
-            wood: Math.floor(Math.random() * 3),
-            stone: Math.floor(Math.random() * 3),
-            food: Math.floor(Math.random() * 3),
-          },
+          resources,
         });
       }
     }
@@ -33,30 +44,50 @@ const generateInitialTerritories = (): Territory[] => {
   return territories;
 };
 
-const initialGameState: GameState = {
-  players: [
-    {
-      id: "player1",
-      resources: { gold: 100, wood: 50, stone: 50, food: 50 },
-      territories: [],
-    },
-    {
-      id: "player2",
-      resources: { gold: 100, wood: 50, stone: 50, food: 50 },
-      territories: [],
-    },
-  ],
+const createInitialGameState = (numPlayers: number): GameState => ({
+  players: Array.from({ length: numPlayers }, (_, i) => ({
+    id: `player${i + 1}` as const,
+    resources: { gold: 100, wood: 50, stone: 50, food: 50 },
+    territories: [],
+  })),
   territories: generateInitialTerritories(),
   currentPlayer: "player1",
   phase: "setup",
   turn: 1,
-};
+});
 
 const Index = () => {
-  const [gameState, setGameState] = useState<GameState>(initialGameState);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
 
-  const handleTerritoryClick = (territory: Territory) => {
+  const handleStartGame = async (numPlayers: number) => {
+    const initialState = createInitialGameState(numPlayers);
+    
+    try {
+      const { error } = await supabase
+        .from('games')
+        .insert([{ 
+          state: initialState,
+          created_at: new Date().toISOString(),
+          current_player: initialState.currentPlayer,
+          phase: initialState.phase,
+        }]);
+
+      if (error) throw error;
+
+      setGameState(initialState);
+      setGameStarted(true);
+      toast.success(`Game started with ${numPlayers} players!`);
+    } catch (error) {
+      console.error('Error starting game:', error);
+      toast.error('Failed to start game. Please try again.');
+    }
+  };
+
+  const handleTerritoryClick = async (territory: Territory) => {
+    if (!gameState) return;
+
     if (gameState.phase === "setup") {
       if (territory.owner) {
         toast.error("This territory is already claimed!");
@@ -76,14 +107,30 @@ const Index = () => {
           : player
       );
 
-      setGameState({
+      const updatedState = {
         ...gameState,
         territories: updatedTerritories,
         players: updatedPlayers,
         currentPlayer: gameState.currentPlayer === "player1" ? "player2" : "player1",
-      });
+      };
 
-      toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
+      try {
+        const { error } = await supabase
+          .from('games')
+          .update({ 
+            state: updatedState,
+            current_player: updatedState.currentPlayer,
+          })
+          .eq('id', 1);
+
+        if (error) throw error;
+
+        setGameState(updatedState);
+        toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
+      } catch (error) {
+        console.error('Error updating game:', error);
+        toast.error('Failed to update game state. Please try again.');
+      }
     } else {
       setSelectedTerritory(territory);
     }
@@ -111,7 +158,6 @@ const Index = () => {
 
     const building = buildings.find((b) => b.id === buildingType)!;
     
-    // Check if player can afford the building
     const canAfford = Object.entries(building.cost).every(
       ([resource, cost]) => 
         currentPlayer.resources[resource as keyof typeof currentPlayer.resources] >= cost
@@ -122,7 +168,6 @@ const Index = () => {
       return;
     }
 
-    // Deduct resources
     const updatedPlayers = gameState.players.map((player) =>
       player.id === gameState.currentPlayer
         ? {
@@ -138,7 +183,6 @@ const Index = () => {
         : player
     );
 
-    // Update territory with new building
     const updatedTerritories = gameState.territories.map((t) =>
       t.id === selectedTerritory.id
         ? { ...t, building: buildingType }
@@ -170,7 +214,7 @@ const Index = () => {
         });
         return acc;
       },
-      { gold: 2, wood: 1, stone: 1, food: 1 } // Base production
+      { gold: 2, wood: 1, stone: 1, food: 1 }
     );
 
     const updatedPlayers = gameState.players.map((player) =>
@@ -235,6 +279,30 @@ const Index = () => {
   const currentPlayer = gameState.players.find(
     (p) => p.id === gameState.currentPlayer
   )!;
+
+  if (!gameStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
+        <h1 className="text-4xl font-bold text-game-gold mb-8">Empire's Legacy</h1>
+        <div className="space-y-4">
+          <h2 className="text-2xl text-center mb-4">Select number of players</h2>
+          <div className="flex gap-4">
+            {[2, 3, 4].map((num) => (
+              <Button
+                key={num}
+                onClick={() => handleStartGame(num)}
+                className="px-8 py-4 text-xl"
+              >
+                {num} Players
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gameState) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">

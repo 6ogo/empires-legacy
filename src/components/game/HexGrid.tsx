@@ -101,40 +101,42 @@ const HexGrid: React.FC<HexGridProps> = ({
         className="w-full h-full"
         preserveAspectRatio="xMidYMid meet"
       >
-        {territories.map((territory) => {
-          const { x, y } = getHexPosition(
-            territory.coordinates.q,
-            territory.coordinates.r
-          );
-          
-          return (
-            <motion.g
-              key={territory.id}
-              transform={`translate(${x}, ${y})`}
-              whileHover={{ scale: 1.1 }}
-              animate={{
-                scale: selectedTerritory?.id === territory.id ? 1.15 : 1,
-              }}
-              transition={{ duration: 0.2 }}
-              onClick={() => onTerritoryClick(territory)}
-              className="cursor-pointer"
-              style={{ transformOrigin: '0 0' }}
-            >
-              <polygon
-                points={getHexagonPoints()}
-                className={`
-                  ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
-                  stroke-gray-400 stroke-2
-                  transition-colors duration-300
-                  ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                `}
-              />
-              {Object.entries(territory.resources).map(([resource, amount], index) => 
-                renderResourceIcon(resource as keyof typeof resourceColors, amount, index)
-              )}
-            </motion.g>
-          );
-        })}
+        <g>
+          {territories.map((territory) => {
+            const { x, y } = getHexPosition(
+              territory.coordinates.q,
+              territory.coordinates.r
+            );
+            
+            return (
+              <motion.g
+                key={territory.id}
+                transform={`translate(${x}, ${y})`}
+                whileHover={{ scale: 1.1 }}
+                animate={{
+                  scale: selectedTerritory?.id === territory.id ? 1.15 : 1,
+                }}
+                transition={{ duration: 0.2 }}
+                onClick={() => onTerritoryClick(territory)}
+                className="cursor-pointer"
+                style={{ transformOrigin: `${x}px ${y}px` }}
+              >
+                <polygon
+                  points={getHexagonPoints()}
+                  className={`
+                    ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
+                    stroke-gray-400 stroke-2
+                    transition-colors duration-300
+                    ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
+                  `}
+                />
+                {Object.entries(territory.resources).map(([resource, amount], index) => 
+                  renderResourceIcon(resource as keyof typeof resourceColors, amount, index)
+                )}
+              </motion.g>
+            );
+          })}
+        </g>
       </svg>
     </div>
   );
