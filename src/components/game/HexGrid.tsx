@@ -22,7 +22,7 @@ const HexGrid: React.FC<HexGridProps> = ({
   const getHexagonPoints = () => {
     const points = [];
     for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 6; // Rotate hexagon to point up
+      const angle = (Math.PI / 3) * i - Math.PI / 6;
       const x = hexSize * Math.cos(angle);
       const y = hexSize * Math.sin(angle);
       points.push(`${x},${y}`);
@@ -31,9 +31,8 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Adjusted spacing formula for better hex grid layout
-    const x = width * q;
-    const y = height * (r - q/2);
+    const x = width * (q + (r % 2) * 0.5);
+    const y = height * (r * 0.75);
     return { x, y };
   };
 
@@ -52,7 +51,7 @@ const HexGrid: React.FC<HexGridProps> = ({
         <text
           x="12"
           y="4"
-          className="text-xs fill-white font-bold"
+          className="text-xs fill-white font-bold stroke-black stroke-1"
         >
           {amount}
         </text>
@@ -74,7 +73,6 @@ const HexGrid: React.FC<HexGridProps> = ({
     gold: Coins
   };
 
-  // Calculate grid bounds
   const gridExtent = territories.reduce(
     (acc, territory) => {
       const pos = getHexPosition(territory.coordinates.q, territory.coordinates.r);
@@ -88,7 +86,7 @@ const HexGrid: React.FC<HexGridProps> = ({
     { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
   );
 
-  const padding = hexSize * 3;
+  const padding = hexSize * 2;
   const viewBoxWidth = gridExtent.maxX - gridExtent.minX + padding * 2;
   const viewBoxHeight = gridExtent.maxY - gridExtent.minY + padding * 2;
   const viewBoxX = gridExtent.minX - padding;
@@ -110,7 +108,7 @@ const HexGrid: React.FC<HexGridProps> = ({
             
             return (
               <motion.g
-                key={territory.id}
+                key={`${territory.coordinates.q},${territory.coordinates.r},${territory.coordinates.s}`}
                 transform={`translate(${x}, ${y})`}
                 whileHover={{ scale: 1.1 }}
                 animate={{
@@ -118,8 +116,11 @@ const HexGrid: React.FC<HexGridProps> = ({
                 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => onTerritoryClick(territory)}
-                className="cursor-pointer"
-                style={{ transformOrigin: `${x}px ${y}px` }}
+                className="cursor-pointer hover:z-10"
+                style={{ 
+                  originX: "50%",
+                  originY: "50%",
+                }}
               >
                 <polygon
                   points={getHexagonPoints()}
@@ -128,8 +129,21 @@ const HexGrid: React.FC<HexGridProps> = ({
                     stroke-gray-400 stroke-2
                     transition-colors duration-300
                     ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
+                    hover:stroke-white
                   `}
+                  vectorEffect="non-scaling-stroke"
                 />
+                {territory.building && (
+                  <text
+                    x="0"
+                    y="0"
+                    className="text-xs fill-white font-bold text-center"
+                    dominantBaseline="middle"
+                    textAnchor="middle"
+                  >
+                    {territory.building}
+                  </text>
+                )}
                 {Object.entries(territory.resources).map(([resource, amount], index) => 
                   renderResourceIcon(resource as keyof typeof resourceColors, amount, index)
                 )}
