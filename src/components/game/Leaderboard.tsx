@@ -1,7 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/hooks/useAuth";
+import { Json } from "@/integrations/supabase/types";
 import {
   Card,
   CardContent,
@@ -34,7 +34,27 @@ const Leaderboard = () => {
           .limit(10);
 
         if (error) throw error;
-        setProfiles(data || []);
+        
+        if (data) {
+          // Transform the data to match UserProfile type
+          const transformedProfiles: UserProfile[] = data.map(profile => ({
+            id: profile.id,
+            username: profile.username,
+            verified: profile.verified,
+            email_verified: profile.email_verified,
+            preferences: typeof profile.preferences === 'string' 
+              ? JSON.parse(profile.preferences)
+              : profile.preferences as { stayLoggedIn: boolean },
+            avatar_url: profile.avatar_url,
+            created_at: profile.created_at,
+            total_gametime: profile.total_gametime,
+            total_games_played: profile.total_games_played,
+            total_wins: profile.total_wins,
+            economic_wins: profile.economic_wins,
+            domination_wins: profile.domination_wins,
+          }));
+          setProfiles(transformedProfiles);
+        }
       } catch (error) {
         console.error("Error fetching profiles:", error);
       } finally {
