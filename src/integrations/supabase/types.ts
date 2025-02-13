@@ -150,6 +150,7 @@ export type Database = {
           email_verified: boolean | null
           id: string
           is_guest: boolean | null
+          last_username_change: string | null
           preferences: Json | null
           total_games_played: number | null
           total_gametime: number | null
@@ -165,6 +166,7 @@ export type Database = {
           email_verified?: boolean | null
           id: string
           is_guest?: boolean | null
+          last_username_change?: string | null
           preferences?: Json | null
           total_games_played?: number | null
           total_gametime?: number | null
@@ -180,6 +182,7 @@ export type Database = {
           email_verified?: boolean | null
           id?: string
           is_guest?: boolean | null
+          last_username_change?: string | null
           preferences?: Json | null
           total_games_played?: number | null
           total_gametime?: number | null
