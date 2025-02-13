@@ -1,63 +1,13 @@
+
 import React, { useState, useEffect } from "react";
-import HexGrid from "@/components/game/HexGrid";
-import ResourceDisplay from "@/components/game/ResourceDisplay";
-import GameControls from "@/components/game/GameControls";
-import BuildingMenu from "@/components/game/BuildingMenu";
-import { GameState, Territory, Resources, PlayerColor, GameUpdate } from "@/types/game";
+import { GameState, Territory, GameUpdate } from "@/types/game";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
-
-const generateInitialTerritories = (boardSize: number): Territory[] => {
-  const territories: Territory[] = [];
-  const radius = Math.floor(Math.sqrt(boardSize) / 2);
-
-  for (let q = -radius; q <= radius; q++) {
-    const r1 = Math.max(-radius, -q - radius);
-    const r2 = Math.min(radius, -q + radius);
-    for (let r = r1; r <= r2; r++) {
-      const s = -q - r;
-      if (territories.length < boardSize) {
-        const resources: Partial<Resources> = {};
-        const resourceTypes = ['gold', 'wood', 'stone', 'food'] as const;
-        
-        const numResources = Math.floor(Math.random() * 3) + 1;
-        const selectedResources = [...resourceTypes]
-          .sort(() => Math.random() - 0.5)
-          .slice(0, numResources);
-        
-        selectedResources.forEach(resource => {
-          resources[resource] = Math.floor(Math.random() * 3) + 1;
-        });
-
-        territories.push({
-          id: `${q},${r},${s}`,
-          type: "plains",
-          owner: null,
-          coordinates: { q, r, s },
-          resources,
-        });
-      }
-    }
-  }
-
-  return territories;
-};
-
-const createInitialGameState = (numPlayers: number, boardSize: number): GameState => ({
-  players: Array.from({ length: numPlayers }, (_, i) => ({
-    id: `player${i + 1}` as PlayerColor,
-    resources: { gold: 100, wood: 50, stone: 50, food: 50 },
-    territories: [],
-  })),
-  territories: generateInitialTerritories(boardSize),
-  currentPlayer: "player1" as PlayerColor,
-  phase: "setup",
-  turn: 1,
-  updates: [],
-});
+import GameModeSelect from "@/components/game/GameModeSelect";
+import BoardSizeSelect from "@/components/game/BoardSizeSelect";
+import GameBoard from "@/components/game/GameBoard";
+import { createInitialGameState } from "@/lib/game-utils";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -198,7 +148,7 @@ const Index = () => {
           : player
       );
 
-      const nextPlayer = gameState.currentPlayer === "player1" ? "player2" as PlayerColor : "player1" as PlayerColor;
+      const nextPlayer = gameState.currentPlayer === "player1" ? "player2" : "player1";
 
       const newUpdate: GameUpdate = {
         type: "territory_claimed",
@@ -237,70 +187,43 @@ const Index = () => {
     }
   };
 
-  const handleBuild = (buildingType: string) => {
-    if (!gameState) return;
-    if (!selectedTerritory) {
-      toast.error("Select a territory to build in!");
-      return;
-    }
+  const handleEndTurn = async () => {
+    if (!gameState || !gameId) return;
 
-    if (selectedTerritory.owner !== gameState.currentPlayer) {
-      toast.error("You can only build in your own territories!");
-      return;
-    }
+    const nextPlayer = gameState.currentPlayer === "player1" ? "player2" : "player1";
 
-    if (selectedTerritory.building) {
-      toast.error("This territory already has a building!");
-      return;
-    }
+    const newUpdate: GameUpdate = {
+      type: "turn_ended",
+      message: `${gameState.currentPlayer} ended their turn`,
+      timestamp: Date.now(),
+    };
 
-    const currentPlayer = gameState.players.find(
-      (p) => p.id === gameState.currentPlayer
-    );
-
-    if (!currentPlayer) return;
-
-    const building = buildings.find((b) => b.id === buildingType);
-    if (!building) return;
-    
-    const canAfford = Object.entries(building.cost).every(
-      ([resource, cost]) => 
-        currentPlayer.resources[resource as keyof typeof currentPlayer.resources] >= cost
-    );
-
-    if (!canAfford) {
-      toast.error("Not enough resources to build this!");
-      return;
-    }
-
-    const updatedPlayers = gameState.players.map((player) =>
-      player.id === gameState.currentPlayer
-        ? {
-            ...player,
-            resources: Object.entries(building.cost).reduce(
-              (acc, [resource, cost]) => ({
-                ...acc,
-                [resource]: player.resources[resource as keyof Resources] - cost,
-              }),
-              player.resources
-            ),
-          }
-        : player
-    );
-
-    const updatedTerritories = gameState.territories.map((t) =>
-      t.id === selectedTerritory.id
-        ? { ...t, building: buildingType }
-        : t
-    );
-
-    setGameState({
+    const updatedState: GameState = {
       ...gameState,
-      territories: updatedTerritories,
-      players: updatedPlayers,
-    });
+      currentPlayer: nextPlayer,
+      phase: "resource",
+      turn: gameState.turn + 1,
+      updates: [...gameState.updates, newUpdate],
+    };
 
-    toast.success(`Built ${building.name} in selected territory!`);
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({ 
+          state: updatedState as unknown as Json,
+          current_player: nextPlayer,
+          phase: "resource",
+        })
+        .eq('id', gameId);
+
+      if (error) throw error;
+
+      setGameState(updatedState);
+      toast.success(`Turn ${updatedState.turn} begins!`);
+    } catch (error) {
+      console.error('Error updating game:', error);
+      toast.error('Failed to update game state. Please try again.');
+    }
   };
 
   const collectResources = () => {
@@ -376,201 +299,43 @@ const Index = () => {
     toast.success(`Moving to ${nextPhase} phase`);
   };
 
-  const handleEndTurn = async () => {
-    if (!gameState || !gameId) return;
-
-    const nextPlayer = gameState.currentPlayer === "player1" ? "player2" as PlayerColor : "player1" as PlayerColor;
-
-    const newUpdate: GameUpdate = {
-      type: "turn_ended",
-      message: `${gameState.currentPlayer} ended their turn`,
-      timestamp: Date.now(),
-    };
-
-    const updatedState: GameState = {
-      ...gameState,
-      currentPlayer: nextPlayer,
-      phase: "resource",
-      turn: gameState.turn + 1,
-      updates: [...gameState.updates, newUpdate],
-    };
-
-    try {
-      const { error } = await supabase
-        .from('games')
-        .update({ 
-          state: updatedState as unknown as Json,
-          current_player: nextPlayer,
-          phase: "resource",
-        })
-        .eq('id', gameId);
-
-      if (error) throw error;
-
-      setGameState(updatedState);
-      toast.success(`Turn ${updatedState.turn} begins!`);
-    } catch (error) {
-      console.error('Error updating game:', error);
-      toast.error('Failed to update game state. Please try again.');
-    }
-  };
-
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold text-game-gold mb-8">Empire's Legacy</h1>
         
         {gameStatus === "menu" && (
-          <div className="space-y-4">
-            <h2 className="text-2xl text-center mb-4">Select Game Mode</h2>
-            <div className="flex gap-4">
-              <Button
-                onClick={() => {
-                  setGameMode("local");
-                  setGameStatus("mode_select");
-                }}
-                className="px-8 py-4 text-xl"
-              >
-                Local Game
-              </Button>
-              <Button
-                onClick={() => {
-                  setGameMode("online");
-                  setGameStatus("mode_select");
-                }}
-                className="px-8 py-4 text-xl"
-              >
-                Online Game
-              </Button>
-            </div>
-          </div>
+          <GameModeSelect onSelectMode={(mode) => {
+            setGameMode(mode);
+            setGameStatus("mode_select");
+          }} />
         )}
 
         {gameStatus === "mode_select" && (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl text-center mb-4">Select board size</h2>
-              <div className="flex gap-4 justify-center">
-                {[20, 37, 61, 91].map((size) => (
-                  <Button
-                    key={size}
-                    onClick={() => {
-                      const numPlayers = 2; // Default to 2 players for now
-                      handleCreateGame(numPlayers, size);
-                    }}
-                    className="px-8 py-4 text-xl"
-                  >
-                    {size} Hexes
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <BoardSizeSelect
+            onCreateGame={handleCreateGame}
+            gameMode={gameMode!}
+            onJoinGame={handleJoinGame}
+            joinRoomId={joinRoomId}
+            onJoinRoomIdChange={(value) => setJoinRoomId(value)}
+          />
         )}
       </div>
     );
   }
 
-  if (!gameState) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Loading game state...</h2>
-        </div>
-      </div>
-    );
-  }
-
-  const currentPlayer = gameState.players.find(
-    (p) => p.id === gameState.currentPlayer
-  );
-
-  if (!currentPlayer) return null;
+  if (!gameState) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-game-gold">Empire's Legacy</h1>
-          <p className="text-gray-400">
-            Turn {gameState.turn} - {currentPlayer.id}'s turn
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 shadow-xl">
-              <HexGrid
-                territories={gameState.territories}
-                onTerritoryClick={handleTerritoryClick}
-                selectedTerritory={selectedTerritory}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <ResourceDisplay resources={currentPlayer.resources} />
-            {gameState.phase === "building" && (
-              <BuildingMenu 
-                onBuild={handleBuild}
-                resources={currentPlayer.resources}
-              />
-            )}
-            <GameControls
-              gameState={gameState}
-              onEndTurn={handleEndTurn}
-              onEndPhase={handleEndPhase}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <GameBoard
+      gameState={gameState}
+      selectedTerritory={selectedTerritory}
+      onTerritoryClick={handleTerritoryClick}
+      onEndTurn={handleEndTurn}
+      onEndPhase={handleEndPhase}
+      onBuild={() => {}}
+    />
   );
 };
-
-const buildings = [
-  {
-    id: "lumber_mill",
-    name: "Lumber Mill",
-    icon: "TreeDeciduous",
-    cost: { gold: 50, wood: 20 },
-    description: "+2 wood per turn",
-  },
-  {
-    id: "mine",
-    name: "Mine",
-    icon: "Mountain",
-    cost: { gold: 50, stone: 20 },
-    description: "+2 stone per turn",
-  },
-  {
-    id: "market",
-    name: "Market",
-    icon: "Store",
-    cost: { gold: 100, wood: 30 },
-    description: "+2 gold per turn",
-  },
-  {
-    id: "farm",
-    name: "Farm",
-    icon: "GalleryThumbnails",
-    cost: { gold: 50, wood: 20 },
-    description: "+2 food per turn",
-  },
-  {
-    id: "barracks",
-    name: "Barracks",
-    icon: "Sword",
-    cost: { gold: 150, wood: 50, stone: 50 },
-    description: "Enables unit training",
-  },
-  {
-    id: "fortress",
-    name: "Fortress",
-    icon: "Castle",
-    cost: { gold: 300, stone: 150 },
-    description: "+50% defense",
-  },
-];
 
 export default Index;
