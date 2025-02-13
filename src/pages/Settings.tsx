@@ -15,8 +15,10 @@ const Settings = () => {
   const navigate = useNavigate();
   const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const canChangeUsername = !profile?.last_username_change || 
@@ -26,6 +28,11 @@ const Settings = () => {
     e.preventDefault();
     if (!canChangeUsername) {
       toast.error("You can only change your username once every 7 days.");
+      return;
+    }
+
+    if (!newUsername.trim()) {
+      toast.error("Username cannot be empty");
       return;
     }
 
@@ -39,7 +46,12 @@ const Settings = () => {
         })
         .eq('id', user?.id);
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('username_not_profane')) {
+          throw new Error("Username contains inappropriate content");
+        }
+        throw error;
+      }
       toast.success("Username updated successfully!");
       setNewUsername("");
     } catch (error: any) {
@@ -51,12 +63,18 @@ const Settings = () => {
 
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newEmail !== confirmEmail) {
+      toast.error("Emails do not match");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
       toast.success("Email update confirmation sent to your new email address!");
       setNewEmail("");
+      setConfirmEmail("");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -66,6 +84,11 @@ const Settings = () => {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -73,6 +96,7 @@ const Settings = () => {
       toast.success("Password updated successfully!");
       setCurrentPassword("");
       setNewPassword("");
+      setConfirmPassword("");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -132,9 +156,18 @@ const Settings = () => {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   disabled={loading}
+                  className="mb-2"
+                />
+                <Input
+                  id="confirmEmail"
+                  type="email"
+                  placeholder="Confirm new email"
+                  value={confirmEmail}
+                  onChange={(e) => setConfirmEmail(e.target.value)}
+                  disabled={loading}
                 />
               </div>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !newEmail || !confirmEmail || newEmail !== confirmEmail}>
                 Update Email
               </Button>
             </form>
@@ -149,9 +182,18 @@ const Settings = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={loading}
+                  className="mb-2"
+                />
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
                 />
               </div>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !newPassword || !confirmPassword || newPassword !== confirmPassword}>
                 Update Password
               </Button>
             </form>
