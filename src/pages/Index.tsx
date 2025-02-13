@@ -274,7 +274,7 @@ const Index = () => {
     <GameScreen
       gameState={gameState}
       selectedTerritory={selectedTerritory}
-      onTerritoryClick={onTerritoryClick}
+      onTerritoryClick={handleTerritoryClick}
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={handleBuild}

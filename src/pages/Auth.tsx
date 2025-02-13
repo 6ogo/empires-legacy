@@ -23,7 +23,6 @@ const Auth = () => {
     handleSignIn,
     handleSignUp,
     handleMagicLinkLogin,
-    handleGuestLogin,
   } = useAuthForm();
 
   useEffect(() => {
@@ -58,7 +57,6 @@ const Auth = () => {
               loading={loading}
               onSubmit={handleSignIn}
               onMagicLinkLogin={handleMagicLinkLogin}
-              onGuestLogin={handleGuestLogin}
             />
           </TabsContent>
           <TabsContent value="signup">
@@ -73,7 +71,6 @@ const Auth = () => {
               setStayLoggedIn={setStayLoggedIn}
               loading={loading}
               onSubmit={handleSignUp}
-              onGuestLogin={handleGuestLogin}
             />
           </TabsContent>
         </Tabs>
