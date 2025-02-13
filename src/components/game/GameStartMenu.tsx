@@ -18,6 +18,8 @@ interface GameStartMenuProps {
   isHost?: boolean;
   onStartAnyway?: () => void;
   connectedPlayers?: { username: string }[];
+  selectedBoardSize?: number;
+  maxPlayers?: number;
 }
 
 const GameStartMenu: React.FC<GameStartMenuProps> = ({
@@ -31,6 +33,8 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
   isHost,
   onStartAnyway,
   connectedPlayers = [],
+  selectedBoardSize = 0,
+  maxPlayers = 2,
 }) => {
   const handleCopyRoomId = () => {
     navigator.clipboard.writeText(joinRoomId);
@@ -58,10 +62,28 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
       {gameStatus === "waiting" && (
         <div className="text-center">
           <h2 className="text-2xl mb-4">Waiting Room</h2>
+          
+          {/* Game Info */}
+          <div className="mb-8 p-4 bg-white/5 rounded-lg inline-block min-w-[300px]">
+            <h3 className="text-xl mb-4">Game Details</h3>
+            <div className="space-y-2 text-left px-4">
+              <p><span className="text-game-gold">Game Mode:</span> {gameMode === 'local' ? 'Local Game' : 'Online Game'}</p>
+              <p><span className="text-game-gold">Players:</span> {connectedPlayers.length} / {maxPlayers}</p>
+              {selectedBoardSize > 0 && (
+                <p><span className="text-game-gold">Board Size:</span> {selectedBoardSize} hexes</p>
+              )}
+            </div>
+          </div>
+
+          {/* Room ID Section */}
           <div className="mb-8 p-4 bg-white/10 rounded-lg inline-block min-w-[300px]">
             <h3 className="text-xl mb-2">Room ID</h3>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <p className="font-mono text-2xl text-game-gold">{joinRoomId}</p>
+              <Input 
+                value={joinRoomId}
+                readOnly
+                className="font-mono text-2xl text-game-gold bg-transparent border-none text-center"
+              />
               <Button
                 variant="ghost"
                 size="icon"
@@ -75,16 +97,21 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
             <p className="text-sm text-gray-400">Share this code with other players to join</p>
           </div>
           
+          {/* Connected Players */}
           <div className="mb-8">
             <h3 className="text-xl mb-4">Connected Players ({connectedPlayers.length})</h3>
-            <ul className="space-y-2">
-              {connectedPlayers.map((player, index) => (
-                <li key={index} className="text-lg">
-                  {player.username}
-                  {index === 0 && " (Host)"}
-                </li>
-              ))}
-            </ul>
+            {connectedPlayers.length === 0 ? (
+              <p className="text-gray-400">Waiting for players to join...</p>
+            ) : (
+              <ul className="space-y-2">
+                {connectedPlayers.map((player, index) => (
+                  <li key={index} className="text-lg">
+                    {player.username}
+                    {index === 0 && " (Host)"}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {isHost && connectedPlayers.length >= 2 && (
