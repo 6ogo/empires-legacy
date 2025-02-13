@@ -1,6 +1,5 @@
 
 import React from "react";
-import { motion } from "framer-motion";
 import { Territory } from "@/types/game";
 import { Trees, Mountain, Wheat, Coins } from "lucide-react";
 
@@ -16,8 +15,6 @@ const HexGrid: React.FC<HexGridProps> = ({
   selectedTerritory,
 }) => {
   const hexSize = 40;
-  
-  // Calculate proper hexagon spacing
   const width = hexSize * 2;
   const height = Math.sqrt(3) * hexSize;
   
@@ -34,7 +31,6 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Fix coordinate calculation using proper axial coordinates
     const x = width * (3/2 * q);
     const y = height * (Math.sqrt(3)/2 * q + Math.sqrt(3) * r);
     return { x, y };
@@ -56,10 +52,9 @@ const HexGrid: React.FC<HexGridProps> = ({
         <text
           x="0"
           y="10"
-          className="text-xs fill-white font-bold text-center"
+          className="text-xs fill-white font-bold text-center select-none pointer-events-none"
           textAnchor="middle"
           dominantBaseline="middle"
-          style={{ pointerEvents: 'none' }}
         >
           {amount}
         </text>
@@ -106,50 +101,55 @@ const HexGrid: React.FC<HexGridProps> = ({
             );
             
             const resourceEntries = Object.entries(territory.resources);
-            
+
             return (
               <g
                 key={territory.id}
-                transform={`translate(${x}, ${y})`}
+                className="group"
                 onClick={() => onTerritoryClick(territory)}
-                className={`
-                  cursor-pointer
-                  transition-transform duration-200 ease-in-out
-                  ${selectedTerritory?.id === territory.id ? 'scale-110' : ''}
-                  hover:scale-110
-                `}
               >
-                <polygon
-                  points={getHexagonPoints()}
+                <g
+                  transform={`translate(${x}, ${y})`}
                   className={`
-                    ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
-                    stroke-gray-400 stroke-2
-                    transition-colors duration-300
-                    ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                    hover:stroke-white
+                    transform-gpu
+                    transition-all duration-200 ease-out
+                    origin-center
+                    group-hover:scale-110
+                    ${selectedTerritory?.id === territory.id ? 'scale-110' : ''}
                   `}
-                />
-                {territory.building && (
-                  <text
-                    x="0"
-                    y="0"
-                    className="text-xs fill-white font-bold text-center"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {territory.building}
-                  </text>
-                )}
-                <g transform="translate(0, 0)">
-                  {resourceEntries.map(([resource, amount], index) => 
-                    renderResourceIcon(
-                      resource as keyof typeof resourceColors,
-                      amount,
-                      index,
-                      resourceEntries.length
-                    )
+                >
+                  <polygon
+                    points={getHexagonPoints()}
+                    className={`
+                      ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
+                      stroke-gray-400 stroke-2
+                      transition-colors duration-300
+                      cursor-pointer
+                      ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
+                      group-hover:stroke-white
+                    `}
+                  />
+                  {territory.building && (
+                    <text
+                      x="0"
+                      y="0"
+                      className="text-xs fill-white font-bold text-center select-none pointer-events-none"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      {territory.building}
+                    </text>
                   )}
+                  <g>
+                    {resourceEntries.map(([resource, amount], index) => 
+                      renderResourceIcon(
+                        resource as keyof typeof resourceColors,
+                        amount,
+                        index,
+                        resourceEntries.length
+                      )
+                    )}
+                  </g>
                 </g>
               </g>
             );
