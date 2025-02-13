@@ -15,13 +15,15 @@ const HexGrid: React.FC<HexGridProps> = ({
   selectedTerritory,
 }) => {
   const hexSize = 40;
-  const horizontalSpacing = hexSize * 1.75;
-  const verticalSpacing = hexSize * 1.5;
+  
+  // These ratios create the proper spacing for a flat-topped hexagonal grid
+  const xSpacing = hexSize * 3;  // Horizontal spacing between hexagon centers
+  const ySpacing = hexSize * Math.sqrt(3); // Vertical spacing between hexagon centers
   
   const getHexagonPoints = () => {
     const points = [];
     for (let i = 0; i < 6; i++) {
-      const angleDeg = 60 * i - 30;
+      const angleDeg = 60 * i;
       const angleRad = (Math.PI / 180) * angleDeg;
       const x = hexSize * Math.cos(angleRad);
       const y = hexSize * Math.sin(angleRad);
@@ -31,17 +33,17 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Using offset coordinates for better grid layout
-    const x = q * horizontalSpacing;
-    const y = r * verticalSpacing + (q % 2) * (verticalSpacing / 2);
+    // Offset coordinates for flat-topped hexagons
+    const x = (q * xSpacing) + (r * (xSpacing / 2));
+    const y = r * ySpacing;
     return { x, y };
   };
 
   const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number, total: number) => {
     const IconComponent = resourceIcons[resource];
     const angleStep = (2 * Math.PI) / total;
-    const angle = angleStep * index;
-    const radius = hexSize * 0.4;
+    const angle = angleStep * index - Math.PI / 2; // Start from top
+    const radius = hexSize * 0.45;
     const x = radius * Math.cos(angle);
     const y = radius * Math.sin(angle);
     
@@ -77,20 +79,22 @@ const HexGrid: React.FC<HexGridProps> = ({
     gold: Coins
   };
 
-  // Calculate grid boundaries with proper padding
+  // Calculate grid boundaries
   const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
-  const minX = Math.min(...positions.map(p => p.x)) - hexSize;
-  const maxX = Math.max(...positions.map(p => p.x)) + hexSize;
-  const minY = Math.min(...positions.map(p => p.y)) - hexSize;
-  const maxY = Math.max(...positions.map(p => p.y)) + hexSize;
+  const minX = Math.min(...positions.map(p => p.x));
+  const maxX = Math.max(...positions.map(p => p.x));
+  const minY = Math.min(...positions.map(p => p.y));
+  const maxY = Math.max(...positions.map(p => p.y));
   
-  const viewBoxWidth = maxX - minX + hexSize * 2;
-  const viewBoxHeight = maxY - minY + hexSize * 2;
+  // Add padding to ensure hexagons at edges are fully visible
+  const padding = hexSize * 2;
+  const viewBoxWidth = (maxX - minX) + padding * 2;
+  const viewBoxHeight = (maxY - minY) + padding * 2;
 
   return (
     <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
       <svg 
-        viewBox={`${minX - hexSize} ${minY - hexSize} ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
         className="w-full h-full"
       >
         <g>
@@ -105,41 +109,45 @@ const HexGrid: React.FC<HexGridProps> = ({
             return (
               <g
                 key={territory.id}
-                transform={`translate(${x}, ${y})`}
+                className="group"
                 onClick={() => onTerritoryClick(territory)}
-                style={{ transformOrigin: `${x}px ${y}px` }}
-                className="cursor-pointer transition-transform duration-200 hover:scale-110"
               >
-                <polygon
-                  points={getHexagonPoints()}
-                  className={`
-                    ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
-                    stroke-gray-400 stroke-2
-                    transition-colors duration-300
-                    ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                    hover:stroke-white
-                  `}
-                />
-                {territory.building && (
-                  <text
-                    x="0"
-                    y="0"
-                    className="text-xs fill-white font-bold text-center select-none pointer-events-none"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    {territory.building}
-                  </text>
-                )}
-                <g>
-                  {resourceEntries.map(([resource, amount], index) => 
-                    renderResourceIcon(
-                      resource as keyof typeof resourceColors,
-                      amount,
-                      index,
-                      resourceEntries.length
-                    )
+                <g
+                  transform={`translate(${x}, ${y})`}
+                  className="transition-transform duration-200 origin-center hover:scale-110"
+                >
+                  <polygon
+                    points={getHexagonPoints()}
+                    className={`
+                      ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
+                      stroke-gray-400 stroke-2
+                      transition-colors duration-300
+                      ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
+                      cursor-pointer
+                      hover:stroke-white
+                    `}
+                  />
+                  {territory.building && (
+                    <text
+                      x="0"
+                      y="0"
+                      className="text-xs fill-white font-bold text-center select-none pointer-events-none"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      {territory.building}
+                    </text>
                   )}
+                  <g>
+                    {resourceEntries.map(([resource, amount], index) => 
+                      renderResourceIcon(
+                        resource as keyof typeof resourceColors,
+                        amount,
+                        index,
+                        resourceEntries.length
+                      )
+                    )}
+                  </g>
                 </g>
               </g>
             );
