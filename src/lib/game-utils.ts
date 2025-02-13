@@ -47,7 +47,17 @@ export const createInitialGameState = (numPlayers: number, boardSize: number): G
   return {
     players: Array.from({ length: numPlayers }, (_, i) => ({
       id: `player${i + 1}` as PlayerColor,
-      resources: { gold: 100, wood: 50, stone: 50, food: 50 },
+      resources: {
+        gold: 100,
+        wood: 50,
+        stone: 50,
+        food: 50
+      },
+      units: {
+        infantry: 0,
+        cavalry: 0,
+        artillery: 0
+      },
       territories: [],
     })),
     territories: generateInitialTerritories(scaledBoardSize),

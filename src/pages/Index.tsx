@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { GameState } from "@/types/game";
+import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
@@ -45,15 +46,15 @@ const Index = () => {
   const handleBuild = (buildingType: string) => {
     if (!gameState || !selectedTerritory) return;
 
-    const buildingCost = {
-      lumber_mill: { gold: 50, wood: 20 },
-      mine: { gold: 50, stone: 20 },
-      market: { gold: 100, wood: 30 },
-      farm: { gold: 50, wood: 20 },
-      road: { wood: 25, stone: 25 },
-      barracks: { gold: 150, wood: 50, stone: 50 },
-      fortress: { gold: 300, stone: 150 },
-    }[buildingType];
+    const buildingCost: Partial<Resources> = {
+      lumber_mill: { gold: 50, wood: 20, stone: 0, food: 0 },
+      mine: { gold: 50, stone: 20, wood: 0, food: 0 },
+      market: { gold: 100, wood: 30, stone: 0, food: 0 },
+      farm: { gold: 50, wood: 20, stone: 0, food: 0 },
+      road: { wood: 25, stone: 25, gold: 0, food: 0 },
+      barracks: { gold: 150, wood: 50, stone: 50, food: 0 },
+      fortress: { gold: 300, stone: 150, wood: 0, food: 0 },
+    }[buildingType] || { gold: 0, wood: 0, stone: 0, food: 0 };
 
     if (!buildingCost) {
       toast.error("Invalid building type!");
@@ -109,11 +110,11 @@ const Index = () => {
   const handleRecruit = (unitType: string) => {
     if (!gameState || !selectedTerritory) return;
 
-    const unitCost = {
-      infantry: { gold: 100, food: 1 },
-      cavalry: { gold: 200, food: 2 },
-      artillery: { gold: 300, food: 2 },
-    }[unitType];
+    const unitCost: Partial<Resources> = {
+      infantry: { gold: 100, food: 1, wood: 0, stone: 0 },
+      cavalry: { gold: 200, food: 2, wood: 0, stone: 0 },
+      artillery: { gold: 300, food: 2, wood: 0, stone: 0 },
+    }[unitType] || { gold: 0, food: 0, wood: 0, stone: 0 };
 
     if (!unitCost) {
       toast.error("Invalid unit type!");
@@ -134,12 +135,13 @@ const Index = () => {
         return {
           ...player,
           resources: {
+            ...player.resources,
             gold: player.resources.gold - (unitCost.gold || 0),
             food: player.resources.food - (unitCost.food || 0),
           },
           units: {
             ...player.units,
-            [unitType]: (player.units[unitType] || 0) + 1,
+            [unitType]: (player.units[unitType as keyof typeof player.units] || 0) + 1,
           },
         };
       }
