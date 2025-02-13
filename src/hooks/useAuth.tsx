@@ -25,6 +25,25 @@ export interface UserProfile {
   achievements: Json[];
 }
 
+interface ProfileResponse {
+  id: string;
+  username: string | null;
+  verified: boolean | null;
+  email_verified: boolean | null;
+  preferences: Json | null;
+  avatar_url: string | null;
+  created_at: string;
+  total_gametime: number | null;
+  total_games_played: number | null;
+  total_wins: number | null;
+  economic_wins: number | null;
+  domination_wins: number | null;
+  xp: number | null;
+  level: number | null;
+  last_username_change: string | null;
+  achievements: Json[] | null;
+}
+
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -61,7 +80,7 @@ export const useAuth = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .maybeSingle() as { data: ProfileResponse | null; error: any };
 
       if (error) throw error;
       
@@ -70,22 +89,22 @@ export const useAuth = () => {
         const transformedProfile: UserProfile = {
           id: data.id,
           username: data.username,
-          verified: data.verified,
-          email_verified: data.email_verified,
+          verified: !!data.verified,
+          email_verified: !!data.email_verified,
           preferences: typeof data.preferences === 'string' 
             ? JSON.parse(data.preferences)
-            : data.preferences,
+            : (data.preferences as { stayLoggedIn: boolean }) ?? { stayLoggedIn: false },
           avatar_url: data.avatar_url,
           created_at: data.created_at,
-          total_gametime: data.total_gametime,
-          total_games_played: data.total_games_played,
-          total_wins: data.total_wins,
-          economic_wins: data.economic_wins,
-          domination_wins: data.domination_wins,
-          xp: data.xp || 0,
-          level: data.level || 1,
+          total_gametime: data.total_gametime ?? 0,
+          total_games_played: data.total_games_played ?? 0,
+          total_wins: data.total_wins ?? 0,
+          economic_wins: data.economic_wins ?? 0,
+          domination_wins: data.domination_wins ?? 0,
+          xp: data.xp ?? 0,
+          level: data.level ?? 1,
           last_username_change: data.last_username_change,
-          achievements: data.achievements || [],
+          achievements: data.achievements ?? [],
         };
 
         setProfile(transformedProfile);

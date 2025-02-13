@@ -31,6 +31,25 @@ interface UserAchievement {
   achievement: Achievement;
 }
 
+interface AchievementResponse {
+  id: number;
+  name: string;
+  description: string;
+  icon_name: string;
+  xp_reward: number;
+  category: string;
+  requirement_count: number;
+  created_at: string;
+}
+
+interface UserAchievementResponse {
+  id: string;
+  user_id: string;
+  achievement_id: number;
+  earned_at: string;
+  achievement: AchievementResponse;
+}
+
 const Achievements = () => {
   const { user } = useAuth();
 
@@ -40,10 +59,21 @@ const Achievements = () => {
       const { data, error } = await supabase
         .from('achievements')
         .select('*')
-        .order('xp_reward', { ascending: true });
+        .order('xp_reward', { ascending: true }) as { data: AchievementResponse[] | null; error: any };
       
       if (error) throw error;
-      return data;
+      if (!data) return [];
+      
+      return data.map(achievement => ({
+        id: achievement.id,
+        name: achievement.name,
+        description: achievement.description,
+        icon_name: achievement.icon_name,
+        xp_reward: achievement.xp_reward,
+        category: achievement.category,
+        requirement_count: achievement.requirement_count,
+        created_at: achievement.created_at,
+      }));
     },
   });
 
@@ -52,16 +82,33 @@ const Achievements = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_achievements')
-        .select('*, achievement:achievements(*)')
-        .eq('user_id', user?.id);
+        .select('*, achievement(*)')
+        .eq('user_id', user?.id) as { data: UserAchievementResponse[] | null; error: any };
       
       if (error) throw error;
-      return data as unknown as UserAchievement[];
+      if (!data) return [];
+      
+      return data.map(ua => ({
+        id: ua.id,
+        user_id: ua.user_id,
+        achievement_id: ua.achievement_id,
+        earned_at: ua.earned_at,
+        achievement: {
+          id: ua.achievement.id,
+          name: ua.achievement.name,
+          description: ua.achievement.description,
+          icon_name: ua.achievement.icon_name,
+          xp_reward: ua.achievement.xp_reward,
+          category: ua.achievement.category,
+          requirement_count: ua.achievement.requirement_count,
+          created_at: ua.achievement.created_at,
+        },
+      }));
     },
     enabled: !!user,
   });
 
-  const earnedAchievements = new Set(userAchievements?.map(ua => ua.achievement_id));
+  const earnedAchievements = new Set(userAchievements?.map(ua => ua.achievement_id) ?? []);
 
   return (
     <Card>
