@@ -16,6 +16,7 @@ export interface Territory {
   owner: PlayerColor | null;
   coordinates: { q: number; r: number; s: number };
   resources: Partial<Resources>;
+  building?: string;
 }
 
 export interface Player {

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import HexGrid from "@/components/game/HexGrid";
 import ResourceDisplay from "@/components/game/ResourceDisplay";
 import GameControls from "@/components/game/GameControls";
+import BuildingMenu from "@/components/game/BuildingMenu";
 import { GameState, Territory } from "@/types/game";
 import { toast } from "sonner";
 
@@ -89,6 +90,77 @@ const Index = () => {
     }
   };
 
+  const handleBuild = (buildingType: string) => {
+    if (!selectedTerritory) {
+      toast.error("Select a territory to build in!");
+      return;
+    }
+
+    if (selectedTerritory.owner !== gameState.currentPlayer) {
+      toast.error("You can only build in your own territories!");
+      return;
+    }
+
+    const currentPlayer = gameState.players.find(
+      (p) => p.id === gameState.currentPlayer
+    )!;
+
+    // Update territory with new building
+    const updatedTerritories = gameState.territories.map((t) =>
+      t.id === selectedTerritory.id
+        ? { ...t, building: buildingType }
+        : t
+    );
+
+    setGameState({
+      ...gameState,
+      territories: updatedTerritories,
+    });
+
+    toast.success(`Built ${buildingType} in selected territory!`);
+  };
+
+  const collectResources = () => {
+    const currentPlayer = gameState.players.find(
+      (p) => p.id === gameState.currentPlayer
+    )!;
+
+    const ownedTerritories = gameState.territories.filter(
+      (t) => t.owner === gameState.currentPlayer
+    );
+
+    const resourceGains = ownedTerritories.reduce(
+      (acc, territory) => {
+        Object.entries(territory.resources).forEach(([resource, amount]) => {
+          acc[resource as keyof typeof acc] += amount;
+        });
+        return acc;
+      },
+      { gold: 2, wood: 1, stone: 1, food: 1 } // Base production
+    );
+
+    const updatedPlayers = gameState.players.map((player) =>
+      player.id === gameState.currentPlayer
+        ? {
+            ...player,
+            resources: {
+              gold: player.resources.gold + resourceGains.gold,
+              wood: player.resources.wood + resourceGains.wood,
+              stone: player.resources.stone + resourceGains.stone,
+              food: player.resources.food + resourceGains.food,
+            },
+          }
+        : player
+    );
+
+    setGameState({
+      ...gameState,
+      players: updatedPlayers,
+    });
+
+    toast.success("Resources collected!");
+  };
+
   const handleEndPhase = () => {
     const phases: GameState["phase"][] = [
       "resource",
@@ -102,6 +174,10 @@ const Index = () => {
       currentPhaseIndex === phases.length - 1
         ? phases[0]
         : phases[currentPhaseIndex + 1];
+
+    if (gameState.phase === "resource") {
+      collectResources();
+    }
 
     setGameState({
       ...gameState,
@@ -149,6 +225,12 @@ const Index = () => {
 
           <div className="space-y-4">
             <ResourceDisplay resources={currentPlayer.resources} />
+            {gameState.phase === "building" && (
+              <BuildingMenu 
+                onBuild={handleBuild}
+                resources={currentPlayer.resources}
+              />
+            )}
             <GameControls
               gameState={gameState}
               onEndTurn={handleEndTurn}
