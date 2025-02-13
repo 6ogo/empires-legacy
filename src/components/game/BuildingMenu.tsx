@@ -156,7 +156,7 @@ const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selecte
                 ))}
               </div>
             </div>
-          })}
+          ))}
         </div>
       </div>
     </ScrollArea>
