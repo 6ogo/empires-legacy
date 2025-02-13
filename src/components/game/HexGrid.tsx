@@ -15,14 +15,14 @@ const HexGrid: React.FC<HexGridProps> = ({
   onTerritoryClick,
   selectedTerritory,
 }) => {
-  const hexSize = 45;
+  const hexSize = 40; // Slightly smaller hexagons
   const width = Math.sqrt(3) * hexSize;
   const height = 2 * hexSize;
 
   const getHexagonPoints = () => {
     const points = [];
     for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 6;
+      const angle = (Math.PI / 3) * i;
       const x = hexSize * Math.cos(angle);
       const y = hexSize * Math.sin(angle);
       points.push(`${x},${y}`);
@@ -31,16 +31,16 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Modified positioning to prevent overlapping
-    const x = width * (q + r * 0.5);
-    const y = height * r * 0.75;
+    // Improved hex positioning using axial coordinates
+    const x = hexSize * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+    const y = hexSize * (3/2 * r);
     return { x, y };
   };
 
   const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number) => {
     const IconComponent = resourceIcons[resource];
-    const angle = (Math.PI / 3) * index - Math.PI / 6;
-    const radius = hexSize * 0.5;
+    const angle = (Math.PI / 3) * index;
+    const radius = hexSize * 0.4; // Slightly closer to center
     const x = radius * Math.cos(angle);
     const y = radius * Math.sin(angle);
     
@@ -74,6 +74,7 @@ const HexGrid: React.FC<HexGridProps> = ({
     gold: Coins
   };
 
+  // Calculate grid boundaries
   const gridExtent = territories.reduce(
     (acc, territory) => {
       const pos = getHexPosition(territory.coordinates.q, territory.coordinates.r);

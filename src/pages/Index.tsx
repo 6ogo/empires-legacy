@@ -10,21 +10,26 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 
-const generateInitialTerritories = (): Territory[] => {
+const generateInitialTerritories = (boardSize: number): Territory[] => {
   const territories: Territory[] = [];
-  const radius = 3;
+  const radius = Math.floor(Math.sqrt(boardSize) / 2);
 
   for (let q = -radius; q <= radius; q++) {
-    for (let r = -radius; r <= radius; r++) {
+    const r1 = Math.max(-radius, -q - radius);
+    const r2 = Math.min(radius, -q + radius);
+    for (let r = r1; r <= r2; r++) {
       const s = -q - r;
-      if (Math.abs(s) <= radius) {
+      if (territories.length < boardSize) {
         const resources: Partial<Resources> = {};
         const resourceTypes = ['gold', 'wood', 'stone', 'food'] as const;
         
-        resourceTypes.forEach(resource => {
-          if (Math.random() < 0.6) {
-            resources[resource] = Math.floor(Math.random() * 3) + 1;
-          }
+        const numResources = Math.floor(Math.random() * 3) + 1;
+        const selectedResources = [...resourceTypes]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, numResources);
+        
+        selectedResources.forEach(resource => {
+          resources[resource] = Math.floor(Math.random() * 3) + 1;
         });
 
         territories.push({
@@ -41,13 +46,13 @@ const generateInitialTerritories = (): Territory[] => {
   return territories;
 };
 
-const createInitialGameState = (numPlayers: number): GameState => ({
+const createInitialGameState = (numPlayers: number, boardSize: number): GameState => ({
   players: Array.from({ length: numPlayers }, (_, i) => ({
     id: `player${i + 1}` as PlayerColor,
     resources: { gold: 100, wood: 50, stone: 50, food: 50 },
     territories: [],
   })),
-  territories: generateInitialTerritories(),
+  territories: generateInitialTerritories(boardSize),
   currentPlayer: "player1" as PlayerColor,
   phase: "setup",
   turn: 1,
@@ -92,16 +97,16 @@ const Index = () => {
     }
   }, [gameId]);
 
-  const handleCreateGame = async (numPlayers: number) => {
+  const handleCreateGame = async (numPlayers: number, boardSize: number) => {
     if (gameMode === "local") {
-      const initialState = createInitialGameState(numPlayers);
+      const initialState = createInitialGameState(numPlayers, boardSize);
       setGameState(initialState);
       setGameStarted(true);
       setGameStatus("playing");
       return;
     }
     
-    const initialState = createInitialGameState(numPlayers);
+    const initialState = createInitialGameState(numPlayers, boardSize);
     
     try {
       const { data, error } = await supabase
@@ -442,34 +447,24 @@ const Index = () => {
         )}
 
         {gameStatus === "mode_select" && (
-          <div className="space-y-4">
-            <h2 className="text-2xl text-center mb-4">Select number of players</h2>
-            <div className="flex gap-4">
-              {[2, 3, 4].map((num) => (
-                <Button
-                  key={num}
-                  onClick={() => handleCreateGame(num)}
-                  className="px-8 py-4 text-xl"
-                >
-                  {num} Players
-                </Button>
-              ))}
-            </div>
-            {gameMode === "online" && (
-              <div className="mt-8 text-center">
-                <p className="mb-4">or join an existing game:</p>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Enter Room ID"
-                    value={joinRoomId}
-                    onChange={(e) => setJoinRoomId(e.target.value)}
-                    className="bg-white/10 border-white/20"
-                  />
-                  <Button onClick={handleJoinGame}>Join Game</Button>
-                </div>
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-2xl text-center mb-4">Select board size</h2>
+              <div className="flex gap-4 justify-center">
+                {[20, 37, 61, 91].map((size) => (
+                  <Button
+                    key={size}
+                    onClick={() => {
+                      const numPlayers = 2; // Default to 2 players for now
+                      handleCreateGame(numPlayers, size);
+                    }}
+                    className="px-8 py-4 text-xl"
+                  >
+                    {size} Hexes
+                  </Button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
