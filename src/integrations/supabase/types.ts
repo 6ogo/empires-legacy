@@ -9,39 +9,156 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      friendships: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_stats: {
+        Row: {
+          created_at: string
+          game_id: number
+          id: string
+          rank: number
+          resources_collected: Json
+          score: number
+          territories_conquered: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: number
+          id?: string
+          rank: number
+          resources_collected: Json
+          score: number
+          territories_conquered: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: number
+          id?: string
+          rank?: number
+          resources_collected?: Json
+          score?: number
+          territories_conquered?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_stats_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
+          chat_messages: Json[] | null
           created_at: string
           current_player: string
           game_status: string
           id: number
           joined_players: number
+          last_message_timestamp: string | null
+          max_players: number
           num_players: number
           phase: string
           room_id: string
           state: Json
         }
         Insert: {
+          chat_messages?: Json[] | null
           created_at?: string
           current_player: string
           game_status?: string
           id?: number
           joined_players?: number
+          last_message_timestamp?: string | null
+          max_players?: number
           num_players?: number
           phase: string
           room_id?: string
           state: Json
         }
         Update: {
+          chat_messages?: Json[] | null
           created_at?: string
           current_player?: string
           game_status?: string
           id?: number
           joined_players?: number
+          last_message_timestamp?: string | null
+          max_players?: number
           num_players?: number
           phase?: string
           room_id?: string
           state?: Json
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          username?: string | null
         }
         Relationships: []
       }
