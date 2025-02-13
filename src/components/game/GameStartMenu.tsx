@@ -4,6 +4,8 @@ import GameModeSelect from "./GameModeSelect";
 import BoardSizeSelect from "./BoardSizeSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
 interface GameStartMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting";
@@ -30,6 +32,11 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
   onStartAnyway,
   connectedPlayers = [],
 }) => {
+  const handleCopyRoomId = () => {
+    navigator.clipboard.writeText(joinRoomId);
+    toast.success("Room ID copied to clipboard!");
+  };
+
   return (
     <div className="text-center text-white">
       <h1 className="text-5xl font-bold text-game-gold mb-12">Empire's Legacy</h1>
@@ -51,10 +58,21 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
       {gameStatus === "waiting" && (
         <div className="text-center">
           <h2 className="text-2xl mb-4">Waiting Room</h2>
-          <div className="mb-8 p-4 bg-white/10 rounded-lg inline-block">
+          <div className="mb-8 p-4 bg-white/10 rounded-lg inline-block min-w-[300px]">
             <h3 className="text-xl mb-2">Room ID</h3>
-            <p className="font-mono text-2xl text-game-gold">{joinRoomId}</p>
-            <p className="text-sm text-gray-400 mt-2">Share this code with other players to join</p>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <p className="font-mono text-2xl text-game-gold">{joinRoomId}</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyRoomId}
+                className="hover:bg-white/10"
+                title="Copy Room ID"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-400">Share this code with other players to join</p>
           </div>
           
           <div className="mb-8">
