@@ -13,6 +13,7 @@ interface GameBoardProps {
   onEndTurn: () => void;
   onEndPhase: () => void;
   onBuild: (buildingType: string) => void;
+  onGiveUp: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -22,6 +23,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onEndTurn,
   onEndPhase,
   onBuild,
+  onGiveUp,
 }) => {
   const currentPlayer = gameState.players.find(
     (p) => p.id === gameState.currentPlayer
@@ -62,6 +64,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
               gameState={gameState}
               onEndTurn={onEndTurn}
               onEndPhase={onEndPhase}
+              onGiveUp={onGiveUp}
             />
           </div>
         </div>

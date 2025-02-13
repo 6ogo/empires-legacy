@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { GameState, Territory, GameUpdate } from "@/types/game";
 import { toast } from "sonner";
@@ -299,6 +298,32 @@ const Index = () => {
     toast.success(`Moving to ${nextPhase} phase`);
   };
 
+  const handleGiveUp = () => {
+    if (!gameState) return;
+    
+    const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
+    const remainingPlayers = gameState.players.filter(p => p.id !== gameState.currentPlayer);
+    
+    if (remainingPlayers.length === 1) {
+      // If only one player remains, they win
+      toast.success(`${remainingPlayers[0].id} wins!`);
+      setGameStarted(false);
+      setGameStatus("menu");
+    } else {
+      // Remove current player and continue game
+      const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
+      const updatedPlayers = gameState.players.filter(p => p.id !== gameState.currentPlayer);
+      
+      setGameState({
+        ...gameState,
+        players: updatedPlayers,
+        currentPlayer: nextPlayer,
+      });
+      
+      toast.info(`${gameState.currentPlayer} has given up!`);
+    }
+  };
+
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
@@ -334,6 +359,7 @@ const Index = () => {
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={() => {}}
+      onGiveUp={handleGiveUp}
     />
   );
 };
