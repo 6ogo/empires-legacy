@@ -87,6 +87,17 @@ const HexGrid: React.FC<HexGridProps> = ({
       toast.error("This territory is already claimed!");
       return false;
     }
+
+    // Check if current player already has claimed a territory
+    const playerTerritoryCount = territories.filter(
+      t => t.owner === currentPlayer
+    ).length;
+
+    if (playerTerritoryCount >= 1) {
+      toast.error("You can only claim one starting territory!");
+      return false;
+    }
+
     return true;
   };
 

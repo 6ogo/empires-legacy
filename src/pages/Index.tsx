@@ -134,6 +134,15 @@ const Index = () => {
         return;
       }
 
+      const currentPlayerTerritories = gameState.territories.filter(
+        t => t.owner === gameState.currentPlayer
+      );
+
+      if (currentPlayerTerritories.length >= 1) {
+        toast.error("You can only claim one starting territory!");
+        return;
+      }
+
       const updatedTerritories = gameState.territories.map((t) =>
         t.id === territory.id ? { ...t, owner: gameState.currentPlayer } : t
       );
@@ -149,9 +158,13 @@ const Index = () => {
 
       const nextPlayer = gameState.currentPlayer === "player1" ? "player2" : "player1";
 
+      const allPlayersHaveClaimed = updatedPlayers.every(
+        player => player.territories.length === 1
+      );
+
       const newUpdate = {
         type: "territory_claimed" as const,
-        message: `${gameState.currentPlayer} claimed a territory`,
+        message: `${gameState.currentPlayer} claimed their starting territory`,
         timestamp: Date.now(),
       };
 
@@ -160,10 +173,15 @@ const Index = () => {
         territories: updatedTerritories,
         players: updatedPlayers,
         currentPlayer: nextPlayer,
+        phase: allPlayersHaveClaimed ? "resource" : "setup",
         updates: [...gameState.updates, newUpdate],
       });
 
-      toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
+      if (allPlayersHaveClaimed) {
+        toast.success("All players have claimed their starting territories. Moving to resource phase!");
+      } else {
+        toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
+      }
     } else if (gameState.phase === "building") {
       setSelectedTerritory(territory);
     }
