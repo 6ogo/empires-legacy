@@ -149,6 +149,7 @@ export type Database = {
           economic_wins: number | null
           email_verified: boolean | null
           id: string
+          is_anonymous: boolean | null
           is_guest: boolean | null
           last_username_change: string | null
           preferences: Json | null
@@ -165,6 +166,7 @@ export type Database = {
           economic_wins?: number | null
           email_verified?: boolean | null
           id: string
+          is_anonymous?: boolean | null
           is_guest?: boolean | null
           last_username_change?: string | null
           preferences?: Json | null
@@ -181,6 +183,7 @@ export type Database = {
           economic_wins?: number | null
           email_verified?: boolean | null
           id?: string
+          is_anonymous?: boolean | null
           is_guest?: boolean | null
           last_username_change?: string | null
           preferences?: Json | null

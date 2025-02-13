@@ -6,6 +6,9 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SignInFormProps {
   email: string;
@@ -30,8 +33,52 @@ export const SignInForm = ({
   loading,
   onSubmit,
   onMagicLinkLogin,
-  onGuestLogin,
 }: SignInFormProps) => {
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
+
+  const handleGuestLogin = async () => {
+    try {
+      setIsGuestLoading(true);
+      
+      // Get CAPTCHA token
+      const { data: { token }, error: captchaError } = await supabase.auth.mfa.challenge({ factorType: 'totp' });
+      if (captchaError) throw captchaError;
+
+      // Sign in anonymously with CAPTCHA token
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `guest_${Date.now()}@temporary.com`,
+        password: `temp_${Date.now()}`,
+        options: {
+          captchaToken: token
+        }
+      });
+
+      if (error) throw error;
+
+      // Create anonymous profile
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              username: `Guest_${Date.now().toString(36)}`,
+              is_anonymous: true,
+            }
+          ]);
+
+        if (profileError) throw profileError;
+      }
+
+      toast.success("Logged in as guest!");
+    } catch (error: any) {
+      console.error('Guest login error:', error);
+      toast.error(error.message || 'Failed to login as guest');
+    } finally {
+      setIsGuestLoading(false);
+    }
+  };
+
   return (
     <Tabs defaultValue="password" className="w-full">
       <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -87,11 +134,11 @@ export const SignInForm = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onGuestLogin}
-              disabled={loading}
+              onClick={handleGuestLogin}
+              disabled={isGuestLoading}
               className="w-full"
             >
-              Continue as Guest
+              {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
             </Button>
           </CardFooter>
         </form>
@@ -125,11 +172,11 @@ export const SignInForm = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onGuestLogin}
-              disabled={loading}
+              onClick={handleGuestLogin}
+              disabled={isGuestLoading}
               className="w-full"
             >
-              Continue as Guest
+              {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
             </Button>
           </CardFooter>
         </form>
