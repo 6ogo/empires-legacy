@@ -30,6 +30,7 @@ const Index = () => {
     joinRoomId,
     setJoinRoomId,
     isHost,
+    connectedPlayers,
     handleCreateGame,
     handleJoinGame,
     handleStartAnyway,
@@ -40,6 +41,57 @@ const Index = () => {
     handleEndPhase,
     handleGiveUp,
   } = useGameActions(gameState, setGameState, gameMode, gameId);
+
+  useEffect(() => {
+    if (gameId) {
+      const subscription = supabase
+        .channel(`game_updates_${gameId}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games',
+          filter: `id=eq.${gameId}`,
+        }, (payload: any) => {
+          if (payload.new.game_status === 'playing') {
+            setGameStarted(true);
+            setGameStatus('playing');
+            setGameState(payload.new.state as GameState);
+          }
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    }
+  }, [gameId]);
+
+  const onCreateGame = async (numPlayers: number, boardSize: number) => {
+    if (gameMode === "local") {
+      const initialState = createInitialGameState(numPlayers, boardSize);
+      setGameState(initialState);
+      setGameStarted(true);
+      setGameStatus("playing");
+      return;
+    }
+    
+    const result = await handleCreateGame(numPlayers, boardSize);
+    if (result) {
+      setGameState(result.initialState);
+      setGameStatus("waiting");
+    }
+  };
+
+  const onJoinGame = async () => {
+    const data = await handleJoinGame();
+    if (data) {
+      setGameState(data.state as GameState);
+      setGameStatus(data.game_status === 'playing' ? 'playing' : 'waiting');
+      if (data.game_status === 'playing') {
+        setGameStarted(true);
+      }
+    }
+  };
 
   const handleBuild = (buildingType: string) => {
     if (!gameState || !selectedTerritory) return;
@@ -155,80 +207,6 @@ const Index = () => {
     setSelectedTerritory(null);
   };
 
-  useEffect(() => {
-    if (gameId) {
-      const fetchGame = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('games')
-            .select('*')
-            .eq('id', gameId)
-            .single();
-
-          if (error) throw error;
-
-          if (data) {
-            setGameState(data.state as unknown as GameState);
-            setGameStarted(true);
-            setGameStatus(data.game_status === 'waiting' ? 'waiting' : 'playing');
-            toast.success(`Game loaded!`);
-          }
-        } catch (error) {
-          console.error('Error loading game:', error);
-          toast.error('Failed to load game. Please try again.');
-        }
-      };
-
-      const channel = supabase
-        .channel(`game_${gameId}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${gameId}`
-        }, (payload) => {
-          const gameData = payload.new;
-          setGameState(gameData.state as unknown as GameState);
-          if (gameData.game_status === 'playing') {
-            setGameStatus('playing');
-          }
-        })
-        .subscribe();
-
-      fetchGame();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [gameId]);
-
-  const onCreateGame = async (numPlayers: number, boardSize: number) => {
-    if (gameMode === "local") {
-      const initialState = createInitialGameState(numPlayers, boardSize);
-      setGameState(initialState);
-      setGameStarted(true);
-      setGameStatus("playing");
-      return;
-    }
-    
-    const result = await handleCreateGame(numPlayers, boardSize);
-    if (result) {
-      setGameState(result.initialState);
-      setGameStarted(true);
-      setGameStatus("waiting");
-    }
-  };
-
-  const onJoinGame = async () => {
-    const data = await handleJoinGame();
-    if (data) {
-      setGameState(data.state as unknown as GameState);
-      setGameStarted(true);
-      setGameStatus(data.joined_players + 1 === data.num_players ? 'playing' : 'waiting');
-    }
-  };
-
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
@@ -255,6 +233,7 @@ const Index = () => {
             onStartAnyway={handleStartAnyway}
             onShowLeaderboard={() => setShowLeaderboard(true)}
             onShowStats={() => setGameStatus("stats")}
+            connectedPlayers={connectedPlayers}
           />
         </PreGameScreens>
       </div>

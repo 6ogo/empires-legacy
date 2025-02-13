@@ -18,6 +18,7 @@ interface MainMenuProps {
   onStartAnyway?: () => void;
   onShowLeaderboard: () => void;
   onShowStats: () => void;
+  connectedPlayers: { username: string }[];
 }
 
 const MainMenu: React.FC<MainMenuProps> = ({
@@ -32,6 +33,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
   onStartAnyway,
   onShowLeaderboard,
   onShowStats,
+  connectedPlayers,
 }) => {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -107,6 +109,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
             onJoinRoomIdChange={onJoinRoomIdChange}
             isHost={isHost}
             onStartAnyway={onStartAnyway}
+            connectedPlayers={connectedPlayers}
           />
         </div>
       </div>
