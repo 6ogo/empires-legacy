@@ -15,9 +15,9 @@ const HexGrid: React.FC<HexGridProps> = ({
   onTerritoryClick,
   selectedTerritory,
 }) => {
-  const hexSize = 40; // Slightly smaller hexagons
-  const width = Math.sqrt(3) * hexSize;
-  const height = 2 * hexSize;
+  const hexSize = 40;
+  const horizontalSpacing = Math.sqrt(3) * hexSize;
+  const verticalSpacing = hexSize * 1.5;
 
   const getHexagonPoints = () => {
     const points = [];
@@ -31,16 +31,18 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Improved hex positioning using axial coordinates
-    const x = hexSize * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-    const y = hexSize * (3/2 * r);
+    // Use proper hexagonal grid coordinates
+    const x = horizontalSpacing * (q + r/2);
+    const y = verticalSpacing * r;
     return { x, y };
   };
 
-  const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number) => {
+  const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number, total: number) => {
     const IconComponent = resourceIcons[resource];
-    const angle = (Math.PI / 3) * index;
-    const radius = hexSize * 0.4; // Slightly closer to center
+    // Calculate position based on total number of resources
+    const angleStep = (2 * Math.PI) / total;
+    const angle = angleStep * index - Math.PI / 2; // Start from top
+    const radius = hexSize * 0.3; // Reduced radius to keep resources more centered
     const x = radius * Math.cos(angle);
     const y = radius * Math.sin(angle);
     
@@ -50,9 +52,11 @@ const HexGrid: React.FC<HexGridProps> = ({
           className={`w-4 h-4 ${resourceColors[resource]}`}
         />
         <text
-          x="12"
-          y="4"
-          className="text-xs fill-white font-bold stroke-black stroke-1"
+          x="0"
+          y="10"
+          className="text-xs fill-white font-bold text-center"
+          textAnchor="middle"
+          dominantBaseline="middle"
         >
           {amount}
         </text>
@@ -108,6 +112,8 @@ const HexGrid: React.FC<HexGridProps> = ({
               territory.coordinates.r
             );
             
+            const resourceEntries = Object.entries(territory.resources);
+            
             return (
               <motion.g
                 key={territory.id}
@@ -120,8 +126,8 @@ const HexGrid: React.FC<HexGridProps> = ({
                 onClick={() => onTerritoryClick(territory)}
                 className="cursor-pointer"
                 style={{ 
-                  originX: "50%",
-                  originY: "50%",
+                  transformOrigin: "center",
+                  transformBox: "fill-box",
                 }}
               >
                 <polygon
@@ -146,8 +152,13 @@ const HexGrid: React.FC<HexGridProps> = ({
                     {territory.building}
                   </text>
                 )}
-                {Object.entries(territory.resources).map(([resource, amount], index) => 
-                  renderResourceIcon(resource as keyof typeof resourceColors, amount, index)
+                {resourceEntries.map(([resource, amount], index) => 
+                  renderResourceIcon(
+                    resource as keyof typeof resourceColors,
+                    amount,
+                    index,
+                    resourceEntries.length
+                  )
                 )}
               </motion.g>
             );
