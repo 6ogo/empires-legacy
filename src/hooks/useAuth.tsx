@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -14,6 +13,11 @@ export interface UserProfile {
   };
   avatar_url: string | null;
   created_at: string;
+  total_gametime: number;
+  total_games_played: number;
+  total_wins: number;
+  economic_wins: number;
+  domination_wins: number;
 }
 
 export const useAuth = () => {
@@ -68,6 +72,11 @@ export const useAuth = () => {
             : data.preferences,
           avatar_url: data.avatar_url,
           created_at: data.created_at,
+          total_gametime: data.total_gametime,
+          total_games_played: data.total_games_played,
+          total_wins: data.total_wins,
+          economic_wins: data.economic_wins,
+          domination_wins: data.domination_wins,
         };
 
         setProfile(transformedProfile);

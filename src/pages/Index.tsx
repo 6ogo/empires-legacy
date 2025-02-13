@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
@@ -11,11 +10,13 @@ import { useOnlineGame } from "@/hooks/useOnlineGame";
 import { useGameActions } from "@/hooks/useGameActions";
 import GameStartMenu from "@/components/game/GameStartMenu";
 import GameUpdatesPanel from "@/components/game/GameUpdatesPanel";
+import Leaderboard from "@/components/game/Leaderboard";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameStatus, setGameStatus] = useState<"menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting">("menu");
   const [gameMode, setGameMode] = useState<"local" | "online" | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const {
     gameState,
@@ -233,20 +234,42 @@ const Index = () => {
 
   if (!gameStarted) {
     return (
-      <GameStartMenu
-        gameStatus={gameStatus}
-        gameMode={gameMode}
-        onSelectMode={(mode) => {
-          setGameMode(mode);
-          setGameStatus("mode_select");
-        }}
-        onCreateGame={onCreateGame}
-        onJoinGame={onJoinGame}
-        joinRoomId={joinRoomId}
-        onJoinRoomIdChange={setJoinRoomId}
-        isHost={isHost}
-        onStartAnyway={handleStartAnyway}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+        {showLeaderboard ? (
+          <div className="p-4">
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              className="mb-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+            >
+              Back to Menu
+            </button>
+            <Leaderboard />
+          </div>
+        ) : (
+          <div className="container mx-auto p-4">
+            <GameStartMenu
+              gameStatus={gameStatus}
+              gameMode={gameMode}
+              onSelectMode={(mode) => {
+                setGameMode(mode);
+                setGameStatus("mode_select");
+              }}
+              onCreateGame={onCreateGame}
+              onJoinGame={onJoinGame}
+              joinRoomId={joinRoomId}
+              onJoinRoomIdChange={setJoinRoomId}
+              isHost={isHost}
+              onStartAnyway={handleStartAnyway}
+            />
+            <button
+              onClick={() => setShowLeaderboard(true)}
+              className="mt-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+            >
+              View Leaderboard
+            </button>
+          </div>
+        )}
+      </div>
     );
   }
 

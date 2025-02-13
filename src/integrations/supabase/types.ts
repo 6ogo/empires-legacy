@@ -145,30 +145,45 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          domination_wins: number | null
+          economic_wins: number | null
           email_verified: boolean | null
           id: string
           is_guest: boolean | null
           preferences: Json | null
+          total_games_played: number | null
+          total_gametime: number | null
+          total_wins: number | null
           username: string | null
           verified: boolean | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          domination_wins?: number | null
+          economic_wins?: number | null
           email_verified?: boolean | null
           id: string
           is_guest?: boolean | null
           preferences?: Json | null
+          total_games_played?: number | null
+          total_gametime?: number | null
+          total_wins?: number | null
           username?: string | null
           verified?: boolean | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          domination_wins?: number | null
+          economic_wins?: number | null
           email_verified?: boolean | null
           id?: string
           is_guest?: boolean | null
           preferences?: Json | null
+          total_games_played?: number | null
+          total_gametime?: number | null
+          total_wins?: number | null
           username?: string | null
           verified?: boolean | null
         }
