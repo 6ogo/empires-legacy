@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { GameState, Territory, Resources } from "@/types/game";
 import { toast } from "sonner";
@@ -76,7 +75,7 @@ const Index = () => {
               setGameState(newState);
             } else {
               console.error('Invalid game state received:', newState);
-              toast.error('Error loading game state');
+              toast.error('Failed to load game state');
             }
           }
         })
@@ -107,7 +106,6 @@ const Index = () => {
   const onJoinGame = async () => {
     const data = await handleJoinGame();
     if (data) {
-      // Safely cast the state with validation
       if (isValidGameState(data.state)) {
         setGameState(data.state);
         setGameStatus(data.game_status === 'playing' ? 'playing' : 'waiting');
@@ -116,7 +114,7 @@ const Index = () => {
         }
       } else {
         console.error('Invalid game state received:', data.state);
-        toast.error('Error loading game state');
+        toast.error('Failed to load game state');
       }
     }
   };
@@ -274,7 +272,7 @@ const Index = () => {
     <GameScreen
       gameState={gameState}
       selectedTerritory={selectedTerritory}
-      onTerritoryClick={handleTerritoryClick}
+      onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory)}
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={handleBuild}
