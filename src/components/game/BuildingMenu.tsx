@@ -79,7 +79,7 @@ const buildings = [
 const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selectedTerritory }) => {
   const canAfford = (costs: Partial<Resources>) => {
     return Object.entries(costs).every(
-      ([resource, cost]) => resources[resource as keyof Resources] >= (cost || 0)
+      ([resource, cost]) => (resources[resource as keyof Resources] || 0) >= (cost || 0)
     );
   };
 
@@ -95,7 +95,7 @@ const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selecte
     }
 
     // Check building count limit
-    const buildingCount = (selectedTerritory.buildings || []).length;
+    const buildingCount = selectedTerritory.buildings?.length || 0;
     if (buildingCount >= 2) {
       toast.error("Maximum of 2 buildings per territory reached!");
       return false;
