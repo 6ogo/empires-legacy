@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -54,6 +55,7 @@ const Auth = () => {
               id: authData.user.id,
               username,
               preferences: { stayLoggedIn },
+              is_guest: false,
             },
           ]);
 
@@ -108,6 +110,46 @@ const Auth = () => {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    try {
+      const { data: { user }, error } = await supabase.auth.signUp({
+        email: `guest_${Date.now()}@temporary.com`,
+        password: `guest${Date.now()}`,
+        options: {
+          data: {
+            username: `Guest_${Date.now().toString(36)}`,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              username: `Guest_${Date.now().toString(36)}`,
+              is_guest: true,
+              preferences: { stayLoggedIn: false },
+            },
+          ]);
+
+        if (profileError) throw profileError;
+
+        toast.success("Continuing as guest");
+        navigate("/");
+      }
+    } catch (error: any) {
+      toast.error("Failed to continue as guest. Please try again.");
+      console.error('Guest login error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm text-white">
@@ -155,13 +197,23 @@ const Auth = () => {
                   <Label htmlFor="stay-logged-in" className="text-sm">Stay logged in</Label>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col gap-4">
                 <Button 
                   type="submit" 
                   className="w-full bg-game-gold hover:bg-game-gold/90"
                   disabled={loading}
                 >
                   {loading ? "Signing in..." : "Sign In"}
+                </Button>
+                <Separator className="my-2" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGuestLogin}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  Continue as Guest
                 </Button>
               </CardFooter>
             </form>
@@ -216,13 +268,23 @@ const Auth = () => {
                   <Label htmlFor="stay-logged-in-signup" className="text-sm">Stay logged in</Label>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col gap-4">
                 <Button 
                   type="submit" 
                   className="w-full bg-game-gold hover:bg-game-gold/90"
                   disabled={loading}
                 >
                   {loading ? "Creating account..." : "Sign Up"}
+                </Button>
+                <Separator className="my-2" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGuestLogin}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  Continue as Guest
                 </Button>
               </CardFooter>
             </form>
