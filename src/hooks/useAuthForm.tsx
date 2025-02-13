@@ -39,6 +39,8 @@ export const useAuthForm = () => {
               username,
               preferences: { stayLoggedIn },
               is_guest: false,
+              verified: false,
+              email_verified: false,
             },
           ]);
 
@@ -76,11 +78,6 @@ export const useAuthForm = () => {
           console.error('Error updating preferences:', updateError);
         }
 
-        await supabase.auth.setSession({
-          access_token: data.session?.access_token || '',
-          refresh_token: data.session?.refresh_token || '',
-        });
-
         toast.success("Signed in successfully!");
         navigate("/");
       }
@@ -107,14 +104,17 @@ export const useAuthForm = () => {
       if (error) throw error;
 
       if (user) {
+        const guestUsername = `Guest_${Date.now().toString(36)}`;
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
               id: user.id,
-              username: `Guest_${Date.now().toString(36)}`,
+              username: guestUsername,
               is_guest: true,
               preferences: { stayLoggedIn: false },
+              verified: false,
+              email_verified: false,
             },
           ]);
 
