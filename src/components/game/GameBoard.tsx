@@ -48,6 +48,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 territories={gameState.territories}
                 onTerritoryClick={onTerritoryClick}
                 selectedTerritory={selectedTerritory}
+                currentPlayer={gameState.currentPlayer}
+                playerResources={currentPlayer.resources}
+                phase={gameState.phase}
               />
             </div>
           </div>
