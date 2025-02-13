@@ -11,10 +11,11 @@ import { useGameActions } from "@/hooks/useGameActions";
 import GameStartMenu from "@/components/game/GameStartMenu";
 import GameUpdatesPanel from "@/components/game/GameUpdatesPanel";
 import Leaderboard from "@/components/game/Leaderboard";
+import Stats from "@/components/game/Stats";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
-  const [gameStatus, setGameStatus] = useState<"menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting">("menu");
+  const [gameStatus, setGameStatus] = useState<"menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats">("menu");
   const [gameMode, setGameMode] = useState<"local" | "online" | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -245,6 +246,16 @@ const Index = () => {
             </button>
             <Leaderboard />
           </div>
+        ) : gameStatus === "stats" ? (
+          <div className="container mx-auto p-4">
+            <button
+              onClick={() => setGameStatus("menu")}
+              className="mb-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+            >
+              Back to Menu
+            </button>
+            <Stats />
+          </div>
         ) : (
           <div className="container mx-auto p-4">
             <GameStartMenu
@@ -261,12 +272,20 @@ const Index = () => {
               isHost={isHost}
               onStartAnyway={handleStartAnyway}
             />
-            <button
-              onClick={() => setShowLeaderboard(true)}
-              className="mt-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
-            >
-              View Leaderboard
-            </button>
+            <div className="flex gap-4 mt-4 justify-center">
+              <button
+                onClick={() => setShowLeaderboard(true)}
+                className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+              >
+                View Leaderboard
+              </button>
+              <button
+                onClick={() => setGameStatus("stats")}
+                className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+              >
+                View Statistics
+              </button>
+            </div>
           </div>
         )}
       </div>
