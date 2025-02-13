@@ -1,4 +1,3 @@
-
 import React from "react";
 import HexGrid from "./HexGrid";
 import ResourceDisplay from "./ResourceDisplay";
@@ -61,6 +60,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
               <BuildingMenu 
                 onBuild={onBuild}
                 resources={currentPlayer.resources}
+                selectedTerritory={selectedTerritory}
               />
             )}
             <GameControls

@@ -1,8 +1,9 @@
 
 import React from "react";
-import { Resources } from "@/types/game";
+import { Resources, Territory } from "@/types/game";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { 
   Store, 
   Warehouse, 
@@ -11,12 +12,14 @@ import {
   TreeDeciduous,
   Mountain,
   GalleryThumbnails,
-  Castle
+  Castle,
+  Road
 } from "lucide-react";
 
 interface BuildingMenuProps {
   onBuild: (buildingType: string) => void;
   resources: Resources;
+  selectedTerritory: Territory | null;
 }
 
 const buildings = [
@@ -26,6 +29,7 @@ const buildings = [
     icon: TreeDeciduous,
     cost: { gold: 50, wood: 20 },
     description: "+2 wood per turn",
+    requiresResource: "wood",
   },
   {
     id: "mine",
@@ -33,6 +37,7 @@ const buildings = [
     icon: Mountain,
     cost: { gold: 50, stone: 20 },
     description: "+2 stone per turn",
+    requiresResource: "stone",
   },
   {
     id: "market",
@@ -47,6 +52,13 @@ const buildings = [
     icon: GalleryThumbnails,
     cost: { gold: 50, wood: 20 },
     description: "+2 food per turn",
+  },
+  {
+    id: "road",
+    name: "Road",
+    icon: Road,
+    cost: { wood: 25, stone: 25 },
+    description: "Allows territory expansion",
   },
   {
     id: "barracks",
@@ -64,11 +76,48 @@ const buildings = [
   },
 ];
 
-const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources }) => {
+const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selectedTerritory }) => {
   const canAfford = (costs: Partial<Resources>) => {
     return Object.entries(costs).every(
       ([resource, cost]) => resources[resource as keyof Resources] >= cost
     );
+  };
+
+  const canBuildOnTerritory = (building: typeof buildings[0]) => {
+    if (!selectedTerritory) {
+      toast.error("Please select a territory first!");
+      return false;
+    }
+
+    // Check building count limit
+    const buildingCount = (selectedTerritory.buildings || []).length;
+    if (buildingCount >= 2) {
+      toast.error("Maximum of 2 buildings per territory reached!");
+      return false;
+    }
+
+    // Check if territory has required resource for resource buildings
+    if (building.requiresResource) {
+      const hasResource = selectedTerritory.resources[building.requiresResource as keyof Resources] > 0;
+      if (!hasResource) {
+        toast.error(`This territory has no ${building.requiresResource} resources!`);
+        return false;
+      }
+    }
+
+    // Check if player can afford the building
+    if (!canAfford(building.cost)) {
+      toast.error("Insufficient resources!");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleBuildClick = (building: typeof buildings[0]) => {
+    if (canBuildOnTerritory(building)) {
+      onBuild(building.id);
+    }
   };
 
   return (
@@ -91,8 +140,8 @@ const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources }) => {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => onBuild(building.id)}
-                  disabled={!canAfford(building.cost)}
+                  onClick={() => handleBuildClick(building)}
+                  disabled={!selectedTerritory || !canAfford(building.cost)}
                   className="ml-2"
                 >
                   Build
@@ -107,7 +156,7 @@ const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources }) => {
                 ))}
               </div>
             </div>
-          ))}
+          })}
         </div>
       </div>
     </ScrollArea>
