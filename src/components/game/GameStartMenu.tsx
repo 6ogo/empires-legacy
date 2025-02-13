@@ -75,23 +75,23 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
             </div>
           </div>
 
-          {/* Room ID Section */}
-          <div className="mb-8 p-4 bg-white/10 rounded-lg inline-block min-w-[300px]">
-            <h3 className="text-xl mb-2">Room ID</h3>
-            <div className="flex items-center justify-center gap-2 mb-2">
+          {/* Room ID Section - Made more prominent */}
+          <div className="mb-8 p-6 bg-white/10 rounded-lg inline-block min-w-[300px] border border-game-gold">
+            <h3 className="text-2xl mb-4 text-game-gold">Room ID</h3>
+            <div className="flex items-center justify-center gap-2 mb-4">
               <Input 
                 value={joinRoomId}
                 readOnly
-                className="font-mono text-2xl text-game-gold bg-transparent border-none text-center"
+                className="font-mono text-3xl text-game-gold bg-transparent border-none text-center tracking-wider"
               />
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={handleCopyRoomId}
-                className="hover:bg-white/10"
+                className="hover:bg-white/10 border border-game-gold"
                 title="Copy Room ID"
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-4 w-4 text-game-gold" />
               </Button>
             </div>
             <p className="text-sm text-gray-400">Share this code with other players to join</p>
