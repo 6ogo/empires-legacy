@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Territory } from "@/types/game";
+import { Trees, Mountain, Wheat, Coins } from "lucide-react";
 
 interface HexGridProps {
   territories: Territory[];
@@ -14,7 +15,7 @@ const HexGrid: React.FC<HexGridProps> = ({
   onTerritoryClick,
   selectedTerritory,
 }) => {
-  const hexSize = 50; // Size of hexagon
+  const hexSize = 40; // Slightly smaller hexagons for better spacing
   const width = Math.sqrt(3) * hexSize;
   const height = 2 * hexSize;
 
@@ -30,12 +31,45 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
+    // Adjusted spacing formula
     const x = width * (q + r/2);
-    const y = height * (3/4) * r;
+    const y = r * (height * 0.75); // Overlap hexagons vertically by 25%
     return { x, y };
   };
 
-  // Calculate the bounds of the grid
+  const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number) => {
+    const IconComponent = resourceIcons[resource];
+    return (
+      <g transform={`translate(${-hexSize/3}, ${hexSize/2})`}>
+        <IconComponent 
+          className={`w-4 h-4 ${resourceColors[resource]}`}
+        />
+        <text
+          x="15"
+          y="12"
+          className="text-xs fill-white font-bold"
+        >
+          {amount}
+        </text>
+      </g>
+    );
+  };
+
+  const resourceColors = {
+    wood: "text-game-wood",
+    stone: "text-game-stone",
+    food: "text-game-food",
+    gold: "text-game-gold"
+  };
+
+  const resourceIcons = {
+    wood: Trees,
+    stone: Mountain,
+    food: Wheat,
+    gold: Coins
+  };
+
+  // Calculate grid bounds
   const gridExtent = territories.reduce(
     (acc, territory) => {
       const pos = getHexPosition(territory.coordinates.q, territory.coordinates.r);
@@ -46,10 +80,10 @@ const HexGrid: React.FC<HexGridProps> = ({
         maxY: Math.max(acc.maxY, pos.y),
       };
     },
-    { minX: 0, maxX: 0, minY: 0, maxY: 0 }
+    { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
   );
 
-  // Add padding to the viewBox
+  // Add padding and calculate viewBox
   const padding = hexSize * 2;
   const viewBoxWidth = gridExtent.maxX - gridExtent.minX + padding * 2;
   const viewBoxHeight = gridExtent.maxY - gridExtent.minY + padding * 2;
@@ -59,7 +93,8 @@ const HexGrid: React.FC<HexGridProps> = ({
   return (
     <svg 
       viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
-      className="w-full max-w-4xl mx-auto"
+      className="w-full h-full"
+      preserveAspectRatio="xMidYMid meet"
     >
       {territories.map((territory) => {
         const { x, y } = getHexPosition(
@@ -78,6 +113,7 @@ const HexGrid: React.FC<HexGridProps> = ({
             transition={{ duration: 0.2 }}
             onClick={() => onTerritoryClick(territory)}
             className="cursor-pointer"
+            style={{ transformOrigin: '0 0' }}
           >
             <polygon
               points={getHexagonPoints()}
@@ -88,7 +124,11 @@ const HexGrid: React.FC<HexGridProps> = ({
                 ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
               `}
             />
-            {/* Territory type icon or indicator could go here */}
+            {Object.entries(territory.resources).map(([resource, amount], index) => (
+              <g key={resource} transform={`translate(0, ${index * 20})`}>
+                {renderResourceIcon(resource as keyof typeof resourceColors, amount)}
+              </g>
+            ))}
           </motion.g>
         );
       })}
