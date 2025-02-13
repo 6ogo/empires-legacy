@@ -91,25 +91,37 @@ export const useAuthForm = () => {
   const handleGuestLogin = async () => {
     setLoading(true);
     try {
-      const { data: { user }, error } = await supabase.auth.signUp({
-        email: `guest_${Date.now()}@temporary.com`,
-        password: `guest${Date.now()}`,
+      const guestEmail = `guest_${Date.now()}@temporary.com`;
+      const guestPassword = `guest${Date.now()}`;
+      const guestUsername = `Guest_${Date.now().toString(36)}`;
+
+      // First sign up the guest user
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: guestEmail,
+        password: guestPassword,
         options: {
           data: {
-            username: `Guest_${Date.now().toString(36)}`,
+            username: guestUsername,
           },
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
-      if (user) {
-        const guestUsername = `Guest_${Date.now().toString(36)}`;
+      // Then sign in immediately to get a valid session
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: guestEmail,
+        password: guestPassword,
+      });
+
+      if (signInError) throw signInError;
+
+      if (signInData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
-              id: user.id,
+              id: signInData.user.id,
               username: guestUsername,
               is_guest: true,
               preferences: { stayLoggedIn: false },
