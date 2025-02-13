@@ -15,8 +15,8 @@ const HexGrid: React.FC<HexGridProps> = ({
   selectedTerritory,
 }) => {
   const hexSize = 40;
-  const width = hexSize * 2;
-  const height = Math.sqrt(3) * hexSize;
+  const horizontalSpacing = hexSize * Math.sqrt(3);
+  const verticalSpacing = hexSize * 1.5;
   
   const getHexagonPoints = () => {
     const points = [];
@@ -31,9 +31,9 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Fixed coordinate calculation using flat-topped hexagonal grid system
-    const x = hexSize * (3/2 * q);
-    const y = hexSize * (Math.sqrt(3) * (r + q/2));
+    // Using axial coordinates with proper spacing
+    const x = horizontalSpacing * q + (r * horizontalSpacing / 2);
+    const y = verticalSpacing * r;
     return { x, y };
   };
 
@@ -92,6 +92,7 @@ const HexGrid: React.FC<HexGridProps> = ({
       <svg 
         viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
         className="w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
       >
         <g>
           {territories.map((territory) => {
@@ -105,50 +106,47 @@ const HexGrid: React.FC<HexGridProps> = ({
             return (
               <g
                 key={territory.id}
-                className="group cursor-pointer"
+                transform={`translate(${x}, ${y})`}
                 onClick={() => onTerritoryClick(territory)}
+                className={`
+                  cursor-pointer
+                  transform-gpu
+                  transition-all duration-200 ease-out
+                  origin-center
+                  hover:scale-110
+                  ${selectedTerritory?.id === territory.id ? 'scale-110' : ''}
+                `}
               >
-                <g
-                  transform={`translate(${x}, ${y})`}
+                <polygon
+                  points={getHexagonPoints()}
                   className={`
-                    transform-gpu
-                    transition-all duration-200 ease-out
-                    origin-center
-                    group-hover:scale-110
-                    ${selectedTerritory?.id === territory.id ? 'scale-110' : ''}
+                    ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
+                    stroke-gray-400 stroke-2
+                    transition-colors duration-300
+                    ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
+                    hover:stroke-white
                   `}
-                >
-                  <polygon
-                    points={getHexagonPoints()}
-                    className={`
-                      ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
-                      stroke-gray-400 stroke-2
-                      transition-colors duration-300
-                      ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                      group-hover:stroke-white
-                    `}
-                  />
-                  {territory.building && (
-                    <text
-                      x="0"
-                      y="0"
-                      className="text-xs fill-white font-bold text-center select-none pointer-events-none"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                    >
-                      {territory.building}
-                    </text>
+                />
+                {territory.building && (
+                  <text
+                    x="0"
+                    y="0"
+                    className="text-xs fill-white font-bold text-center select-none pointer-events-none"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {territory.building}
+                  </text>
+                )}
+                <g>
+                  {resourceEntries.map(([resource, amount], index) => 
+                    renderResourceIcon(
+                      resource as keyof typeof resourceColors,
+                      amount,
+                      index,
+                      resourceEntries.length
+                    )
                   )}
-                  <g>
-                    {resourceEntries.map(([resource, amount], index) => 
-                      renderResourceIcon(
-                        resource as keyof typeof resourceColors,
-                        amount,
-                        index,
-                        resourceEntries.length
-                      )
-                    )}
-                  </g>
                 </g>
               </g>
             );
