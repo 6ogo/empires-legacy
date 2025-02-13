@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { GameState } from "@/types/game";
 import { toast } from "sonner";
@@ -15,6 +14,29 @@ export const useOnlineGame = () => {
   const [connectedPlayers, setConnectedPlayers] = useState<{ username: string }[]>([]);
   const [turnTimer, setTurnTimer] = useState<number>(120); // 2 minutes in seconds
   const { profile } = useAuth();
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (gameId) {
+      timer = setInterval(() => {
+        setTurnTimer((prev) => {
+          if (prev <= 0) {
+            // When timer reaches 0, automatically end the turn
+            // This should be implemented in the game logic
+            return 120; // Reset timer for next player
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [gameId]);
 
   const handleCreateGame = async (numPlayers: number, boardSize: number) => {
     const initialState = createInitialGameState(numPlayers, boardSize);

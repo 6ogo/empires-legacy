@@ -24,7 +24,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   useEffect(() => {
     // Generate random board sizes based on player count
     const sizes = [];
-    if (numPlayers === 2) {
+    if (numPlayers <= 3) {
       sizes.push(
         20,
         Math.floor(Math.random() * (40 - 20) + 20),
@@ -45,14 +45,19 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl mb-4">Select number of players</h2>
-        <div className="flex gap-4 justify-center">
-          {[2, 3, 4].map((num) => (
+        <h2 className="text-2xl mb-6 text-white">Select number of players</h2>
+        <div className="flex flex-wrap gap-4 justify-center">
+          {[2, 3, 4, 5, 6].map((num) => (
             <Button
               key={num}
               onClick={() => setNumPlayers(num)}
               variant={numPlayers === num ? "default" : "outline"}
-              className="px-6 py-3"
+              className={`
+                px-8 py-6 text-xl transition-all
+                ${numPlayers === num 
+                  ? 'bg-game-gold text-black hover:bg-game-gold/90' 
+                  : 'bg-white/10 hover:bg-white/20 text-white'}
+              `}
             >
               {num} Players
             </Button>
@@ -61,13 +66,13 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
       </div>
 
       <div>
-        <h2 className="text-2xl text-center mb-4">Select board size</h2>
-        <div className="flex gap-4 justify-center">
+        <h2 className="text-2xl text-center mb-6 text-white">Select board size</h2>
+        <div className="flex flex-wrap gap-4 justify-center">
           {availableSizes.map((size) => (
             <Button
               key={size}
               onClick={() => onCreateGame(numPlayers, size)}
-              className="px-8 py-4 text-xl"
+              className="px-8 py-6 text-xl bg-white/10 hover:bg-white/20 text-white transition-all"
             >
               {size} Hexes
             </Button>
@@ -76,17 +81,22 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
       </div>
       
       {gameMode === "online" && (
-        <div className="mt-8 text-center">
-          <p className="mb-4">or join an existing game:</p>
-          <div className="flex gap-2 justify-center">
+        <div className="mt-12 text-center">
+          <p className="mb-4 text-white text-xl">or join an existing game:</p>
+          <div className="flex gap-4 justify-center max-w-md mx-auto">
             <Input
               type="text"
               placeholder="Enter Room ID"
               value={joinRoomId}
               onChange={(e) => onJoinRoomIdChange(e.target.value)}
-              className="bg-white/10 border-white/20 max-w-xs"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 text-lg py-6"
             />
-            <Button onClick={onJoinGame}>Join Game</Button>
+            <Button 
+              onClick={onJoinGame}
+              className="px-8 text-lg bg-game-gold text-black hover:bg-game-gold/90"
+            >
+              Join Game
+            </Button>
           </div>
         </div>
       )}
