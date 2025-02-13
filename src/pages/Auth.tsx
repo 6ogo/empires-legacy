@@ -22,6 +22,7 @@ const Auth = () => {
     setStayLoggedIn,
     handleSignIn,
     handleSignUp,
+    handleMagicLinkLogin,
     handleGuestLogin,
   } = useAuthForm();
 
@@ -56,6 +57,7 @@ const Auth = () => {
               setStayLoggedIn={setStayLoggedIn}
               loading={loading}
               onSubmit={handleSignIn}
+              onMagicLinkLogin={handleMagicLinkLogin}
               onGuestLogin={handleGuestLogin}
             />
           </TabsContent>

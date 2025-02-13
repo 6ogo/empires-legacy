@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,8 +87,29 @@ export const useAuthForm = () => {
     }
   };
 
+  const handleMagicLinkLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Magic link sent! Please check your email.");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGuestLogin = async () => {
-    // Simply navigate to the game without authentication
     navigate("/");
     toast.success("Welcome to Empire's Legacy!");
   };
@@ -106,6 +126,7 @@ export const useAuthForm = () => {
     setStayLoggedIn,
     handleSignIn,
     handleSignUp,
+    handleMagicLinkLogin,
     handleGuestLogin,
   };
 };
