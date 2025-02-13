@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import HexGrid from "@/components/game/HexGrid";
 import ResourceDisplay from "@/components/game/ResourceDisplay";
@@ -7,12 +6,7 @@ import BuildingMenu from "@/components/game/BuildingMenu";
 import { GameState, Territory, Resources, PlayerColor } from "@/types/game";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.REACT_APP_SUPABASE_URL!,
-  process.env.REACT_APP_SUPABASE_ANON_KEY!
-);
+import { supabase } from "@/integrations/supabase/client";
 
 const generateInitialTerritories = (): Territory[] => {
   const territories: Territory[] = [];
