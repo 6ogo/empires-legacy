@@ -272,7 +272,7 @@ const Index = () => {
     <GameScreen
       gameState={gameState}
       selectedTerritory={selectedTerritory}
-      onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory)}
+      onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory, gameId)}
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={handleBuild}
