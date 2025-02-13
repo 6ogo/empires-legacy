@@ -61,7 +61,8 @@ const Index = () => {
   const [gameId, setGameId] = useState<number | null>(null);
   const [roomId, setRoomId] = useState<string>("");
   const [joinRoomId, setJoinRoomId] = useState<string>("");
-  const [gameStatus, setGameStatus] = useState<"menu" | "creating" | "joining" | "playing">("menu");
+  const [gameStatus, setGameStatus] = useState<"menu" | "mode_select" | "creating" | "joining" | "playing">("menu");
+  const [gameMode, setGameMode] = useState<"local" | "online" | null>(null);
 
   useEffect(() => {
     if (gameId) {
@@ -76,7 +77,7 @@ const Index = () => {
           if (error) throw error;
 
           if (data) {
-            setGameState(data.state as GameState);
+            setGameState(data.state as unknown as GameState);
             setGameStarted(true);
             setGameStatus("playing");
             toast.success(`Game loaded!`);
@@ -92,6 +93,14 @@ const Index = () => {
   }, [gameId]);
 
   const handleCreateGame = async (numPlayers: number) => {
+    if (gameMode === "local") {
+      const initialState = createInitialGameState(numPlayers);
+      setGameState(initialState);
+      setGameStarted(true);
+      setGameStatus("playing");
+      return;
+    }
+    
     const initialState = createInitialGameState(numPlayers);
     
     try {
@@ -151,7 +160,7 @@ const Index = () => {
         if (updateError) throw updateError;
 
         setGameId(data.id);
-        setGameState(data.state as GameState);
+        setGameState(data.state as unknown as GameState);
         setGameStarted(true);
         setGameStatus("playing");
         toast.success('Joined game successfully!');
@@ -405,20 +414,64 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold text-game-gold mb-8">Empire's Legacy</h1>
-        <div className="space-y-4">
-          <h2 className="text-2xl text-center mb-4">Select number of players</h2>
-          <div className="flex gap-4">
-            {[2, 3, 4].map((num) => (
+        
+        {gameStatus === "menu" && (
+          <div className="space-y-4">
+            <h2 className="text-2xl text-center mb-4">Select Game Mode</h2>
+            <div className="flex gap-4">
               <Button
-                key={num}
-                onClick={() => handleCreateGame(num)}
+                onClick={() => {
+                  setGameMode("local");
+                  setGameStatus("mode_select");
+                }}
                 className="px-8 py-4 text-xl"
               >
-                {num} Players
+                Local Game
               </Button>
-            ))}
+              <Button
+                onClick={() => {
+                  setGameMode("online");
+                  setGameStatus("mode_select");
+                }}
+                className="px-8 py-4 text-xl"
+              >
+                Online Game
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {gameStatus === "mode_select" && (
+          <div className="space-y-4">
+            <h2 className="text-2xl text-center mb-4">Select number of players</h2>
+            <div className="flex gap-4">
+              {[2, 3, 4].map((num) => (
+                <Button
+                  key={num}
+                  onClick={() => handleCreateGame(num)}
+                  className="px-8 py-4 text-xl"
+                >
+                  {num} Players
+                </Button>
+              ))}
+            </div>
+            {gameMode === "online" && (
+              <div className="mt-8 text-center">
+                <p className="mb-4">or join an existing game:</p>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter Room ID"
+                    value={joinRoomId}
+                    onChange={(e) => setJoinRoomId(e.target.value)}
+                    className="bg-white/10 border-white/20"
+                  />
+                  <Button onClick={handleJoinGame}>Join Game</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
