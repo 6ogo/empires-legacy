@@ -34,13 +34,18 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } />
           <Route path="/settings" element={
             <ProtectedRoute>
               <Settings />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
+          <Route index element={<Navigate to="/auth" />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

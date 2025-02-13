@@ -3,13 +3,14 @@ import React from "react";
 import GameModeSelect from "./GameModeSelect";
 import BoardSizeSelect from "./BoardSizeSelect";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface GameStartMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting";
   gameMode: "local" | "online" | null;
   onSelectMode: (mode: "local" | "online") => void;
-  onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
-  onJoinGame: () => Promise<void>;
+  onCreateGame: (numPlayers: number, boardSize: number) => void;
+  onJoinGame: () => void;
   joinRoomId: string;
   onJoinRoomIdChange: (value: string) => void;
   isHost?: boolean;
@@ -49,14 +50,15 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
 
       {gameStatus === "waiting" && (
         <div className="text-center">
-          <h2 className="text-2xl mb-4">Waiting for players...</h2>
-          <div className="mb-6">
-            <h3 className="text-xl mb-2">Room ID: <span className="font-mono">{joinRoomId}</span></h3>
-            <p className="text-sm text-gray-400">Share this code with other players to join</p>
+          <h2 className="text-2xl mb-4">Waiting Room</h2>
+          <div className="mb-8 p-4 bg-white/10 rounded-lg inline-block">
+            <h3 className="text-xl mb-2">Room ID</h3>
+            <p className="font-mono text-2xl text-game-gold">{joinRoomId}</p>
+            <p className="text-sm text-gray-400 mt-2">Share this code with other players to join</p>
           </div>
           
-          <div className="mb-6">
-            <h3 className="text-xl mb-2">Connected Players:</h3>
+          <div className="mb-8">
+            <h3 className="text-xl mb-4">Connected Players</h3>
             <ul className="space-y-2">
               {connectedPlayers.map((player, index) => (
                 <li key={index} className="text-lg">
@@ -68,7 +70,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
           </div>
 
           {isHost && connectedPlayers.length >= 2 && (
-            <Button onClick={onStartAnyway} className="mt-4">
+            <Button onClick={onStartAnyway} className="mt-4 bg-game-gold text-black hover:bg-game-gold/90">
               Start Game
             </Button>
           )}
