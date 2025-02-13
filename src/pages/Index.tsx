@@ -1,16 +1,15 @@
+
 import React, { useState, useEffect } from "react";
-import { GameState, GameUpdate } from "@/types/game";
+import { GameState } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
-import GameModeSelect from "@/components/game/GameModeSelect";
-import BoardSizeSelect from "@/components/game/BoardSizeSelect";
 import GameBoard from "@/components/game/GameBoard";
 import { createInitialGameState } from "@/lib/game-utils";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
-import { Button } from "@/components/ui/button";
-import { militaryUnits } from "@/data/military-units";
+import GameStartMenu from "@/components/game/GameStartMenu";
+import GameUpdatesPanel from "@/components/game/GameUpdatesPanel";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -110,354 +109,22 @@ const Index = () => {
     }
   };
 
-  const onStartAnyway = async () => {
-    const success = await handleStartAnyway();
-    if (success) {
-      setGameStatus('playing');
-    }
-  };
-
-  const handleEndTurn = async () => {
-    if (!gameState) return;
-
-    const nextPlayer = gameState.currentPlayer === "player1" ? "player2" : "player1";
-
-    const newUpdate: GameUpdate = {
-      type: "turn_ended",
-      message: `${gameState.currentPlayer} ended their turn`,
-      timestamp: Date.now(),
-    };
-
-    const updatedState: GameState = {
-      ...gameState,
-      currentPlayer: nextPlayer,
-      phase: "resource",
-      turn: gameState.turn + 1,
-      updates: [...gameState.updates, newUpdate],
-    };
-
-    setGameState(updatedState);
-
-    if (gameMode === "online" && gameId) {
-      try {
-        const { error } = await supabase
-          .from('games')
-          .update({ 
-            state: updatedState as unknown as Json,
-            current_player: nextPlayer,
-            phase: "resource",
-          })
-          .eq('id', gameId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating game:', error);
-        toast.error('Failed to update game state. Please try again.');
-      }
-    }
-
-    toast.success(`${nextPlayer}'s turn begins!`);
-  };
-
-  const collectResources = () => {
-    if (!gameState) return;
-
-    const currentPlayer = gameState.players.find(
-      (p) => p.id === gameState.currentPlayer
-    );
-
-    if (!currentPlayer) return;
-
-    const ownedTerritories = gameState.territories.filter(
-      (t) => t.owner === gameState.currentPlayer
-    );
-
-    const resourceGains = ownedTerritories.reduce(
-      (acc, territory) => {
-        acc.gold += 10;  // Increased base resources
-        acc.wood += 5;
-        acc.stone += 5;
-        acc.food += 5;
-
-        Object.entries(territory.resources).forEach(([resource, amount]) => {
-          acc[resource as keyof typeof acc] += amount * 3;  // Increased multiplier
-        });
-
-        if (territory.building === "lumber_mill") acc.wood += 20;  // Increased to 20
-        if (territory.building === "mine") acc.stone += 20;  // Increased to 20
-        if (territory.building === "market") {
-          acc.gold += 20;  // Increased to 20
-          acc.gold += (currentPlayer.resources.wood * 2);  // +2 gold per wood
-          acc.gold += (currentPlayer.resources.stone * 2); // +2 gold per stone
-          acc.gold += (currentPlayer.resources.food * 5);  // +5 gold per food
-        }
-        if (territory.building === "farm") acc.food += 8;
-
-        return acc;
-      },
-      { gold: 0, wood: 0, stone: 0, food: 0 }
-    );
-
-    const updatedPlayers = gameState.players.map((player) =>
-      player.id === gameState.currentPlayer
-        ? {
-            ...player,
-            resources: {
-              gold: player.resources.gold + resourceGains.gold,
-              wood: player.resources.wood + resourceGains.wood,
-              stone: player.resources.stone + resourceGains.stone,
-              food: player.resources.food + resourceGains.food,
-            },
-          }
-        : player
-    );
-
-    setGameState({
-      ...gameState,
-      players: updatedPlayers,
-    });
-
-    const marketBonus = ownedTerritories.some(t => t.building === "market")
-      ? ` (+${currentPlayer.resources.wood * 2} gold from wood, +${currentPlayer.resources.stone * 2} gold from stone, +${currentPlayer.resources.food * 5} gold from food)`
-      : '';
-
-    toast.success(
-      `Resources collected: ${Object.entries(resourceGains)
-        .map(([resource, amount]) => `${amount} ${resource}`)
-        .join(", ")}${marketBonus}`
-    );
-  };
-
-  const handleBuild = async (buildingType: string) => {
-    if (!gameState || !selectedTerritory) return;
-
-    const cost = {
-      lumber_mill: { gold: 50, wood: 20 },
-      mine: { gold: 50, stone: 20 },
-      market: { gold: 100, wood: 30 },
-      farm: { gold: 50, wood: 20 },
-      road: { wood: 25, stone: 25 },
-      barracks: { gold: 150, wood: 50, stone: 50 },
-      fortress: { gold: 300, stone: 150 },
-    }[buildingType];
-
-    if (!cost) return;
-
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
-    if (!currentPlayer) return;
-
-    const updatedResources = { ...currentPlayer.resources };
-    Object.entries(cost).forEach(([resource, amount]) => {
-      updatedResources[resource as keyof typeof updatedResources] -= amount;
-    });
-
-    const updatedTerritories = gameState.territories.map(t =>
-      t.id === selectedTerritory.id
-        ? { ...t, building: buildingType }
-        : t
-    );
-
-    const updatedPlayers = gameState.players.map(p =>
-      p.id === gameState.currentPlayer
-        ? { ...p, resources: updatedResources }
-        : p
-    );
-
-    const updatedState = {
-      ...gameState,
-      territories: updatedTerritories,
-      players: updatedPlayers,
-    };
-
-    setGameState(updatedState);
-
-    if (gameMode === "online" && gameId) {
-      try {
-        const { error } = await supabase
-          .from('games')
-          .update({ 
-            state: updatedState as unknown as Json,
-          })
-          .eq('id', gameId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating game:', error);
-        toast.error('Failed to update game state. Please try again.');
-      }
-    }
-
-    toast.success(`Built ${buildingType} in selected territory!`);
-  };
-
-  const handleEndPhase = () => {
-    if (!gameState) return;
-
-    const phases: GameState["phase"][] = [
-      "resource",
-      "building",
-      "recruitment",
-      "movement",
-      "combat",
-    ];
-    
-    const currentPhaseIndex = phases.indexOf(gameState.phase as any);
-    const nextPhase = currentPhaseIndex === phases.length - 1
-      ? phases[0]
-      : phases[currentPhaseIndex + 1];
-
-    if (gameState.phase === "resource") {
-      collectResources();
-    }
-
-    if (currentPhaseIndex === phases.length - 1) {
-      handleEndTurn();
-      return;
-    }
-
-    setGameState({
-      ...gameState,
-      phase: nextPhase,
-    });
-
-    toast.success(`Moving to ${nextPhase} phase`);
-  };
-
-  const handleGiveUp = () => {
-    if (!gameState) return;
-    
-    if (gameState.players.length === 2) {
-      const winner = gameState.players.find(p => p.id !== gameState.currentPlayer);
-      if (winner) {
-        toast.success(`${winner.id} wins!`);
-        setGameStarted(false);
-        setGameStatus("menu");
-      }
-    } else {
-      const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
-      const remainingPlayers = gameState.players.filter(p => p.id !== gameState.currentPlayer);
-      
-      if (remainingPlayers.length === 1) {
-        toast.success(`${remainingPlayers[0].id} wins!`);
-        setGameStarted(false);
-        setGameStatus("menu");
-      } else {
-        const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
-        setGameState({
-          ...gameState,
-          players: remainingPlayers,
-          currentPlayer: nextPlayer,
-        });
-        toast.info(`${gameState.currentPlayer} has given up!`);
-      }
-    }
-  };
-
-  const handleRecruit = async (unitType: string) => {
-    if (!gameState || !selectedTerritory) return;
-
-    const unit = militaryUnits[unitType];
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
-
-    if (!currentPlayer) return;
-
-    const updatedResources = { ...currentPlayer.resources };
-    Object.entries(unit.cost).forEach(([resource, cost]) => {
-      updatedResources[resource as keyof typeof updatedResources] -= cost || 0;
-    });
-
-    const updatedTerritories = gameState.territories.map(t =>
-      t.id === selectedTerritory.id
-        ? { ...t, militaryUnit: unit }
-        : t
-    );
-
-    const updatedPlayers = gameState.players.map(p =>
-      p.id === gameState.currentPlayer
-        ? { ...p, resources: updatedResources }
-        : p
-    );
-
-    const updatedState = {
-      ...gameState,
-      territories: updatedTerritories,
-      players: updatedPlayers,
-    };
-
-    setGameState(updatedState);
-
-    if (gameMode === "online" && gameId) {
-      try {
-        const { error } = await supabase
-          .from('games')
-          .update({ 
-            state: updatedState as unknown as Json,
-          })
-          .eq('id', gameId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating game:', error);
-        toast.error('Failed to update game state. Please try again.');
-      }
-    }
-
-    toast.success(`Recruited ${unitType} in selected territory!`);
-  };
-
-  const renderGameUpdates = () => {
-    if (!gameState) return null;
-
-    return (
-      <div className="fixed bottom-4 left-4 max-w-md bg-black/80 p-4 rounded-lg shadow-lg">
-        <h3 className="text-lg font-semibold mb-2">Game Updates</h3>
-        <div className="space-y-2 max-h-40 overflow-y-auto">
-          {gameState.updates.slice(-5).reverse().map((update, index) => (
-            <div key={index} className="text-sm text-gray-300">
-              <span className="text-xs text-gray-400">
-                {new Date(update.timestamp).toLocaleTimeString()} - 
-              </span>
-              {update.message}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold text-game-gold mb-8">Empire's Legacy</h1>
-        
-        {gameStatus === "menu" && (
-          <GameModeSelect onSelectMode={(mode) => {
-            setGameMode(mode);
-            setGameStatus("mode_select");
-          }} />
-        )}
-
-        {gameStatus === "mode_select" && (
-          <BoardSizeSelect
-            onCreateGame={onCreateGame}
-            gameMode={gameMode!}
-            onJoinGame={onJoinGame}
-            joinRoomId={joinRoomId}
-            onJoinRoomIdChange={(value) => setJoinRoomId(value)}
-          />
-        )}
-
-        {gameStatus === "waiting" && (
-          <div className="text-center">
-            <h2 className="text-2xl mb-4">Waiting for players...</h2>
-            {isHost && (
-              <Button onClick={onStartAnyway} className="mt-4">
-                Start Game Anyway
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+      <GameStartMenu
+        gameStatus={gameStatus}
+        gameMode={gameMode}
+        onSelectMode={(mode) => {
+          setGameMode(mode);
+          setGameStatus("mode_select");
+        }}
+        onCreateGame={onCreateGame}
+        onJoinGame={onJoinGame}
+        joinRoomId={joinRoomId}
+        onJoinRoomIdChange={setJoinRoomId}
+        isHost={isHost}
+        onStartAnyway={handleStartAnyway}
+      />
     );
   }
 
@@ -475,7 +142,7 @@ const Index = () => {
         onRecruit={handleRecruit}
         onGiveUp={handleGiveUp}
       />
-      {renderGameUpdates()}
+      <GameUpdatesPanel gameState={gameState} />
     </>
   );
 };
