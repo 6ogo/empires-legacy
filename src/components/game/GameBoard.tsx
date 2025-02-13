@@ -47,20 +47,20 @@ const GameBoard: React.FC<GameBoardProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-2 sm:p-4 lg:p-8">
+      <div className="max-w-[2000px] mx-auto space-y-4 lg:space-y-8">
         <MobileMenu onGiveUp={onGiveUp} />
         
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-game-gold">Empire's Legacy</h1>
-          <p className="text-gray-400">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-game-gold">Empire's Legacy</h1>
+          <p className="text-sm sm:text-base text-gray-400">
             Turn {gameState.turn} - {currentPlayer.id}'s turn - {gameState.phase} phase
           </p>
         </div>
 
-        <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-4 gap-8'}`}>
-          <div className={isMobile ? 'order-2' : 'lg:col-span-3'}>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 shadow-xl">
+        <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-6 2xl:grid-cols-5 gap-4 lg:gap-6'}`}>
+          <div className={isMobile ? 'order-2' : 'lg:col-span-4 2xl:col-span-3'}>
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-2 sm:p-4 shadow-xl">
               <HexGrid
                 territories={gameState.territories}
                 onTerritoryClick={onTerritoryClick}
@@ -72,8 +72,14 @@ const GameBoard: React.FC<GameBoardProps> = ({
             </div>
           </div>
 
-          <div className="space-y-4">
-            {gameState.players.map(player => renderPlayerResources(player))}
+          <div className={`space-y-4 ${isMobile ? '' : 'lg:col-span-2'}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+              {gameState.players.map(player => (
+                <div key={player.id} className="bg-white/5 backdrop-blur-sm rounded-xl p-4">
+                  {renderPlayerResources(player)}
+                </div>
+              ))}
+            </div>
             
             {gameState.phase === "building" && (
               <BuildingMenu 
