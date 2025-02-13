@@ -16,33 +16,35 @@ const HexGrid: React.FC<HexGridProps> = ({
   selectedTerritory,
 }) => {
   const hexSize = 40;
-  const horizontalSpacing = Math.sqrt(3) * hexSize;
-  const verticalSpacing = hexSize * 1.5;
-
+  
+  // Calculate proper hexagon spacing
+  const width = hexSize * 2;
+  const height = Math.sqrt(3) * hexSize;
+  
   const getHexagonPoints = () => {
     const points = [];
     for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i;
-      const x = hexSize * Math.cos(angle);
-      const y = hexSize * Math.sin(angle);
+      const angleDeg = 60 * i - 30;
+      const angleRad = (Math.PI / 180) * angleDeg;
+      const x = hexSize * Math.cos(angleRad);
+      const y = hexSize * Math.sin(angleRad);
       points.push(`${x},${y}`);
     }
     return points.join(" ");
   };
 
   const getHexPosition = (q: number, r: number) => {
-    // Use proper hexagonal grid coordinates
-    const x = horizontalSpacing * (q + r/2);
-    const y = verticalSpacing * r;
+    // Fix coordinate calculation using proper axial coordinates
+    const x = width * (3/2 * q);
+    const y = height * (Math.sqrt(3)/2 * q + Math.sqrt(3) * r);
     return { x, y };
   };
 
   const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number, total: number) => {
     const IconComponent = resourceIcons[resource];
-    // Calculate position based on total number of resources
     const angleStep = (2 * Math.PI) / total;
-    const angle = angleStep * index - Math.PI / 2; // Start from top
-    const radius = hexSize * 0.3; // Reduced radius to keep resources more centered
+    const angle = angleStep * index;
+    const radius = hexSize * 0.4;
     const x = radius * Math.cos(angle);
     const y = radius * Math.sin(angle);
     
@@ -57,6 +59,7 @@ const HexGrid: React.FC<HexGridProps> = ({
           className="text-xs fill-white font-bold text-center"
           textAnchor="middle"
           dominantBaseline="middle"
+          style={{ pointerEvents: 'none' }}
         >
           {amount}
         </text>
@@ -79,31 +82,21 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   // Calculate grid boundaries
-  const gridExtent = territories.reduce(
-    (acc, territory) => {
-      const pos = getHexPosition(territory.coordinates.q, territory.coordinates.r);
-      return {
-        minX: Math.min(acc.minX, pos.x),
-        maxX: Math.max(acc.maxX, pos.x),
-        minY: Math.min(acc.minY, pos.y),
-        maxY: Math.max(acc.maxY, pos.y),
-      };
-    },
-    { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
-  );
+  const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
+  const minX = Math.min(...positions.map(p => p.x));
+  const maxX = Math.max(...positions.map(p => p.x));
+  const minY = Math.min(...positions.map(p => p.y));
+  const maxY = Math.max(...positions.map(p => p.y));
 
-  const padding = hexSize * 2;
-  const viewBoxWidth = gridExtent.maxX - gridExtent.minX + padding * 2;
-  const viewBoxHeight = gridExtent.maxY - gridExtent.minY + padding * 2;
-  const viewBoxX = gridExtent.minX - padding;
-  const viewBoxY = gridExtent.minY - padding;
+  const padding = width;
+  const viewBoxWidth = maxX - minX + padding * 2;
+  const viewBoxHeight = maxY - minY + padding * 2;
 
   return (
     <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
       <svg 
-        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
         className="w-full h-full"
-        preserveAspectRatio="xMidYMid meet"
       >
         <g>
           {territories.map((territory) => {
@@ -115,20 +108,16 @@ const HexGrid: React.FC<HexGridProps> = ({
             const resourceEntries = Object.entries(territory.resources);
             
             return (
-              <motion.g
+              <g
                 key={territory.id}
                 transform={`translate(${x}, ${y})`}
-                whileHover={{ scale: 1.1 }}
-                animate={{
-                  scale: selectedTerritory?.id === territory.id ? 1.15 : 1,
-                }}
-                transition={{ duration: 0.2 }}
                 onClick={() => onTerritoryClick(territory)}
-                className="cursor-pointer"
-                style={{ 
-                  transformOrigin: "center",
-                  transformBox: "fill-box",
-                }}
+                className={`
+                  cursor-pointer
+                  transition-transform duration-200 ease-in-out
+                  ${selectedTerritory?.id === territory.id ? 'scale-110' : ''}
+                  hover:scale-110
+                `}
               >
                 <polygon
                   points={getHexagonPoints()}
@@ -139,28 +128,30 @@ const HexGrid: React.FC<HexGridProps> = ({
                     ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
                     hover:stroke-white
                   `}
-                  vectorEffect="non-scaling-stroke"
                 />
                 {territory.building && (
                   <text
                     x="0"
                     y="0"
                     className="text-xs fill-white font-bold text-center"
-                    dominantBaseline="middle"
                     textAnchor="middle"
+                    dominantBaseline="middle"
+                    style={{ pointerEvents: 'none' }}
                   >
                     {territory.building}
                   </text>
                 )}
-                {resourceEntries.map(([resource, amount], index) => 
-                  renderResourceIcon(
-                    resource as keyof typeof resourceColors,
-                    amount,
-                    index,
-                    resourceEntries.length
-                  )
-                )}
-              </motion.g>
+                <g transform="translate(0, 0)">
+                  {resourceEntries.map(([resource, amount], index) => 
+                    renderResourceIcon(
+                      resource as keyof typeof resourceColors,
+                      amount,
+                      index,
+                      resourceEntries.length
+                    )
+                  )}
+                </g>
+              </g>
             );
           })}
         </g>
