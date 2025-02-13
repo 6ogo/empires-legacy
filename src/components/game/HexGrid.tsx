@@ -31,8 +31,9 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    const x = width * (q + (r % 2) * 0.5);
-    const y = height * (r * 0.75);
+    // Modified positioning to prevent overlapping
+    const x = width * (q + r * 0.5);
+    const y = height * r * 0.75;
     return { x, y };
   };
 
@@ -108,7 +109,7 @@ const HexGrid: React.FC<HexGridProps> = ({
             
             return (
               <motion.g
-                key={`${territory.coordinates.q},${territory.coordinates.r},${territory.coordinates.s}`}
+                key={territory.id}
                 transform={`translate(${x}, ${y})`}
                 whileHover={{ scale: 1.1 }}
                 animate={{
@@ -116,7 +117,7 @@ const HexGrid: React.FC<HexGridProps> = ({
                 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => onTerritoryClick(territory)}
-                className="cursor-pointer hover:z-10"
+                className="cursor-pointer"
                 style={{ 
                   originX: "50%",
                   originY: "50%",

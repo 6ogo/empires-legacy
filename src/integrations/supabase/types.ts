@@ -13,22 +13,34 @@ export type Database = {
         Row: {
           created_at: string
           current_player: string
+          game_status: string
           id: number
+          joined_players: number
+          num_players: number
           phase: string
+          room_id: string
           state: Json
         }
         Insert: {
           created_at?: string
           current_player: string
+          game_status?: string
           id?: number
+          joined_players?: number
+          num_players?: number
           phase: string
+          room_id?: string
           state: Json
         }
         Update: {
           created_at?: string
           current_player?: string
+          game_status?: string
           id?: number
+          joined_players?: number
+          num_players?: number
           phase?: string
+          room_id?: string
           state?: Json
         }
         Relationships: []
