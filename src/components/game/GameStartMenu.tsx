@@ -28,8 +28,8 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
   onStartAnyway,
 }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold text-game-gold mb-8">Empire's Legacy</h1>
+    <div className="text-center text-white">
+      <h1 className="text-5xl font-bold text-game-gold mb-12">Empire's Legacy</h1>
       
       {gameStatus === "menu" && (
         <GameModeSelect onSelectMode={onSelectMode} />

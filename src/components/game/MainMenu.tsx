@@ -38,55 +38,54 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="min-h-screen flex flex-col">
-        {/* Top Section */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            {profile?.level && (
-              <div className="text-game-gold">
-                Level {profile.level} ({profile.xp} XP)
-              </div>
-            )}
-          </div>
-          <div className="flex gap-4">
-            <Button
-              onClick={onShowLeaderboard}
-              className="bg-game-gold text-black hover:bg-game-gold/90"
-            >
-              View Leaderboard
-            </Button>
-            <Button
-              onClick={onShowStats}
-              className="bg-game-gold text-black hover:bg-game-gold/90"
-            >
-              View Statistics
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/settings')}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
+    <div className="fixed inset-0 bg-[#141B2C]">
+      {/* Top Bar */}
+      <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
+        <div>
+          {profile?.level && (
+            <div className="text-game-gold">
+              Level {profile.level} ({profile.xp} XP)
+            </div>
+          )}
         </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={onShowLeaderboard}
+            className="bg-game-gold text-black hover:bg-game-gold/90 font-semibold"
+          >
+            View Leaderboard
+          </Button>
+          <Button
+            onClick={onShowStats}
+            className="bg-game-gold text-black hover:bg-game-gold/90 font-semibold"
+          >
+            View Statistics
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate('/settings')}
+            className="bg-white/10"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-        {/* Main Content - Moved up by adjusting margin */}
-        <div className="flex-1 flex items-center justify-center -mt-20">
-          <div className="w-full max-w-md">
-            <GameStartMenu
-              gameStatus={gameStartMenuStatus}
-              gameMode={gameMode}
-              onSelectMode={onSelectMode}
-              onCreateGame={onCreateGame}
-              onJoinGame={onJoinGame}
-              joinRoomId={joinRoomId}
-              onJoinRoomIdChange={onJoinRoomIdChange}
-              isHost={isHost}
-              onStartAnyway={onStartAnyway}
-            />
-          </div>
+      {/* Center Content */}
+      <div className="h-full flex items-center justify-center">
+        <div className="w-full max-w-xl -mt-20">
+          <GameStartMenu
+            gameStatus={gameStartMenuStatus}
+            gameMode={gameMode}
+            onSelectMode={onSelectMode}
+            onCreateGame={onCreateGame}
+            onJoinGame={onJoinGame}
+            joinRoomId={joinRoomId}
+            onJoinRoomIdChange={onJoinRoomIdChange}
+            isHost={isHost}
+            onStartAnyway={onStartAnyway}
+          />
         </div>
       </div>
     </div>
