@@ -6,7 +6,7 @@ import GameControls from "./GameControls";
 import BuildingMenu from "./BuildingMenu";
 import RecruitmentMenu from "./RecruitmentMenu";
 import MobileMenu from "./MobileMenu";
-import { GameState, Territory } from "@/types/game";
+import { GameState, Territory, Player } from "@/types/game";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GameBoardProps {
@@ -37,6 +37,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
   if (!currentPlayer) return null;
 
+  const renderPlayerResources = (player: Player) => (
+    <div key={player.id} className="mb-4">
+      <div className="text-sm text-gray-400 mb-2">
+        {player.id}'s Resources {player.id === gameState.currentPlayer && "(Current Turn)"}:
+      </div>
+      <ResourceDisplay resources={player.resources} />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -64,7 +73,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
           </div>
 
           <div className="space-y-4">
-            <ResourceDisplay resources={currentPlayer.resources} />
+            {gameState.players.map(player => renderPlayerResources(player))}
+            
             {gameState.phase === "building" && (
               <BuildingMenu 
                 onBuild={onBuild}
