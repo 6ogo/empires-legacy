@@ -31,8 +31,9 @@ const HexGrid: React.FC<HexGridProps> = ({
   };
 
   const getHexPosition = (q: number, r: number) => {
-    const x = width * (3/2 * q);
-    const y = height * (Math.sqrt(3)/2 * q + Math.sqrt(3) * r);
+    // Fixed coordinate calculation using flat-topped hexagonal grid system
+    const x = hexSize * (3/2 * q);
+    const y = hexSize * (Math.sqrt(3) * (r + q/2));
     return { x, y };
   };
 
@@ -78,19 +79,18 @@ const HexGrid: React.FC<HexGridProps> = ({
 
   // Calculate grid boundaries
   const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
-  const minX = Math.min(...positions.map(p => p.x));
-  const maxX = Math.max(...positions.map(p => p.x));
-  const minY = Math.min(...positions.map(p => p.y));
-  const maxY = Math.max(...positions.map(p => p.y));
+  const minX = Math.min(...positions.map(p => p.x)) - hexSize * 2;
+  const maxX = Math.max(...positions.map(p => p.x)) + hexSize * 2;
+  const minY = Math.min(...positions.map(p => p.y)) - hexSize * 2;
+  const maxY = Math.max(...positions.map(p => p.y)) + hexSize * 2;
 
-  const padding = width;
-  const viewBoxWidth = maxX - minX + padding * 2;
-  const viewBoxHeight = maxY - minY + padding * 2;
+  const viewBoxWidth = maxX - minX;
+  const viewBoxHeight = maxY - minY;
 
   return (
     <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
       <svg 
-        viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
         className="w-full h-full"
       >
         <g>
@@ -105,7 +105,7 @@ const HexGrid: React.FC<HexGridProps> = ({
             return (
               <g
                 key={territory.id}
-                className="group"
+                className="group cursor-pointer"
                 onClick={() => onTerritoryClick(territory)}
               >
                 <g
@@ -124,7 +124,6 @@ const HexGrid: React.FC<HexGridProps> = ({
                       ${territory.owner ? `fill-game-${territory.owner}` : "fill-game-neutral"}
                       stroke-gray-400 stroke-2
                       transition-colors duration-300
-                      cursor-pointer
                       ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
                       group-hover:stroke-white
                     `}
