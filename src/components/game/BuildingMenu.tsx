@@ -13,7 +13,7 @@ import {
   Mountain,
   GalleryThumbnails,
   Castle,
-  Road
+  ArrowRight // Replace Road with ArrowRight as it's a better available alternative
 } from "lucide-react";
 
 interface BuildingMenuProps {
@@ -56,7 +56,7 @@ const buildings = [
   {
     id: "road",
     name: "Road",
-    icon: Road,
+    icon: ArrowRight, // Update the icon here as well
     cost: { wood: 25, stone: 25 },
     description: "Allows territory expansion",
   },
