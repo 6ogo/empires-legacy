@@ -1,8 +1,10 @@
+
 import React from "react";
 import HexGrid from "./HexGrid";
 import ResourceDisplay from "./ResourceDisplay";
 import GameControls from "./GameControls";
 import BuildingMenu from "./BuildingMenu";
+import RecruitmentMenu from "./RecruitmentMenu";
 import { GameState, Territory } from "@/types/game";
 
 interface GameBoardProps {
@@ -12,6 +14,7 @@ interface GameBoardProps {
   onEndTurn: () => void;
   onEndPhase: () => void;
   onBuild: (buildingType: string) => void;
+  onRecruit: (unitType: string) => void;
   onGiveUp: () => void;
 }
 
@@ -22,6 +25,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onEndTurn,
   onEndPhase,
   onBuild,
+  onRecruit,
   onGiveUp,
 }) => {
   const currentPlayer = gameState.players.find(
@@ -36,7 +40,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-game-gold">Empire's Legacy</h1>
           <p className="text-gray-400">
-            Turn {gameState.turn} - {currentPlayer.id}'s turn
+            Turn {gameState.turn} - {currentPlayer.id}'s turn - {gameState.phase} phase
           </p>
         </div>
 
@@ -59,6 +63,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
             {gameState.phase === "building" && (
               <BuildingMenu 
                 onBuild={onBuild}
+                resources={currentPlayer.resources}
+                selectedTerritory={selectedTerritory}
+              />
+            )}
+            {gameState.phase === "recruitment" && (
+              <RecruitmentMenu
+                onRecruit={onRecruit}
                 resources={currentPlayer.resources}
                 selectedTerritory={selectedTerritory}
               />

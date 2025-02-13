@@ -202,13 +202,44 @@ const HexGrid: React.FC<HexGridProps> = ({
                   {territory.building && (
                     <text
                       x="0"
-                      y="0"
+                      y="-15"
                       className="text-xs fill-white font-bold text-center select-none pointer-events-none"
                       textAnchor="middle"
                       dominantBaseline="middle"
                     >
                       {territory.building}
                     </text>
+                  )}
+                  {territory.militaryUnit && (
+                    <g>
+                      <text
+                        x="0"
+                        y="0"
+                        className="text-xs fill-white font-bold text-center select-none pointer-events-none"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        {territory.militaryUnit.type}
+                      </text>
+                      <text
+                        x="-15"
+                        y="15"
+                        className="text-xs fill-red-400 font-bold text-center select-none pointer-events-none"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        ❤️{territory.militaryUnit.health}
+                      </text>
+                      <text
+                        x="15"
+                        y="15"
+                        className="text-xs fill-blue-400 font-bold text-center select-none pointer-events-none"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        ⚔️{territory.militaryUnit.damage}
+                      </text>
+                    </g>
                   )}
                   <g>
                     {resourceEntries.map(([resource, amount], index) => 

@@ -1,3 +1,4 @@
+
 export type ResourceType = "gold" | "wood" | "stone" | "food";
 export type TerritoryType = "plains" | "mountains" | "forests" | "coast" | "capital";
 export type PlayerColor = "player1" | "player2";
@@ -10,6 +11,13 @@ export interface Resources {
   food: number;
 }
 
+export interface MilitaryUnit {
+  type: string;
+  health: number;
+  damage: number;
+  cost: Partial<Resources>;
+}
+
 export interface Territory {
   id: string;
   type: TerritoryType;
@@ -17,7 +25,8 @@ export interface Territory {
   coordinates: { q: number; r: number; s: number };
   resources: Partial<Resources>;
   building?: string;
-  buildings?: string[];  // Add this line to support multiple buildings
+  buildings?: string[];
+  militaryUnit?: MilitaryUnit;
 }
 
 export interface Player {

@@ -13,7 +13,7 @@ import {
   Mountain,
   GalleryThumbnails,
   Castle,
-  ArrowRight // Replace Road with ArrowRight as it's a better available alternative
+  ArrowRight
 } from "lucide-react";
 
 interface BuildingMenuProps {
@@ -56,7 +56,7 @@ const buildings = [
   {
     id: "road",
     name: "Road",
-    icon: ArrowRight, // Update the icon here as well
+    icon: ArrowRight,
     cost: { wood: 25, stone: 25 },
     description: "Allows territory expansion",
   },
@@ -79,13 +79,18 @@ const buildings = [
 const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selectedTerritory }) => {
   const canAfford = (costs: Partial<Resources>) => {
     return Object.entries(costs).every(
-      ([resource, cost]) => resources[resource as keyof Resources] >= cost
+      ([resource, cost]) => resources[resource as keyof Resources] >= (cost || 0)
     );
   };
 
   const canBuildOnTerritory = (building: typeof buildings[0]) => {
     if (!selectedTerritory) {
       toast.error("Please select a territory first!");
+      return false;
+    }
+
+    if (selectedTerritory.owner !== selectedTerritory.owner) {
+      toast.error("You can only build on your own territories!");
       return false;
     }
 
