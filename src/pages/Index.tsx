@@ -1,13 +1,14 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HexGrid from "@/components/game/HexGrid";
 import ResourceDisplay from "@/components/game/ResourceDisplay";
 import GameControls from "@/components/game/GameControls";
 import BuildingMenu from "@/components/game/BuildingMenu";
-import { GameState, Territory, Resources, PlayerColor } from "@/types/game";
+import { GameState, Territory, Resources, PlayerColor, GameUpdate } from "@/types/game";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 const generateInitialTerritories = (): Territory[] => {
   const territories: Territory[] = [];
@@ -50,39 +51,119 @@ const createInitialGameState = (numPlayers: number): GameState => ({
   currentPlayer: "player1" as PlayerColor,
   phase: "setup",
   turn: 1,
+  updates: [],
 });
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
+  const [gameId, setGameId] = useState<number | null>(null);
+  const [roomId, setRoomId] = useState<string>("");
+  const [joinRoomId, setJoinRoomId] = useState<string>("");
+  const [gameStatus, setGameStatus] = useState<"menu" | "creating" | "joining" | "playing">("menu");
 
-  const handleStartGame = async (numPlayers: number) => {
+  useEffect(() => {
+    if (gameId) {
+      const fetchGame = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('games')
+            .select('*')
+            .eq('id', gameId)
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            setGameState(data.state as GameState);
+            setGameStarted(true);
+            setGameStatus("playing");
+            toast.success(`Game loaded!`);
+          }
+        } catch (error) {
+          console.error('Error loading game:', error);
+          toast.error('Failed to load game. Please try again.');
+        }
+      };
+
+      fetchGame();
+    }
+  }, [gameId]);
+
+  const handleCreateGame = async (numPlayers: number) => {
     const initialState = createInitialGameState(numPlayers);
     
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('games')
-        .insert([{ 
-          state: initialState,
+        .insert({
+          state: initialState as unknown as Json,
           created_at: new Date().toISOString(),
           current_player: initialState.currentPlayer,
           phase: initialState.phase,
-        }]);
+          num_players: numPlayers,
+          game_status: 'waiting',
+        })
+        .select('id, room_id')
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setGameId(data.id);
+        setRoomId(data.room_id);
+        setGameState(initialState);
+        setGameStarted(true);
+        setGameStatus("playing");
+        toast.success(`Game created! Room ID: ${data.room_id}`);
+      }
+    } catch (error) {
+      console.error('Error creating game:', error);
+      toast.error('Failed to create game. Please try again.');
+    }
+  };
+
+  const handleJoinGame = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('room_id', joinRoomId)
+        .single();
 
       if (error) throw error;
 
-      setGameState(initialState);
-      setGameStarted(true);
-      toast.success(`Game started with ${numPlayers} players!`);
+      if (data) {
+        if (data.joined_players >= data.num_players) {
+          toast.error('Game is full!');
+          return;
+        }
+
+        const { error: updateError } = await supabase
+          .from('games')
+          .update({ 
+            joined_players: data.joined_players + 1,
+            game_status: data.joined_players + 1 === data.num_players ? 'playing' : 'waiting'
+          })
+          .eq('id', data.id);
+
+        if (updateError) throw updateError;
+
+        setGameId(data.id);
+        setGameState(data.state as GameState);
+        setGameStarted(true);
+        setGameStatus("playing");
+        toast.success('Joined game successfully!');
+      }
     } catch (error) {
-      console.error('Error starting game:', error);
-      toast.error('Failed to start game. Please try again.');
+      console.error('Error joining game:', error);
+      toast.error('Failed to join game. Please check the Room ID and try again.');
     }
   };
 
   const handleTerritoryClick = async (territory: Territory) => {
-    if (!gameState) return;
+    if (!gameState || !gameId) return;
 
     if (gameState.phase === "setup") {
       if (territory.owner) {
@@ -105,21 +186,29 @@ const Index = () => {
 
       const nextPlayer = gameState.currentPlayer === "player1" ? "player2" as PlayerColor : "player1" as PlayerColor;
 
+      const newUpdate: GameUpdate = {
+        type: "territory_claimed",
+        message: `${gameState.currentPlayer} claimed a territory`,
+        timestamp: Date.now(),
+      };
+
       const updatedState: GameState = {
         ...gameState,
         territories: updatedTerritories,
         players: updatedPlayers,
         currentPlayer: nextPlayer,
+        updates: [...gameState.updates, newUpdate],
       };
 
       try {
         const { error } = await supabase
           .from('games')
           .update({ 
-            state: updatedState,
+            state: updatedState as unknown as Json,
             current_player: updatedState.currentPlayer,
+            phase: updatedState.phase,
           })
-          .eq('id', 1);
+          .eq('id', gameId);
 
         if (error) throw error;
 
@@ -273,17 +362,43 @@ const Index = () => {
     toast.success(`Moving to ${nextPhase} phase`);
   };
 
-  const handleEndTurn = () => {
-    if (!gameState) return;
+  const handleEndTurn = async () => {
+    if (!gameState || !gameId) return;
 
-    setGameState({
+    const nextPlayer = gameState.currentPlayer === "player1" ? "player2" as PlayerColor : "player1" as PlayerColor;
+
+    const newUpdate: GameUpdate = {
+      type: "turn_ended",
+      message: `${gameState.currentPlayer} ended their turn`,
+      timestamp: Date.now(),
+    };
+
+    const updatedState: GameState = {
       ...gameState,
-      turn: gameState.turn + 1,
-      currentPlayer: gameState.currentPlayer === "player1" ? "player2" : "player1",
+      currentPlayer: nextPlayer,
       phase: "resource",
-    });
+      turn: gameState.turn + 1,
+      updates: [...gameState.updates, newUpdate],
+    };
 
-    toast.success(`Turn ${gameState.turn + 1} begins!`);
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({ 
+          state: updatedState as unknown as Json,
+          current_player: nextPlayer,
+          phase: "resource",
+        })
+        .eq('id', gameId);
+
+      if (error) throw error;
+
+      setGameState(updatedState);
+      toast.success(`Turn ${updatedState.turn} begins!`);
+    } catch (error) {
+      console.error('Error updating game:', error);
+      toast.error('Failed to update game state. Please try again.');
+    }
   };
 
   if (!gameStarted) {
@@ -296,7 +411,7 @@ const Index = () => {
             {[2, 3, 4].map((num) => (
               <Button
                 key={num}
-                onClick={() => handleStartGame(num)}
+                onClick={() => handleCreateGame(num)}
                 className="px-8 py-4 text-xl"
               >
                 {num} Players
