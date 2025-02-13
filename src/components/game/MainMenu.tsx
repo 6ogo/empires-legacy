@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import GameStartMenu from "./GameStartMenu";
 import { Button } from "@/components/ui/button";
-import { Settings, Trophy, BarChart2, Menu } from "lucide-react";
+import { Settings, Trophy, BarChart2, Home } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface MainMenuProps {
@@ -37,11 +37,6 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const { profile } = useAuth();
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
-  const handleMenuClick = () => {
-    // Reset both gameMode and status by setting mode to null
-    onSelectMode(null);
-  };
-
   return (
     <div className="fixed inset-0 bg-[#141B2C]">
       {/* Top Bar */}
@@ -68,11 +63,11 @@ const MainMenu: React.FC<MainMenuProps> = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={handleMenuClick}
+            onClick={() => navigate('/')}
             className="bg-white/10"
-            title="Back to Menu"
+            title="Go to Home"
           >
-            <Menu className="h-4 w-4" />
+            <Home className="h-4 w-4" />
           </Button>
           {profile?.level && (
             <div className="text-game-gold ml-4">
