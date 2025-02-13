@@ -3,13 +3,13 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import GameStartMenu from "./GameStartMenu";
 import { Button } from "@/components/ui/button";
-import { Settings, Trophy, BarChart2, Home } from "lucide-react";
+import { Settings, Trophy, BarChart2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface MainMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
   gameMode: "local" | "online" | null;
-  onSelectMode: (mode: "local" | "online") => void;
+  onSelectMode: (mode: "local" | "online" | null) => void;
   onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
   onJoinGame: () => Promise<void>;
   joinRoomId: string;
@@ -39,10 +39,13 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const { profile } = useAuth();
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
-  const handleHomeClick = () => {
-    if (gameStatus !== "menu") {
-      onSelectMode(null); // Reset the game mode to null
-      navigate("/game"); // Navigate to game page
+  const handleBackClick = () => {
+    if (gameStatus === "mode_select" || gameStatus === "stats") {
+      // Go back to main menu
+      onSelectMode(null);
+    } else if (gameStatus === "creating" || gameStatus === "joining") {
+      // Go back to mode selection
+      setGameStatus("mode_select");
     }
   };
 
@@ -51,15 +54,17 @@ const MainMenu: React.FC<MainMenuProps> = ({
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleHomeClick}
-            className="bg-white/10"
-            title="Go to Game Menu"
-          >
-            <Home className="h-4 w-4" />
-          </Button>
+          {gameStatus !== "menu" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleBackClick}
+              className="bg-white/10"
+              title="Go Back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           {profile?.level && (
             <div className="text-game-gold ml-4">
               Level {profile.level} ({profile.xp} XP)
