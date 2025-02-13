@@ -33,8 +33,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Make the root path redirect to auth */}
+          <Route path="/" element={<Navigate to="/auth" replace />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={
+          <Route path="/game" element={
             <ProtectedRoute>
               <Index />
             </ProtectedRoute>
@@ -45,7 +47,6 @@ const App = () => (
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
-          <Route index element={<Navigate to="/auth" />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -79,7 +79,7 @@ export const useAuthForm = () => {
         }
 
         toast.success("Signed in successfully!");
-        navigate("/");
+        navigate("/game");
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -111,7 +111,7 @@ export const useAuthForm = () => {
   };
 
   const handleGuestLogin = async () => {
-    navigate("/");
+    navigate("/game");
     toast.success("Welcome to Empire's Legacy!");
   };
 
