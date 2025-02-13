@@ -17,7 +17,7 @@ interface SignUpFormProps {
   setStayLoggedIn: (stayLoggedIn: boolean) => void;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
-  onGuestLogin: () => Promise<void>;
+  onGuestLogin?: () => Promise<void>; // Made optional with ?
 }
 
 export const SignUpForm = ({
@@ -91,16 +91,20 @@ export const SignUpForm = ({
         >
           {loading ? "Creating account..." : "Sign Up"}
         </Button>
-        <Separator className="my-2" />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onGuestLogin}
-          disabled={loading}
-          className="w-full"
-        >
-          Continue as Guest
-        </Button>
+        {onGuestLogin && (
+          <>
+            <Separator className="my-2" />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onGuestLogin}
+              disabled={loading}
+              className="w-full"
+            >
+              Continue as Guest
+            </Button>
+          </>
+        )}
       </CardFooter>
     </form>
   );
