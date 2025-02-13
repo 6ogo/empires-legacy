@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { GameState, GameUpdate } from "@/types/game";
 import { toast } from "sonner";
@@ -11,6 +10,7 @@ import { createInitialGameState } from "@/lib/game-utils";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
 import { Button } from "@/components/ui/button";
+import { militaryUnits } from "@/data/military-units";
 
 const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -262,6 +262,61 @@ const Index = () => {
     }
   };
 
+  const handleRecruit = async (unitType: string) => {
+    if (!gameState || !selectedTerritory) return;
+
+    const unit = militaryUnits[unitType];
+    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
+
+    if (!currentPlayer) return;
+
+    // Update player resources
+    const updatedResources = { ...currentPlayer.resources };
+    Object.entries(unit.cost).forEach(([resource, cost]) => {
+      updatedResources[resource as keyof typeof updatedResources] -= cost || 0;
+    });
+
+    // Update territory with new unit
+    const updatedTerritories = gameState.territories.map(t =>
+      t.id === selectedTerritory.id
+        ? { ...t, militaryUnit: unit }
+        : t
+    );
+
+    // Update players with new resources
+    const updatedPlayers = gameState.players.map(p =>
+      p.id === gameState.currentPlayer
+        ? { ...p, resources: updatedResources }
+        : p
+    );
+
+    const updatedState = {
+      ...gameState,
+      territories: updatedTerritories,
+      players: updatedPlayers,
+    };
+
+    setGameState(updatedState);
+
+    if (gameMode === "online" && gameId) {
+      try {
+        const { error } = await supabase
+          .from('games')
+          .update({ 
+            state: updatedState as unknown as Json,
+          })
+          .eq('id', gameId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error updating game:', error);
+        toast.error('Failed to update game state. Please try again.');
+      }
+    }
+
+    toast.success(`Recruited ${unitType} in selected territory!`);
+  };
+
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 flex flex-col items-center justify-center">
@@ -308,6 +363,7 @@ const Index = () => {
       onEndTurn={handleEndTurn}
       onEndPhase={handleEndPhase}
       onBuild={() => {}}
+      onRecruit={handleRecruit}
       onGiveUp={handleGiveUp}
     />
   );
