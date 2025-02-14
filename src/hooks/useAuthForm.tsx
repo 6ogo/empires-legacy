@@ -17,26 +17,46 @@ export const useAuthForm = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting sign in with:', { email }); // Debug log
+
+      // First sign out to clear any existing sessions
+      await supabase.auth.signOut();
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        // Update preferences after successful sign in
-        await supabase
-          .from('profiles')
-          .update({ preferences: { stayLoggedIn } })
-          .eq('id', data.user.id);
-
-        toast.success("Signed in successfully!");
-        navigate("/game", { replace: true });
+      if (error) {
+        console.error('Sign in error:', error); // Debug log
+        throw error;
       }
+
+      if (!data.user) {
+        throw new Error('No user data returned after sign in');
+      }
+
+      console.log('Sign in successful:', data.user); // Debug log
+
+      // Update preferences after successful sign in
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          preferences: { stayLoggedIn },
+          last_login: new Date().toISOString()
+        })
+        .eq('id', data.user.id);
+
+      if (updateError) {
+        console.error('Failed to update preferences:', updateError);
+      }
+
+      toast.success("Signed in successfully!");
+      console.log('Redirecting to game page...'); // Debug log
+      navigate("/game", { replace: true });
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      toast.error(error.message);
+      console.error('Sign in error:', error); // Debug log
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -47,6 +67,8 @@ export const useAuthForm = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting sign up:', { email, username }); // Debug log
+
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -58,28 +80,41 @@ export const useAuthForm = () => {
         },
       });
 
-      if (signUpError) throw signUpError;
-
-      if (authData.user) {
-        await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              username,
-              preferences: { stayLoggedIn },
-              is_guest: false,
-              verified: false,
-              email_verified: false,
-            },
-          ]);
-
-        toast.success("Verification email sent! Please check your inbox.");
-        toast.info("You'll need to verify your email before accessing all features.");
+      if (signUpError) {
+        console.error('Sign up error:', signUpError); // Debug log
+        throw signUpError;
       }
+
+      if (!authData.user) {
+        throw new Error('No user data returned after sign up');
+      }
+
+      console.log('Sign up successful, creating profile...'); // Debug log
+
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: authData.user.id,
+            username,
+            preferences: { stayLoggedIn },
+            is_guest: false,
+            verified: false,
+            email_verified: false,
+          },
+        ]);
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError); // Debug log
+        throw profileError;
+      }
+
+      toast.success("Sign up successful! Please check your email for verification.");
+      toast.info("You'll need to verify your email before accessing all features.");
     } catch (error: any) {
-      console.error('Sign up error:', error);
-      toast.error(error.message);
+      console.error('Sign up error:', error); // Debug log
+      toast.error(error.message || 'Failed to sign up');
     } finally {
       setLoading(false);
     }
@@ -90,6 +125,8 @@ export const useAuthForm = () => {
     setLoading(true);
 
     try {
+      console.log('Sending magic link to:', email); // Debug log
+
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -97,12 +134,15 @@ export const useAuthForm = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Magic link error:', error); // Debug log
+        throw error;
+      }
 
       toast.success("Magic link sent! Please check your email.");
     } catch (error: any) {
-      console.error('Magic link error:', error);
-      toast.error(error.message);
+      console.error('Magic link error:', error); // Debug log
+      toast.error(error.message || 'Failed to send magic link');
     } finally {
       setLoading(false);
     }
