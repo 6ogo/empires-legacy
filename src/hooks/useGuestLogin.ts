@@ -18,13 +18,19 @@ export const useGuestLogin = () => {
     try {
       setIsGuestLoading(true);
 
+      // Use maybeSingle() instead of single() to handle the case where we might get no rows
       const { data: guestCreds, error: guestCredsError } = await supabase
         .from('guest_credentials')
         .select('email, password')
+        .order('last_used_at', { ascending: true, nullsFirst: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (guestCredsError) throw guestCredsError;
+      
+      if (!guestCreds) {
+        throw new Error('No guest credentials available');
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: guestCreds.email,
