@@ -20,6 +20,7 @@ interface GameStartMenuProps {
   connectedPlayers?: { username: string }[];
   selectedBoardSize?: number;
   maxPlayers?: number;
+  onShowRandomEventsInfo: () => void;
 }
 
 const GameStartMenu: React.FC<GameStartMenuProps> = ({
@@ -35,6 +36,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
   connectedPlayers = [],
   selectedBoardSize = 0,
   maxPlayers = 2,
+  onShowRandomEventsInfo
 }) => {
   const handleCopyRoomId = () => {
     navigator.clipboard.writeText(joinRoomId);
@@ -56,6 +58,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
           onJoinGame={onJoinGame}
           joinRoomId={joinRoomId}
           onJoinRoomIdChange={onJoinRoomIdChange}
+          onShowRandomEventsInfo={onShowRandomEventsInfo}
         />
       )}
 
@@ -75,7 +78,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
             </div>
           </div>
 
-          {/* Room ID Section - Made more prominent */}
+          {/* Room ID Section */}
           <div className="mb-8 p-6 bg-white/10 rounded-lg inline-block min-w-[300px] border border-game-gold">
             <h3 className="text-2xl mb-4 text-game-gold">Room ID</h3>
             <div className="flex items-center justify-center gap-2 mb-4">

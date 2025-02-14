@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Info } from "lucide-react";
 
 interface BoardSizeSelectProps {
   onCreateGame: (numPlayers: number, boardSize: number, enableRNG?: boolean) => void;
@@ -11,6 +12,7 @@ interface BoardSizeSelectProps {
   onJoinGame: () => void;
   joinRoomId: string;
   onJoinRoomIdChange: (value: string) => void;
+  onShowRandomEventsInfo: () => void;
 }
 
 const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
@@ -19,6 +21,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   onJoinGame,
   joinRoomId,
   onJoinRoomIdChange,
+  onShowRandomEventsInfo
 }) => {
   const [numPlayers, setNumPlayers] = useState(2);
   const [availableSizes, setAvailableSizes] = useState<number[]>([]);
@@ -83,6 +86,14 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
           <Label htmlFor="enableRNG" className="text-white text-lg">
             Enable Random Events
           </Label>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onShowRandomEventsInfo}
+            className="p-0 hover:bg-transparent"
+          >
+            <Info className="h-4 w-4 text-gray-400 hover:text-white transition-colors" />
+          </Button>
         </div>
 
         <h2 className="text-2xl text-center mb-6 text-white">Select board size</h2>
