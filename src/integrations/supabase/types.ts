@@ -210,6 +210,7 @@ export type Database = {
           id: string
           is_anonymous: boolean | null
           is_guest: boolean | null
+          last_login: string | null
           last_username_change: string | null
           level: number | null
           preferences: Json | null
@@ -231,6 +232,7 @@ export type Database = {
           id: string
           is_anonymous?: boolean | null
           is_guest?: boolean | null
+          last_login?: string | null
           last_username_change?: string | null
           level?: number | null
           preferences?: Json | null
@@ -252,6 +254,7 @@ export type Database = {
           id?: string
           is_anonymous?: boolean | null
           is_guest?: boolean | null
+          last_login?: string | null
           last_username_change?: string | null
           level?: number | null
           preferences?: Json | null

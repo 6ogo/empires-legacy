@@ -15,6 +15,7 @@ export interface UserProfile {
   };
   avatar_url: string | null;
   created_at: string;
+  last_login: string | null;
   total_gametime: number;
   total_games_played: number;
   total_wins: number;
@@ -55,6 +56,7 @@ export const useAuth = () => {
             : (data.preferences as { stayLoggedIn: boolean }) ?? { stayLoggedIn: false },
           avatar_url: data.avatar_url,
           created_at: data.created_at,
+          last_login: data.last_login,
           total_gametime: data.total_gametime || 0,
           total_games_played: data.total_games_played || 0,
           total_wins: data.total_wins || 0,
@@ -74,6 +76,21 @@ export const useAuth = () => {
     }
   };
 
+  const updateLastLogin = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error updating last login:', error);
+      }
+    } catch (error) {
+      console.error('Error in updateLastLogin:', error);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -90,6 +107,7 @@ export const useAuth = () => {
           const profile = await fetchProfile(session.user.id);
           if (mounted && profile) {
             setProfile(profile);
+            await updateLastLogin(session.user.id);
           }
         }
       } catch (error) {
@@ -113,6 +131,9 @@ export const useAuth = () => {
         const profile = await fetchProfile(session.user.id);
         if (mounted && profile) {
           setProfile(profile);
+          if (event === 'SIGNED_IN') {
+            await updateLastLogin(session.user.id);
+          }
         }
       } else {
         setUser(null);
