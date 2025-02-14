@@ -12,6 +12,38 @@ export const useAuthForm = () => {
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const navigate = useNavigate();
 
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ preferences: { stayLoggedIn } })
+          .eq('id', data.user.id);
+
+        if (updateError) {
+          console.error('Error updating preferences:', updateError);
+        }
+
+        toast.success("Signed in successfully!");
+        navigate("/game");
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -48,38 +80,6 @@ export const useAuthForm = () => {
 
         toast.success("Verification email sent! Please check your inbox.");
         toast.info("You'll need to verify your email before accessing all features.");
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ preferences: { stayLoggedIn } })
-          .eq('id', data.user.id);
-
-        if (updateError) {
-          console.error('Error updating preferences:', updateError);
-        }
-
-        toast.success("Signed in successfully!");
-        navigate("/game");
       }
     } catch (error: any) {
       toast.error(error.message);

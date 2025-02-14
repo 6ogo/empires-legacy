@@ -18,7 +18,6 @@ export const useGuestLogin = () => {
     try {
       setIsGuestLoading(true);
 
-      // Use maybeSingle() instead of single() to handle the case where we might get no rows
       const { data: guestCreds, error: guestCredsError } = await supabase
         .from('guest_credentials')
         .select('email, password')
@@ -50,7 +49,9 @@ export const useGuestLogin = () => {
             email_verified: false,
             verified: false,
             preferences: { stayLoggedIn: false }
-          }]);
+          }], {
+            onConflict: 'id'
+          });
 
         if (profileError) throw profileError;
 
