@@ -15,12 +15,24 @@ import { useAuth } from "./hooks/useAuth";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  
+  // Show nothing while checking auth status
+  if (loading) {
+    return null;
+  }
+  
   return user ? <>{children}</> : <Navigate to="/auth" replace />;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  
+  // Show nothing while checking auth status
+  if (loading) {
+    return null;
+  }
+  
   return !user ? <>{children}</> : <Navigate to="/game" replace />;
 }
 

@@ -29,7 +29,7 @@ export interface UserProfile {
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -76,6 +76,7 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       try {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Session check:', session?.user?.email); // Debug log
 
@@ -90,6 +91,10 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('Error in initializeAuth:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -110,6 +115,7 @@ export const useAuth = () => {
         setUser(null);
         setProfile(null);
       }
+      setLoading(false);
     });
 
     return () => {
