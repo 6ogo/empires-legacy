@@ -1,41 +1,29 @@
-import React, { useState, useEffect } from "react";
-import { GameState, Territory, Resources } from "@/types/game";
+
+import React, { useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { createInitialGameState } from "@/lib/game-utils";
+import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
-import { useGameActions } from "@/hooks/useGameActions";
 import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
-import GameScreen from "@/components/game/GameScreen";
-
-// Helper function to validate GameState shape
-const isValidGameState = (state: any): state is GameState => {
-  return (
-    state &&
-    Array.isArray(state.players) &&
-    Array.isArray(state.territories) &&
-    typeof state.currentPlayer === 'string' &&
-    typeof state.phase === 'string' &&
-    typeof state.turn === 'number' &&
-    Array.isArray(state.updates)
-  );
-};
+import GameContainer from "@/components/game/GameContainer";
 
 const Index = () => {
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameStatus, setGameStatus] = useState<"menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats">("menu");
-  const [gameMode, setGameMode] = useState<"local" | "online" | null>(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-
   const {
-    gameState,
-    setGameState,
-    selectedTerritory,
-    setSelectedTerritory,
-    handleTerritoryClick,
-  } = useGameState(gameMode);
+    gameStarted,
+    setGameStarted,
+    gameStatus,
+    setGameStatus,
+    gameMode,
+    setGameMode,
+    showLeaderboard,
+    setShowLeaderboard,
+    onCreateGame,
+    onJoinGame,
+  } = useGameInit();
+
+  const { gameState, setGameState } = useGameState(gameMode);
 
   const {
     gameId,
@@ -48,12 +36,6 @@ const Index = () => {
     handleJoinGame,
     handleStartAnyway,
   } = useOnlineGame();
-
-  const {
-    handleEndTurn,
-    handleEndPhase,
-    handleGiveUp,
-  } = useGameActions(gameState, setGameState, gameMode, gameId);
 
   useEffect(() => {
     if (gameId) {
@@ -68,10 +50,8 @@ const Index = () => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus('playing');
-            
-            // Safely cast the state with validation
             const newState = payload.new.state;
-            if (isValidGameState(newState)) {
+            if (newState) {
               setGameState(newState);
             } else {
               console.error('Invalid game state received:', newState);
@@ -85,153 +65,7 @@ const Index = () => {
         supabase.removeChannel(subscription);
       };
     }
-  }, [gameId]);
-
-  const onCreateGame = async (numPlayers: number, boardSize: number) => {
-    if (gameMode === "local") {
-      const initialState = createInitialGameState(numPlayers, boardSize);
-      setGameState(initialState);
-      setGameStarted(true);
-      setGameStatus("playing");
-      return;
-    }
-    
-    const result = await handleCreateGame(numPlayers, boardSize);
-    if (result) {
-      setGameState(result.initialState);
-      setGameStatus("waiting");
-    }
-  };
-
-  const onJoinGame = async () => {
-    const data = await handleJoinGame();
-    if (data) {
-      if (isValidGameState(data.state)) {
-        setGameState(data.state);
-        setGameStatus(data.game_status === 'playing' ? 'playing' : 'waiting');
-        if (data.game_status === 'playing') {
-          setGameStarted(true);
-        }
-      } else {
-        console.error('Invalid game state received:', data.state);
-        toast.error('Failed to load game state');
-      }
-    }
-  };
-
-  const handleBuild = (buildingType: string) => {
-    if (!gameState || !selectedTerritory) return;
-
-    const buildingCost: Partial<Resources> = {
-      lumber_mill: { gold: 50, wood: 20, stone: 0, food: 0 },
-      mine: { gold: 50, stone: 20, wood: 0, food: 0 },
-      market: { gold: 100, wood: 30, stone: 0, food: 0 },
-      farm: { gold: 50, wood: 20, stone: 0, food: 0 },
-      road: { wood: 25, stone: 25, gold: 0, food: 0 },
-      barracks: { gold: 150, wood: 50, stone: 50, food: 0 },
-      fortress: { gold: 300, stone: 150, wood: 0, food: 0 },
-    }[buildingType] || { gold: 0, wood: 0, stone: 0, food: 0 };
-
-    if (!buildingCost) {
-      toast.error("Invalid building type!");
-      return;
-    }
-
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
-    if (!currentPlayer) return;
-
-    if (currentPlayer.resources.gold < (buildingCost.gold || 0) ||
-        currentPlayer.resources.wood < (buildingCost.wood || 0) ||
-        currentPlayer.resources.stone < (buildingCost.stone || 0) ||
-        currentPlayer.resources.food < (buildingCost.food || 0)) {
-      toast.error("Insufficient resources!");
-      return;
-    }
-
-    const updatedPlayers = gameState.players.map(player => {
-      if (player.id === gameState.currentPlayer) {
-        return {
-          ...player,
-          resources: {
-            gold: player.resources.gold - (buildingCost.gold || 0),
-            wood: player.resources.wood - (buildingCost.wood || 0),
-            stone: player.resources.stone - (buildingCost.stone || 0),
-            food: player.resources.food - (buildingCost.food || 0),
-          },
-        };
-      }
-      return player;
-    });
-
-    const updatedTerritories = gameState.territories.map(t => {
-      if (t.id === selectedTerritory.id) {
-        return {
-          ...t,
-          building: buildingType,
-        };
-      }
-      return t;
-    });
-
-    setGameState({
-      ...gameState,
-      players: updatedPlayers,
-      territories: updatedTerritories,
-    });
-
-    toast.success(`${buildingType} built!`);
-    setSelectedTerritory(null);
-  };
-
-  const handleRecruit = (unitType: string) => {
-    if (!gameState || !selectedTerritory) return;
-
-    const unitCost: Partial<Resources> = {
-      infantry: { gold: 100, food: 1, wood: 0, stone: 0 },
-      cavalry: { gold: 200, food: 2, wood: 0, stone: 0 },
-      artillery: { gold: 300, food: 2, wood: 0, stone: 0 },
-    }[unitType] || { gold: 0, food: 0, wood: 0, stone: 0 };
-
-    if (!unitCost) {
-      toast.error("Invalid unit type!");
-      return;
-    }
-
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
-    if (!currentPlayer) return;
-
-    if (currentPlayer.resources.gold < (unitCost.gold || 0) ||
-        currentPlayer.resources.food < (unitCost.food || 0)) {
-      toast.error("Insufficient resources!");
-      return;
-    }
-
-    const updatedPlayers = gameState.players.map(player => {
-      if (player.id === gameState.currentPlayer) {
-        return {
-          ...player,
-          resources: {
-            ...player.resources,
-            gold: player.resources.gold - (unitCost.gold || 0),
-            food: player.resources.food - (unitCost.food || 0),
-          },
-          units: {
-            ...player.units,
-            [unitType]: (player.units[unitType as keyof typeof player.units] || 0) + 1,
-          },
-        };
-      }
-      return player;
-    });
-
-    setGameState({
-      ...gameState,
-      players: updatedPlayers,
-    });
-
-    toast.success(`${unitType} recruited!`);
-    setSelectedTerritory(null);
-  };
+  }, [gameId, setGameStarted, setGameStatus, setGameState]);
 
   if (!gameStarted) {
     return (
@@ -251,8 +85,10 @@ const Index = () => {
               setGameMode(mode);
               setGameStatus("mode_select");
             }}
-            onCreateGame={onCreateGame}
-            onJoinGame={onJoinGame}
+            onCreateGame={(numPlayers, boardSize) => 
+              onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState)
+            }
+            onJoinGame={() => onJoinGame(handleJoinGame, setGameState)}
             joinRoomId={joinRoomId}
             onJoinRoomIdChange={setJoinRoomId}
             isHost={isHost}
@@ -266,20 +102,7 @@ const Index = () => {
     );
   }
 
-  if (!gameState) return null;
-
-  return (
-    <GameScreen
-      gameState={gameState}
-      selectedTerritory={selectedTerritory}
-      onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory, gameId)}
-      onEndTurn={handleEndTurn}
-      onEndPhase={handleEndPhase}
-      onBuild={handleBuild}
-      onRecruit={handleRecruit}
-      onGiveUp={handleGiveUp}
-    />
-  );
+  return <GameContainer gameMode={gameMode} />;
 };
 
 export default Index;
