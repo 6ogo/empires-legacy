@@ -39,10 +39,7 @@ export const useAuth = () => {
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
         const transformedProfile: UserProfile = {
@@ -66,33 +63,20 @@ export const useAuth = () => {
           achievements: Array.isArray(data.achievements) ? data.achievements : [],
         };
         setProfile(transformedProfile);
-      } else {
-        console.log('No profile found for user:', userId);
-        setProfile(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in fetchProfile:', error);
-      setProfile(null);
+      toast.error('Failed to load profile data');
     }
   };
 
   useEffect(() => {
-    let mounted = true;
-
+    console.log('Auth hook initializing...'); // Debug log
+    
     const initializeAuth = async () => {
       try {
-        // Immediately set user to null to trigger redirect if needed
-        setUser(null);
-        
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session error:', error);
-          setLoading(false);
-          return;
-        }
-
-        if (!mounted) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session check result:', session ? 'Session found' : 'No session'); // Debug log
 
         if (session?.user) {
           setUser(session.user);
@@ -102,21 +86,17 @@ export const useAuth = () => {
         console.error('Error in initializeAuth:', error);
         toast.error('Failed to initialize authentication');
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
-    // Start auth initialization
+    // Initialize auth state
     initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session'); // Debug log
       
-      if (!mounted) return;
-
       if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
@@ -129,7 +109,6 @@ export const useAuth = () => {
     });
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -142,7 +121,8 @@ export const useAuth = () => {
       
       setProfile(null);
       setUser(null);
-    } catch (error) {
+      toast.success('Signed out successfully');
+    } catch (error: any) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
     } finally {
