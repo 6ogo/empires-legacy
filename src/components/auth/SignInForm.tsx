@@ -48,20 +48,28 @@ export const SignInForm = ({
     try {
       setIsGuestLoading(true);
 
-      // Instead of creating a real user, we'll use a special anonymous session
+      // Get an available guest credential
+      const { data: guestCreds, error: guestCredsError } = await supabase
+        .from('guest_credentials')
+        .select('email, password')
+        .limit(1)
+        .single();
+
+      if (guestCredsError) throw guestCredsError;
+
+      // Sign in using the guest credentials
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: `guest_${Date.now()}@temporary.com`,
-        password: `temp_${Date.now()}`,
-        // We're reusing existing credentials that we pre-created for guests
+        email: guestCreds.email,
+        password: guestCreds.password,
       });
 
       if (error) throw error;
 
       if (data.user) {
-        // Create the profile for the guest user
+        // Create or update the profile for the guest user
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert([{
+          .upsert([{
             id: data.user.id,
             username: `Guest_${Date.now().toString(36)}`,
             is_guest: true,
@@ -72,6 +80,12 @@ export const SignInForm = ({
           }]);
 
         if (profileError) throw profileError;
+
+        // Update last_used_at timestamp
+        await supabase
+          .from('guest_credentials')
+          .update({ last_used_at: new Date().toISOString() })
+          .eq('email', guestCreds.email);
         
         toast.success("Logged in as guest!");
         navigate("/game");

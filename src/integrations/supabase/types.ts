@@ -168,6 +168,30 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_credentials: {
+        Row: {
+          created_at: string
+          email: string
+          id: number
+          last_used_at: string | null
+          password: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: number
+          last_used_at?: string | null
+          password: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: number
+          last_used_at?: string | null
+          password?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
