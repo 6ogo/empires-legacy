@@ -10,7 +10,10 @@ export const GuestLoginButton = () => {
     <>
       {showTurnstile ? (
         <div className="w-full flex flex-col items-center gap-4">
-          <TurnstileCaptcha onSuccess={(token) => handleGuestLogin(token)} />
+          <TurnstileCaptcha onSuccess={(token) => {
+            console.log('Turnstile verification successful'); // Debug log
+            handleGuestLogin(token);
+          }} />
           <Button
             type="button"
             variant="outline"

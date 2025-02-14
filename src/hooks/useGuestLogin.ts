@@ -17,6 +17,7 @@ export const useGuestLogin = () => {
 
     try {
       setIsGuestLoading(true);
+      console.log('Fetching guest credentials...'); // Debug log
 
       const { data: guestCreds, error: guestCredsError } = await supabase
         .from('guest_credentials')
@@ -26,29 +27,41 @@ export const useGuestLogin = () => {
         .single();
 
       if (guestCredsError) {
+        console.error('Error fetching guest credentials:', guestCredsError); // Debug log
         throw guestCredsError;
       }
+
+      console.log('Found guest credentials, attempting login...', { email: guestCreds.email }); // Debug log
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: guestCreds.email,
         password: guestCreds.password,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        console.error('Sign in error:', signInError); // Debug log
+        throw signInError;
+      }
 
       if (data.user) {
+        console.log('Guest login successful, updating last_used_at...'); // Debug log
+        
         // Update the last used timestamp
-        await supabase
+        const { error: updateError } = await supabase
           .from('guest_credentials')
           .update({ last_used_at: new Date().toISOString() })
           .eq('email', guestCreds.email);
+
+        if (updateError) {
+          console.error('Error updating last_used_at:', updateError); // Debug log
+        }
 
         toast.success('Logged in as guest!');
         navigate("/game", { replace: true });
       }
     } catch (error: any) {
       console.error('Guest login error:', error);
-      toast.error('Failed to login as guest');
+      toast.error(error.message || 'Failed to login as guest');
     } finally {
       setIsGuestLoading(false);
       setShowTurnstile(false);
