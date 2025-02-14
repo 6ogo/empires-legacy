@@ -25,10 +25,14 @@ const Index = () => {
     onJoinGame,
   } = useGameInit();
 
+  // Ensure gameStatus is set to "menu" when component mounts
   useEffect(() => {
-    // Set initial game status to ensure the menu is shown
-    setGameStatus("menu");
-  }, [setGameStatus]);
+    if (!gameStatus) {
+      setGameStatus("menu");
+    }
+    // Add console log for debugging
+    console.log("Current game status:", gameStatus);
+  }, [gameStatus, setGameStatus]);
 
   const { gameState, setGameState } = useGameState(gameMode);
 
@@ -111,11 +115,18 @@ const Index = () => {
     }
   };
 
+  // Add loading state check
   if (!gameStatus) {
-    return null;
+    console.log("Game status is null, showing loading...");
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
   }
 
   if (!gameStarted) {
+    console.log("Game not started, showing pre-game screens");
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
         <PreGameScreens
@@ -147,6 +158,7 @@ const Index = () => {
     );
   }
 
+  console.log("Rendering game container");
   return <GameContainer gameMode={gameMode} onBack={handleBackFromGame} />;
 };
 
