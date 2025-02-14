@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import GameStartMenu from "./GameStartMenu";
@@ -28,6 +29,36 @@ interface MainMenuProps {
 }
 
 const XP_PER_LEVEL = 1000; // XP needed for each level
+
+const randomEvents = [
+  {
+    title: "Resource Events",
+    descriptions: [
+      "Bountiful Harvest: +50% food production for 2 turns",
+      "Gold Rush: +100% gold production for 1 turn",
+      "Drought: -30% food production for 3 turns",
+      "Trade Boom: +75% trade income for 2 turns"
+    ]
+  },
+  {
+    title: "Combat Events",
+    descriptions: [
+      "Fog of War: Combat visibility reduced for 1 turn",
+      "Morale Surge: Units gain +25% combat strength for 1 turn",
+      "Supply Line Disruption: Units cost +50% upkeep for 2 turns",
+      "Veteran Training: New units start with +1 experience"
+    ]
+  },
+  {
+    title: "Territory Events",
+    descriptions: [
+      "Natural Disaster: Random territory loses 50% production for 1 turn",
+      "Border Dispute: Random neutral territory becomes claimable",
+      "Resource Discovery: Random territory gains +1 resource production",
+      "Cultural Festival: +50% influence generation in a random territory"
+    ]
+  }
+];
 
 const MainMenu: React.FC<MainMenuProps> = ({
   gameStatus,
