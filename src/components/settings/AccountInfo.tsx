@@ -9,6 +9,15 @@ interface AccountInfoProps {
 }
 
 export const AccountInfo = ({ user, profile }: AccountInfoProps) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Not available';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -17,9 +26,18 @@ export const AccountInfo = ({ user, profile }: AccountInfoProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p><strong>Username:</strong> {user?.user_metadata?.username || 'Not set'}</p>
-          <p><strong>Account Created:</strong> {new Date(profile?.created_at || '').toLocaleDateString()}</p>
+          <p className="flex flex-col gap-1">
+            <span className="font-semibold">Email:</span>
+            <span>{user?.email || 'Not set'}</span>
+          </p>
+          <p className="flex flex-col gap-1">
+            <span className="font-semibold">Username:</span>
+            <span>{user?.user_metadata?.username || 'Not set'}</span>
+          </p>
+          <p className="flex flex-col gap-1">
+            <span className="font-semibold">Account Created:</span>
+            <span>{formatDate(user?.created_at)}</span>
+          </p>
         </div>
       </CardContent>
     </Card>
