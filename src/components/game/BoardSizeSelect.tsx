@@ -24,6 +24,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   onShowRandomEventsInfo
 }) => {
   const [numPlayers, setNumPlayers] = useState(2);
+  const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [availableSizes, setAvailableSizes] = useState<number[]>([]);
   const [enableRNG, setEnableRNG] = useState(false);
 
@@ -46,10 +47,17 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
       );
     }
     setAvailableSizes(sizes.sort((a, b) => a - b));
+    setSelectedSize(null); // Reset selection when player count changes
   }, [numPlayers]);
 
-  const handleCreateGame = (size: number) => {
-    onCreateGame(numPlayers, size, enableRNG);
+  const handleSizeSelect = (size: number) => {
+    setSelectedSize(size);
+  };
+
+  const handleStartGame = () => {
+    if (selectedSize) {
+      onCreateGame(numPlayers, selectedSize, enableRNG);
+    }
   };
 
   return (
@@ -97,17 +105,33 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
         </div>
 
         <h2 className="text-2xl text-center mb-6 text-white">Select board size</h2>
-        <div className="flex flex-wrap gap-4 justify-center">
+        <div className="flex flex-wrap gap-4 justify-center mb-8">
           {availableSizes.map((size) => (
             <Button
               key={size}
-              onClick={() => handleCreateGame(size)}
-              className="px-8 py-6 text-xl bg-white/10 hover:bg-white/20 text-white transition-all"
+              onClick={() => handleSizeSelect(size)}
+              variant={selectedSize === size ? "default" : "outline"}
+              className={`
+                px-8 py-6 text-xl transition-all
+                ${selectedSize === size
+                  ? 'bg-game-gold text-black hover:bg-game-gold/90'
+                  : 'bg-white/10 hover:bg-white/20 text-white'}
+              `}
             >
               {size} Hexes
             </Button>
           ))}
         </div>
+
+        {selectedSize && (
+          <Button
+            onClick={handleStartGame}
+            className="px-12 py-6 text-xl bg-green-600 hover:bg-green-700 text-white transition-all"
+            disabled={gameMode === 'online'}
+          >
+            {gameMode === 'local' ? 'Start Game' : 'Create Room'}
+          </Button>
+        )}
       </div>
       
       {gameMode === "online" && (
