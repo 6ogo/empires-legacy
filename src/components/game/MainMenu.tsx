@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import GameStartMenu from "./GameStartMenu";
@@ -11,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 interface MainMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
@@ -26,6 +26,8 @@ interface MainMenuProps {
   onShowStats: () => void;
   connectedPlayers: { username: string }[];
 }
+
+const XP_PER_LEVEL = 1000; // XP needed for each level
 
 const MainMenu: React.FC<MainMenuProps> = ({
   gameStatus,
@@ -46,45 +48,21 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const [showRandomEventsInfo, setShowRandomEventsInfo] = React.useState(false);
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
+  // Calculate XP progress to next level
+  const currentXP = profile?.xp || 0;
+  const currentLevel = profile?.level || 1;
+  const xpForNextLevel = currentLevel * XP_PER_LEVEL;
+  const xpInCurrentLevel = currentXP % XP_PER_LEVEL;
+  const progressToNextLevel = (xpInCurrentLevel / xpForNextLevel) * 100;
+
   const handleBackClick = () => {
     if (["mode_select", "stats", "creating", "joining", "waiting"].includes(gameStatus)) {
-      // Always go back to main menu and reset the game mode
       onSelectMode(null);
       if (gameStatus === "joining" || gameStatus === "waiting") {
-        onJoinRoomIdChange(''); // Clear the room ID when going back
+        onJoinRoomIdChange('');
       }
     }
   };
-
-  const randomEvents = [
-    {
-      title: "Resource Events",
-      descriptions: [
-        "Bountiful Harvest: +50% food production for 2 turns",
-        "Gold Rush: +100% gold production for 1 turn",
-        "Drought: -30% food production for 3 turns",
-        "Trade Boom: +75% trade income for 2 turns"
-      ]
-    },
-    {
-      title: "Combat Events",
-      descriptions: [
-        "Fog of War: Combat visibility reduced for 1 turn",
-        "Morale Surge: Units gain +25% combat strength for 1 turn",
-        "Supply Line Disruption: Units cost +50% upkeep for 2 turns",
-        "Veteran Training: New units start with +1 experience"
-      ]
-    },
-    {
-      title: "Territory Events",
-      descriptions: [
-        "Natural Disaster: Random territory loses 50% production for 1 turn",
-        "Border Dispute: Random neutral territory becomes claimable",
-        "Resource Discovery: Random territory gains +1 resource production",
-        "Cultural Festival: +50% influence generation in a random territory"
-      ]
-    }
-  ];
 
   return (
     <div className="fixed inset-0 bg-[#141B2C]">
@@ -102,13 +80,20 @@ const MainMenu: React.FC<MainMenuProps> = ({
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
-          {profile?.level && (
+          {profile && (
             <Button
               variant="link"
               onClick={() => navigate('/achievements')}
-              className="text-game-gold ml-4 hover:text-game-gold/80"
+              className="text-game-gold ml-4 hover:text-game-gold/80 flex flex-col items-start"
             >
-              Level {profile.level} ({profile.xp} XP)
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>Level {currentLevel}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <span>{xpInCurrentLevel} / {xpForNextLevel} XP</span>
+              </div>
+              <Progress value={progressToNextLevel} className="w-32 h-1 mt-1" />
             </Button>
           )}
         </div>
