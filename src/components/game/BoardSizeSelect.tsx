@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface BoardSizeSelectProps {
-  onCreateGame: (numPlayers: number, boardSize: number) => void;
+  onCreateGame: (numPlayers: number, boardSize: number, enableRNG?: boolean) => void;
   gameMode: "local" | "online";
   onJoinGame: () => void;
   joinRoomId: string;
@@ -20,6 +22,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
 }) => {
   const [numPlayers, setNumPlayers] = useState(2);
   const [availableSizes, setAvailableSizes] = useState<number[]>([]);
+  const [enableRNG, setEnableRNG] = useState(false);
 
   useEffect(() => {
     // Generate random board sizes based on player count
@@ -43,7 +46,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   }, [numPlayers]);
 
   const handleCreateGame = (size: number) => {
-    onCreateGame(numPlayers, size);
+    onCreateGame(numPlayers, size, enableRNG);
   };
 
   return (
@@ -69,7 +72,19 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
         </div>
       </div>
 
-      <div>
+      <div className="text-center">
+        <div className="flex items-center justify-center space-x-2 mb-8">
+          <Checkbox
+            id="enableRNG"
+            checked={enableRNG}
+            onCheckedChange={(checked) => setEnableRNG(checked as boolean)}
+            className="border-white/50"
+          />
+          <Label htmlFor="enableRNG" className="text-white text-lg">
+            Enable Random Events
+          </Label>
+        </div>
+
         <h2 className="text-2xl text-center mb-6 text-white">Select board size</h2>
         <div className="flex flex-wrap gap-4 justify-center">
           {availableSizes.map((size) => (
