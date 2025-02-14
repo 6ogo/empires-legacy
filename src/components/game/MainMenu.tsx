@@ -179,12 +179,12 @@ const MainMenu: React.FC<MainMenuProps> = ({
 
       {/* Random Events Info Dialog */}
       <Dialog open={showRandomEventsInfo} onOpenChange={setShowRandomEventsInfo}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-800">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold mb-4">Random Events</DialogTitle>
+            <DialogTitle className="text-2xl font-bold mb-4 text-white">Random Events</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <p className="text-gray-400">
+            <p className="text-gray-300">
               Random events add an exciting layer of unpredictability to your game, creating unique challenges and opportunities that can dramatically change the course of battle!
             </p>
             {randomEvents.map((category, index) => (
@@ -192,7 +192,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
                 <h3 className="text-xl font-semibold text-game-gold">{category.title}</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   {category.descriptions.map((desc, i) => (
-                    <li key={i} className="text-gray-300">{desc}</li>
+                    <li key={i} className="text-white">{desc}</li>
                   ))}
                 </ul>
               </div>
