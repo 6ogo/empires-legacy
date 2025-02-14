@@ -13,6 +13,7 @@ interface GameScreenProps {
   onBuild: (buildingType: string) => void;
   onRecruit: (unitType: string) => void;
   onGiveUp: () => void;
+  onBack: () => void;
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({
@@ -24,6 +25,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onBuild,
   onRecruit,
   onGiveUp,
+  onBack,
 }) => {
   return (
     <>
@@ -36,6 +38,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         onBuild={onBuild}
         onRecruit={onRecruit}
         onGiveUp={onGiveUp}
+        onBack={onBack}
       />
       <GameUpdatesPanel gameState={gameState} />
     </>
