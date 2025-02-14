@@ -25,6 +25,11 @@ const Index = () => {
     onJoinGame,
   } = useGameInit();
 
+  useEffect(() => {
+    // Set initial game status to ensure the menu is shown
+    setGameStatus("menu");
+  }, [setGameStatus]);
+
   const { gameState, setGameState } = useGameState(gameMode);
 
   const {
@@ -105,6 +110,10 @@ const Index = () => {
       }
     }
   };
+
+  if (!gameStatus) {
+    return null;
+  }
 
   if (!gameStarted) {
     return (
