@@ -99,14 +99,14 @@ const Index = () => {
             setGameStarted(true);
             setGameStatus("playing");
             try {
-              // Ensure we have a proper GameState object
-              const stateData = typeof payload.new.state === 'string' 
+              // First convert to unknown, then to GameState after validation
+              const stateData: unknown = typeof payload.new.state === 'string' 
                 ? JSON.parse(payload.new.state) 
                 : payload.new.state;
               
-              // Type assertion to GameState after validation
               if (isValidGameState(stateData)) {
-                setGameState((prevState) => stateData as GameState);
+                const validGameState: GameState = stateData;
+                setGameState(validGameState);
               } else {
                 console.error('Invalid game state received:', stateData);
                 toast.error('Failed to load game state');
@@ -213,10 +213,15 @@ const Index = () => {
               try {
                 const result = await handleJoinGame();
                 if (result && 'state' in result) {
-                  setGameState(result.state as GameState);
-                  if (result.game_status === 'playing') {
-                    setGameStarted(true);
-                    setGameStatus('playing');
+                  const stateData: unknown = result.state;
+                  if (isValidGameState(stateData)) {
+                    setGameState(stateData);
+                    if (result.game_status === 'playing') {
+                      setGameStarted(true);
+                      setGameStatus('playing');
+                    }
+                  } else {
+                    toast.error('Invalid game state received');
                   }
                 }
               } catch (error) {
