@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -11,12 +11,34 @@ import Callback from "./pages/Auth/Callback";
 import Settings from "./pages/Settings";
 import Achievements from "./components/game/Achievements";
 import { useAuth } from "./hooks/useAuth";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
+function RouteHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // If we're on a game-related route and it's a page refresh
+    if (location.pathname.includes('/game') && !location.key) {
+      navigate('/game', { replace: true });
+    }
+  }, [location, navigate]);
+
+  return null;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, profile } = useAuth();
+  const navigate = useNavigate();
   
+  useEffect(() => {
+    if (!loading && (!user || !profile)) {
+      navigate('/auth', { replace: true });
+    }
+  }, [loading, user, profile, navigate]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
@@ -26,7 +48,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
   
   if (!user || !profile) {
-    return <Navigate to="/auth" replace />;
+    return null;
   }
 
   return <>{children}</>;
@@ -34,7 +56,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/game', { replace: true });
+    }
+  }, [loading, user, navigate]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
@@ -44,7 +73,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   }
   
   if (user) {
-    return <Navigate to="/game" replace />;
+    return null;
   }
 
   return <>{children}</>;
@@ -57,11 +86,12 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <RouteHandler />
           <Routes>
             <Route path="/" element={<Navigate to="/game" replace />} />
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/auth/callback" element={<Callback />} />
-            <Route path="/game" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/game/*" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
