@@ -95,12 +95,13 @@ export const useAuth = () => {
         toast.error('Failed to initialize authentication');
       } finally {
         if (mounted) {
+          // Set loading to false regardless of whether we found a session or not
           setLoading(false);
         }
       }
     };
 
-    // Initialize auth state
+    // Initialize auth state immediately
     initializeAuth();
 
     // Listen for auth changes
@@ -109,17 +110,26 @@ export const useAuth = () => {
       
       if (!mounted) return;
 
-      if (session?.user) {
-        setUser(session.user);
-        const profile = await fetchProfile(session.user.id);
+      // Temporarily set loading to true during auth state change
+      setLoading(true);
+
+      try {
+        if (session?.user) {
+          setUser(session.user);
+          const profile = await fetchProfile(session.user.id);
+          if (mounted) {
+            setProfile(profile);
+          }
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('Error handling auth state change:', error);
+      } finally {
         if (mounted) {
-          setProfile(profile);
           setLoading(false);
         }
-      } else {
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
       }
     });
 
@@ -130,7 +140,6 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
-    setLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -141,8 +150,6 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
-    } finally {
-      setLoading(false);
     }
   };
 
