@@ -44,8 +44,8 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
   };
 
   return (
-    <div className="text-center text-white">
-      <h1 className="text-5xl font-bold text-game-gold mb-12">Empires' Legacy</h1>
+    <div className="text-center text-white w-full max-w-4xl mx-auto px-4">
+      <h1 className="text-4xl md:text-5xl font-bold text-game-gold mb-8 md:mb-12">Empires' Legacy</h1>
       
       {gameStatus === "menu" && (
         <GameModeSelect onSelectMode={onSelectMode} />
@@ -67,7 +67,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
           <h2 className="text-2xl mb-4">Waiting Room</h2>
           
           {/* Game Info */}
-          <div className="mb-8 p-4 bg-white/5 rounded-lg inline-block min-w-[300px]">
+          <div className="mb-8 p-4 bg-white/5 rounded-lg inline-block w-full max-w-sm">
             <h3 className="text-xl mb-4">Game Details</h3>
             <div className="space-y-2 text-left px-4">
               <p><span className="text-game-gold">Game Mode:</span> {gameMode === 'local' ? 'Local Game' : 'Online Game'}</p>
@@ -83,13 +83,13 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
 
           {/* Room ID Section for online games */}
           {gameMode === 'online' && (
-            <div className="mb-8 p-6 bg-white/10 rounded-lg inline-block min-w-[300px] border border-game-gold">
-              <h3 className="text-2xl mb-4 text-game-gold">Room ID</h3>
+            <div className="mb-8 p-4 md:p-6 bg-white/10 rounded-lg inline-block w-full max-w-sm border border-game-gold">
+              <h3 className="text-xl md:text-2xl mb-4 text-game-gold">Room ID</h3>
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Input 
                   value={joinRoomId}
                   readOnly
-                  className="font-mono text-3xl text-game-gold bg-transparent border-none text-center tracking-wider"
+                  className="font-mono text-xl md:text-3xl text-game-gold bg-transparent border-none text-center tracking-wider"
                 />
                 <Button
                   variant="outline"

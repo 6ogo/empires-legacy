@@ -11,9 +11,10 @@ import PreGameScreens from "@/components/game/PreGameScreens";
 import GameContainer from "@/components/game/GameContainer";
 import { GameState } from "@/types/game";
 import { isValidGameState } from "@/lib/game-validation";
+import { Loader } from "lucide-react";
 
 const Index = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, profile } = useAuth();
   const {
     gameStarted,
     setGameStarted,
@@ -116,22 +117,33 @@ const Index = () => {
     }
   };
 
-  // Show loading state while auth is being checked
+  // Show proper loading state while auth is being checked
   if (authLoading) {
-    console.log("Auth loading...");
     return (
-      <div className="min-h-screen bg-[#141B2C] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!user || !profile) {
+    window.location.href = '/auth';
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
+        <div className="text-white text-lg">Redirecting to login...</div>
       </div>
     );
   }
 
   // Show loading state while game status is being initialized
   if (!gameStatus) {
-    console.log("Game status is null, waiting for initialization...");
     return (
-      <div className="min-h-screen bg-[#141B2C] flex items-center justify-center">
-        <div className="text-white">Initializing game...</div>
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
+        <div className="text-white text-lg">Initializing game...</div>
       </div>
     );
   }
@@ -139,7 +151,7 @@ const Index = () => {
   if (!gameStarted) {
     console.log("Game not started, showing pre-game screens");
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 px-4 py-6 md:px-0 md:py-0">
         <PreGameScreens
           showLeaderboard={showLeaderboard}
           gameStatus={gameStatus}
@@ -169,7 +181,6 @@ const Index = () => {
     );
   }
 
-  console.log("Rendering game container");
   return <GameContainer gameMode={gameMode} onBack={handleBackFromGame} />;
 };
 
