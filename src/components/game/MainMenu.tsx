@@ -9,8 +9,8 @@ interface MainMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
   gameMode: "local" | "online" | null;
   onSelectMode: (mode: "local" | "online" | null) => void;
-  onCreateGame: (numPlayers: number, boardSize: number) => void;
-  onJoinGame: () => void;
+  onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
+  onJoinGame: () => Promise<void>;
   joinRoomId: string;
   onJoinRoomIdChange: (value: string) => void;
   isHost: boolean;

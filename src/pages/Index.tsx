@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameInit } from "@/hooks/useGameInit";
@@ -15,6 +15,8 @@ import { Loader } from "lucide-react";
 
 const Index = () => {
   const { user, loading: authLoading, profile } = useAuth();
+  const [initializationError, setInitializationError] = useState<string | null>(null);
+  
   const {
     gameStarted,
     setGameStarted,
@@ -32,7 +34,12 @@ const Index = () => {
   useEffect(() => {
     if (!authLoading && user && !gameStatus) {
       console.log("Setting initial game status to menu for user:", user.email);
-      setGameStatus("menu");
+      try {
+        setGameStatus("menu");
+      } catch (error) {
+        console.error("Error setting initial game status:", error);
+        setInitializationError("Failed to initialize game. Please try refreshing the page.");
+      }
     }
   }, [authLoading, user, gameStatus, setGameStatus]);
 
@@ -101,19 +108,24 @@ const Index = () => {
   }, [gameId, setGameStarted, setGameStatus, setGameState]);
 
   const wrappedJoinGame = async () => {
-    const data = await handleJoinGame();
-    if (data) {
-      const parsedState = data.state as unknown as GameState;
-      if (isValidGameState(parsedState)) {
-        return {
-          state: parsedState,
-          game_status: data.game_status
-        };
-      } else {
-        console.error('Invalid game state received:', data.state);
-        toast.error('Failed to load game state');
-        return undefined;
+    try {
+      const data = await handleJoinGame();
+      if (data) {
+        const parsedState = data.state as unknown as GameState;
+        if (isValidGameState(parsedState)) {
+          return {
+            state: parsedState,
+            game_status: data.game_status
+          };
+        } else {
+          console.error('Invalid game state received:', data.state);
+          toast.error('Failed to load game state');
+          return undefined;
+        }
       }
+    } catch (error) {
+      console.error('Error joining game:', error);
+      toast.error('Failed to join game. Please try again.');
     }
   };
 
@@ -123,6 +135,21 @@ const Index = () => {
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
         <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
         <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show error state if initialization failed
+  if (initializationError) {
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <div className="text-white text-lg mb-4">{initializationError}</div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+        >
+          Refresh Page
+        </button>
       </div>
     );
   }
@@ -164,10 +191,22 @@ const Index = () => {
               setGameMode(mode);
               setGameStatus("mode_select");
             }}
-            onCreateGame={(numPlayers, boardSize) => 
-              onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState)
-            }
-            onJoinGame={() => onJoinGame(wrappedJoinGame, setGameState)}
+            onCreateGame={async (numPlayers, boardSize) => {
+              try {
+                await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState);
+              } catch (error) {
+                console.error('Error creating game:', error);
+                toast.error('Failed to create game. Please try again.');
+              }
+            }}
+            onJoinGame={async () => {
+              try {
+                await onJoinGame(wrappedJoinGame, setGameState);
+              } catch (error) {
+                console.error('Error joining game:', error);
+                toast.error('Failed to join game. Please try again.');
+              }
+            }}
             joinRoomId={joinRoomId}
             onJoinRoomIdChange={setJoinRoomId}
             isHost={isHost}
@@ -181,6 +220,7 @@ const Index = () => {
     );
   }
 
+  console.log("Rendering game container with mode:", gameMode);
   return <GameContainer gameMode={gameMode} onBack={handleBackFromGame} />;
 };
 
