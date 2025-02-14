@@ -9,6 +9,7 @@ import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
 import GameContainer from "@/components/game/GameContainer";
 import { GameState } from "@/types/game";
+import { isValidGameState } from "@/lib/game-validation";
 
 const Index = () => {
   const {
@@ -51,8 +52,8 @@ const Index = () => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus('playing');
-            const newState = payload.new.state as GameState;
-            if (newState) {
+            const newState = payload.new.state as unknown as GameState;
+            if (isValidGameState(newState)) {
               setGameState(newState);
             } else {
               console.error('Invalid game state received:', newState);
@@ -71,10 +72,17 @@ const Index = () => {
   const wrappedJoinGame = async () => {
     const data = await handleJoinGame();
     if (data) {
-      return {
-        state: data.state as GameState,
-        game_status: data.game_status
-      };
+      const parsedState = data.state as unknown as GameState;
+      if (isValidGameState(parsedState)) {
+        return {
+          state: parsedState,
+          game_status: data.game_status
+        };
+      } else {
+        console.error('Invalid game state received:', data.state);
+        toast.error('Failed to load game state');
+        return undefined;
+      }
     }
   };
 
