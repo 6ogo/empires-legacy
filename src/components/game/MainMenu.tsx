@@ -40,16 +40,12 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
 
   const handleBackClick = () => {
-    if (gameStatus === "mode_select") {
-      // Go back to main menu from mode selection
+    if (["mode_select", "stats", "creating", "joining", "waiting"].includes(gameStatus)) {
+      // Always go back to main menu
       onSelectMode(null);
-    } else if (gameStatus === "stats") {
-      // Go back to main menu from stats
-      onSelectMode(null);
-    } else if (gameStatus === "creating" || gameStatus === "joining" || gameStatus === "waiting") {
-      // Go back to main menu from any game setup screen
-      onSelectMode(null);
-      onJoinRoomIdChange(''); // Clear the room ID when going back
+      if (gameStatus === "joining" || gameStatus === "waiting") {
+        onJoinRoomIdChange(''); // Clear the room ID when going back
+      }
     }
   };
 
@@ -70,9 +66,13 @@ const MainMenu: React.FC<MainMenuProps> = ({
             </Button>
           )}
           {profile?.level && (
-            <div className="text-game-gold ml-4">
+            <Button
+              variant="link"
+              onClick={() => navigate('/achievements')}
+              className="text-game-gold ml-4 hover:text-game-gold/80"
+            >
               Level {profile.level} ({profile.xp} XP)
-            </div>
+            </Button>
           )}
         </div>
         <div className="flex items-center gap-2">
