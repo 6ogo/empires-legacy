@@ -14,10 +14,10 @@ import { useAuth } from "./hooks/useAuth";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, initialized } = useAuth();
+  const { user, loading } = useAuth();
 
-  // Show loading state only briefly while initializing
-  if (!initialized) {
+  // If we're still loading, show loading state
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
         <div className="text-white text-lg animate-pulse">Loading...</div>
@@ -25,12 +25,33 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If we're initialized and there's no user, redirect to auth
+  // If there's no user after loading, redirect to auth
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
   // If we have a user, render the protected content
+  return <>{children}</>;
+}
+
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  // If we're still loading, show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="text-white text-lg animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  // If user is already authenticated, redirect to game
+  if (user) {
+    return <Navigate to="/game" replace />;
+  }
+
+  // If there's no user, show auth page
   return <>{children}</>;
 }
 
@@ -42,7 +63,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/game" replace />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
           <Route path="/game" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
