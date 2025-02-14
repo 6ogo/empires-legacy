@@ -8,6 +8,7 @@ import { useOnlineGame } from "@/hooks/useOnlineGame";
 import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
 import GameContainer from "@/components/game/GameContainer";
+import { GameState } from "@/types/game";
 
 const Index = () => {
   const {
@@ -50,7 +51,7 @@ const Index = () => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus('playing');
-            const newState = payload.new.state;
+            const newState = payload.new.state as GameState;
             if (newState) {
               setGameState(newState);
             } else {
@@ -66,6 +67,16 @@ const Index = () => {
       };
     }
   }, [gameId, setGameStarted, setGameStatus, setGameState]);
+
+  const wrappedJoinGame = async () => {
+    const data = await handleJoinGame();
+    if (data) {
+      return {
+        state: data.state as GameState,
+        game_status: data.game_status
+      };
+    }
+  };
 
   if (!gameStarted) {
     return (
@@ -88,7 +99,7 @@ const Index = () => {
             onCreateGame={(numPlayers, boardSize) => 
               onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState)
             }
-            onJoinGame={() => onJoinGame(handleJoinGame, setGameState)}
+            onJoinGame={() => onJoinGame(wrappedJoinGame, setGameState)}
             joinRoomId={joinRoomId}
             onJoinRoomIdChange={setJoinRoomId}
             isHost={isHost}

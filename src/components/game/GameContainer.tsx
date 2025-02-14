@@ -1,9 +1,11 @@
+
 import React from "react";
 import { Territory } from "@/types/game";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
 import { useGameActions } from "@/hooks/useGameActions";
 import GameScreen from "./GameScreen";
+import { toast } from "sonner";
 
 interface GameContainerProps {
   gameMode: "local" | "online" | null;
