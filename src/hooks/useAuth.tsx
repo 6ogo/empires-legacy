@@ -39,7 +39,10 @@ export const useAuth = () => {
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       
       if (data) {
         const transformedProfile: UserProfile = {
@@ -78,14 +81,14 @@ export const useAuth = () => {
       try {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('Session check:', session?.user?.email); // Debug log
+        console.log('Session check:', session?.user?.email);
 
         if (!mounted) return;
 
         if (session?.user) {
           setUser(session.user);
           const profile = await fetchProfile(session.user.id);
-          if (mounted) {
+          if (mounted && profile) {
             setProfile(profile);
           }
         }
@@ -101,14 +104,14 @@ export const useAuth = () => {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email); // Debug log
+      console.log('Auth state changed:', event, session?.user?.email);
 
       if (!mounted) return;
 
       if (session?.user) {
         setUser(session.user);
         const profile = await fetchProfile(session.user.id);
-        if (mounted) {
+        if (mounted && profile) {
           setProfile(profile);
         }
       } else {

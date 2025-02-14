@@ -15,25 +15,39 @@ import { useAuth } from "./hooks/useAuth";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   
-  // Show nothing while checking auth status
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
   }
   
-  return user ? <>{children}</> : <Navigate to="/auth" replace />;
+  if (!user || !profile) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
-  // Show nothing while checking auth status
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
   }
   
-  return !user ? <>{children}</> : <Navigate to="/game" replace />;
+  if (user) {
+    return <Navigate to="/game" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 const App = () => {
