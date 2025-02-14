@@ -2,12 +2,10 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 export const useGuestLogin = () => {
   const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [showTurnstile, setShowTurnstile] = useState(false);
-  const navigate = useNavigate();
 
   const handleGuestLogin = async (turnstileToken?: string) => {
     if (!turnstileToken) {
@@ -23,49 +21,29 @@ export const useGuestLogin = () => {
         .select('email, password')
         .order('last_used_at', { ascending: true, nullsFirst: true })
         .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (guestCredsError) throw guestCredsError;
-      
-      if (!guestCreds) {
-        throw new Error('No guest credentials available');
+      if (guestCredsError) {
+        throw guestCredsError;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: guestCreds.email,
         password: guestCreds.password,
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
 
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert([{
-            id: data.user.id,
-            username: `Guest_${Date.now().toString(36)}`,
-            is_guest: true,
-            turnstile_verified: true,
-            email_verified: false,
-            verified: false,
-            preferences: { stayLoggedIn: false }
-          }], {
-            onConflict: 'id'
-          });
+      // Update the last used timestamp
+      await supabase
+        .from('guest_credentials')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('email', guestCreds.email);
 
-        if (profileError) throw profileError;
-
-        await supabase
-          .from('guest_credentials')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('email', guestCreds.email);
-        
-        toast.success("Logged in as guest!");
-        navigate("/game");
-      }
+      toast.success('Logged in as guest!');
     } catch (error: any) {
       console.error('Guest login error:', error);
-      toast.error(error.message || 'Failed to login as guest');
+      toast.error('Failed to login as guest');
     } finally {
       setIsGuestLoading(false);
       setShowTurnstile(false);

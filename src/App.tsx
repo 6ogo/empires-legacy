@@ -16,27 +16,15 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
+  return user ? <>{children}</> : <Navigate to="/auth" replace />;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-
-  if (user) {
-    return <Navigate to="/game" replace />;
-  }
-
-  return <>{children}</>;
+  return !user ? <>{children}</> : <Navigate to="/game" replace />;
 }
 
 const App = () => {
-  console.log("App rendering"); // Debug log
-  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

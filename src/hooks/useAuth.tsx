@@ -29,7 +29,7 @@ export interface UserProfile {
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -67,19 +67,17 @@ export const useAuth = () => {
       return null;
     } catch (error: any) {
       console.error('Error in fetchProfile:', error);
-      toast.error('Failed to load profile data');
       return null;
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    console.log('Auth hook initializing...'); // Debug log
-    
+
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('Session check result:', session ? 'Session found' : 'No session'); // Debug log
+        console.log('Session check:', session?.user?.email); // Debug log
 
         if (!mounted) return;
 
@@ -92,44 +90,25 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('Error in initializeAuth:', error);
-        toast.error('Failed to initialize authentication');
-      } finally {
-        if (mounted) {
-          // Set loading to false regardless of whether we found a session or not
-          setLoading(false);
-        }
       }
     };
 
-    // Initialize auth state immediately
     initializeAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session'); // Debug log
-      
+      console.log('Auth state changed:', event, session?.user?.email); // Debug log
+
       if (!mounted) return;
 
-      // Temporarily set loading to true during auth state change
-      setLoading(true);
-
-      try {
-        if (session?.user) {
-          setUser(session.user);
-          const profile = await fetchProfile(session.user.id);
-          if (mounted) {
-            setProfile(profile);
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error('Error handling auth state change:', error);
-      } finally {
+      if (session?.user) {
+        setUser(session.user);
+        const profile = await fetchProfile(session.user.id);
         if (mounted) {
-          setLoading(false);
+          setProfile(profile);
         }
+      } else {
+        setUser(null);
+        setProfile(null);
       }
     });
 
@@ -140,17 +119,14 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setProfile(null);
-      setUser(null);
-      toast.success('Signed out successfully');
-    } catch (error: any) {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
+      return;
     }
+    setUser(null);
+    setProfile(null);
   };
 
   return {
