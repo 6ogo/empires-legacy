@@ -36,6 +36,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
     (p) => p.id === gameState.currentPlayer
   );
 
+  const currentPlayerResources = currentPlayer?.resources || {
+    gold: 0,
+    wood: 0,
+    stone: 0,
+    food: 0,
+  };
+
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
       {/* Back Button */}
@@ -50,13 +57,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
       <div className="absolute top-0 left-0 right-0 p-4">
         <ResourceDisplay
-          resources={currentPlayer?.resources || {
-            gold: 0,
-            wood: 0,
-            stone: 0,
-            food: 0,
-          }}
-          units={currentPlayer?.units || {}}
+          resources={currentPlayerResources}
         />
       </div>
 
@@ -65,7 +66,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
           territories={gameState.territories}
           selectedTerritory={selectedTerritory}
           onTerritoryClick={onTerritoryClick}
-          currentPlayerId={gameState.currentPlayer}
+          currentPlayer={gameState.currentPlayer}
+          playerResources={currentPlayerResources}
+          phase={gameState.phase}
         />
       </div>
 
@@ -74,18 +77,25 @@ const GameBoard: React.FC<GameBoardProps> = ({
           onEndTurn={onEndTurn}
           onEndPhase={onEndPhase}
           onGiveUp={onGiveUp}
-          phase={gameState.phase}
-          currentPlayerId={gameState.currentPlayer}
+          gameState={gameState}
         />
       </div>
 
       {selectedTerritory && (
         <>
           <div className="absolute top-24 left-4">
-            <BuildingMenu onBuild={onBuild} selectedTerritory={selectedTerritory} />
+            <BuildingMenu 
+              onBuild={onBuild} 
+              selectedTerritory={selectedTerritory}
+              resources={currentPlayerResources}
+            />
           </div>
           <div className="absolute top-24 right-4">
-            <RecruitmentMenu onRecruit={onRecruit} />
+            <RecruitmentMenu 
+              onRecruit={onRecruit}
+              resources={currentPlayerResources}
+              selectedTerritory={selectedTerritory}
+            />
           </div>
         </>
       )}
