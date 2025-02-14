@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,15 +28,12 @@ const Settings = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          username: newUsername,
-          last_username_change: new Date().toISOString()
-        })
-        .eq('id', user?.id);
+      const { error: userUpdateError } = await supabase.auth.updateUser({
+        data: { username: newUsername }
+      });
 
-      if (error) throw error;
+      if (userUpdateError) throw userUpdateError;
+
       toast.success("Username updated successfully");
       setNewUsername("");
     } catch (error: any) {
@@ -134,7 +130,7 @@ const Settings = () => {
           <CardContent>
             <div className="space-y-2">
               <p><strong>Email:</strong> {user?.email}</p>
-              <p><strong>Username:</strong> {profile?.username || 'Not set'}</p>
+              <p><strong>Username:</strong> {user?.user_metadata?.username || 'Not set'}</p>
               <p><strong>Account Created:</strong> {new Date(profile?.created_at || '').toLocaleDateString()}</p>
             </div>
           </CardContent>
