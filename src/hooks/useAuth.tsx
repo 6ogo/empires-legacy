@@ -62,15 +62,18 @@ export const useAuth = () => {
           last_username_change: data.last_username_change,
           achievements: Array.isArray(data.achievements) ? data.achievements : [],
         };
-        setProfile(transformedProfile);
+        return transformedProfile;
       }
+      return null;
     } catch (error: any) {
       console.error('Error in fetchProfile:', error);
       toast.error('Failed to load profile data');
+      return null;
     }
   };
 
   useEffect(() => {
+    let mounted = true;
     console.log('Auth hook initializing...'); // Debug log
     
     const initializeAuth = async () => {
@@ -78,15 +81,22 @@ export const useAuth = () => {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Session check result:', session ? 'Session found' : 'No session'); // Debug log
 
+        if (!mounted) return;
+
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          const profile = await fetchProfile(session.user.id);
+          if (mounted) {
+            setProfile(profile);
+          }
         }
       } catch (error) {
         console.error('Error in initializeAuth:', error);
         toast.error('Failed to initialize authentication');
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -97,18 +107,24 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session ? 'Session exists' : 'No session'); // Debug log
       
+      if (!mounted) return;
+
       if (session?.user) {
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        const profile = await fetchProfile(session.user.id);
+        if (mounted) {
+          setProfile(profile);
+          setLoading(false);
+        }
       } else {
         setUser(null);
         setProfile(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
