@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
+import { useAuth } from "@/hooks/useAuth";
 import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
 import GameContainer from "@/components/game/GameContainer";
@@ -12,6 +13,7 @@ import { GameState } from "@/types/game";
 import { isValidGameState } from "@/lib/game-validation";
 
 const Index = () => {
+  const { user, loading: authLoading } = useAuth();
   const {
     gameStarted,
     setGameStarted,
@@ -25,14 +27,13 @@ const Index = () => {
     onJoinGame,
   } = useGameInit();
 
-  // Ensure gameStatus is set to "menu" when component mounts
+  // Ensure gameStatus is set to "menu" when component mounts and user is authenticated
   useEffect(() => {
-    if (!gameStatus) {
+    if (!authLoading && user && !gameStatus) {
+      console.log("Setting initial game status to menu for user:", user.email);
       setGameStatus("menu");
     }
-    // Add console log for debugging
-    console.log("Current game status:", gameStatus);
-  }, [gameStatus, setGameStatus]);
+  }, [authLoading, user, gameStatus, setGameStatus]);
 
   const { gameState, setGameState } = useGameState(gameMode);
 
@@ -115,12 +116,22 @@ const Index = () => {
     }
   };
 
-  // Add loading state check
-  if (!gameStatus) {
-    console.log("Game status is null, showing loading...");
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    console.log("Auth loading...");
     return (
       <div className="min-h-screen bg-[#141B2C] flex items-center justify-center">
         <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show loading state while game status is being initialized
+  if (!gameStatus) {
+    console.log("Game status is null, waiting for initialization...");
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex items-center justify-center">
+        <div className="text-white">Initializing game...</div>
       </div>
     );
   }
