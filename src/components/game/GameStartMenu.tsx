@@ -45,7 +45,7 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
 
   return (
     <div className="text-center text-white">
-      <h1 className="text-5xl font-bold text-game-gold mb-12">Empire's Legacy</h1>
+      <h1 className="text-5xl font-bold text-game-gold mb-12">Empires' Legacy</h1>
       
       {gameStatus === "menu" && (
         <GameModeSelect onSelectMode={onSelectMode} />
