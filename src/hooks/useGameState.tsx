@@ -1,11 +1,19 @@
+
 import { useState } from "react";
 import { GameState, Territory, GameUpdate, PlayerColor } from "@/types/game";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
+import { createInitialGameState } from "@/lib/game-utils";
 
 export const useGameState = (gameMode: "local" | "online" | null) => {
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(() => {
+    if (gameMode === "local") {
+      // Initialize with a default 2-player local game
+      return createInitialGameState(2, 5); // 2 players, 5x5 board
+    }
+    return null;
+  });
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
 
   const checkAchievementProgress = async (userId: string) => {
