@@ -7,8 +7,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface HexGridProps {
   territories: Territory[];
-  onTerritoryClick: (territory: Territory) => void;
   selectedTerritory: Territory | null;
+  onTerritoryClick: (territory: Territory) => void;
   currentPlayer: string;
   playerResources: { gold: number; wood: number; stone: number; food: number };
   phase: string;

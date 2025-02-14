@@ -2,13 +2,12 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { GameState } from "@/types/game";
-import { useNavigate } from "react-router-dom";
 
 interface GameControlsProps {
   gameState: GameState;
   onEndTurn: () => void;
   onEndPhase: () => void;
-  onGiveUp?: () => void;
+  onGiveUp: () => void;
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
@@ -17,8 +16,6 @@ const GameControls: React.FC<GameControlsProps> = ({
   onEndPhase,
   onGiveUp,
 }) => {
-  const navigate = useNavigate();
-
   return (
     <div className="flex flex-col gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg">
       <div className="text-lg font-semibold text-white">
@@ -49,13 +46,6 @@ const GameControls: React.FC<GameControlsProps> = ({
           className="flex-1"
         >
           Give Up
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => navigate("/")}
-          className="flex-1"
-        >
-          Quit Game
         </Button>
       </div>
     </div>
