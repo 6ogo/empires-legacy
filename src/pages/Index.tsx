@@ -12,8 +12,10 @@ import GameContainer from "@/components/game/GameContainer";
 import { GameState } from "@/types/game";
 import { isValidGameState } from "@/lib/game-validation";
 import { Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user, loading: authLoading, profile } = useAuth();
   const [initializationError, setInitializationError] = useState<string | null>(null);
   
@@ -29,6 +31,26 @@ const Index = () => {
     onCreateGame,
     onJoinGame,
   } = useGameInit();
+
+  // Handle page refresh and navigation
+  useEffect(() => {
+    const handlePageRefresh = () => {
+      // If we're in a game but reload the page, redirect to menu
+      if (window.location.pathname === '/game' && !gameStatus) {
+        setGameStarted(false);
+        setGameStatus("menu");
+        setGameMode(null);
+      }
+    };
+
+    handlePageRefresh();
+
+    // Also handle cases where user navigates away and comes back
+    window.addEventListener('focus', handlePageRefresh);
+    return () => {
+      window.removeEventListener('focus', handlePageRefresh);
+    };
+  }, [gameStatus, setGameStarted, setGameStatus, setGameMode]);
 
   // Ensure gameStatus is set to "menu" when component mounts and user is authenticated
   useEffect(() => {
@@ -145,10 +167,15 @@ const Index = () => {
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
         <div className="text-white text-lg mb-4">{initializationError}</div>
         <button 
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setGameStarted(false);
+            setGameStatus("menu");
+            setGameMode(null);
+            navigate('/game');
+          }}
           className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
         >
-          Refresh Page
+          Return to Menu
         </button>
       </div>
     );
