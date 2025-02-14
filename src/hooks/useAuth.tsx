@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 export interface UserProfile {
   id: string;
@@ -76,49 +77,55 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    console.log('Auth initialization started');
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        console.log('Getting session...');
+        // Immediately set user to null to trigger redirect if needed
+        setUser(null);
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session error:', error);
-          throw error;
-        }
-        
-        console.log('Session result:', session ? 'Session exists' : 'No session');
-        
-        if (mounted) {
-          setUser(session?.user ?? null);
-          if (session?.user) {
-            await fetchProfile(session.user.id);
-          }
           setLoading(false);
+          return;
+        }
+
+        if (!mounted) return;
+
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error in initializeAuth:', error);
+        toast.error('Failed to initialize authentication');
+      } finally {
         if (mounted) {
           setLoading(false);
         }
       }
     };
 
+    // Start auth initialization
     initializeAuth();
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
-      if (mounted) {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-        setLoading(false);
+      console.log('Auth state changed:', event);
+      
+      if (!mounted) return;
+
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+        setProfile(null);
       }
+      
+      setLoading(false);
     });
 
     return () => {
@@ -128,12 +135,18 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
+    setLoading(true);
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setProfile(null);
       setUser(null);
     } catch (error) {
       console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    } finally {
+      setLoading(false);
     }
   };
 
