@@ -14,52 +14,26 @@ import { useAuth } from "./hooks/useAuth";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
-  console.log("Protected Route State:", { user, loading }); // Debug log
-
-  // Show nothing during the initial load to prevent flash
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-        <div className="text-white text-lg animate-pulse">Loading...</div>
-      </div>
-    );
-  }
-
-  // If there's no user after loading completes, redirect to auth
+  // If there's no user, redirect to auth
   if (!user) {
-    console.log("No user found, redirecting to auth"); // Debug log
     return <Navigate to="/auth" replace />;
   }
 
   // If we have a user, render the protected content
-  console.log("User found, rendering protected content"); // Debug log
   return <>{children}</>;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  console.log("Auth Route State:", { user, loading }); // Debug log
-
-  // Show nothing during the initial load to prevent flash
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-        <div className="text-white text-lg animate-pulse">Loading...</div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   // If user is already authenticated, redirect to game
   if (user) {
-    console.log("User already authenticated, redirecting to game"); // Debug log
     return <Navigate to="/game" replace />;
   }
 
   // If there's no user, show auth page
-  console.log("No user found, showing auth page"); // Debug log
   return <>{children}</>;
 }
 
