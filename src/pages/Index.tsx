@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +12,7 @@ import { GameState } from "@/types/game";
 import { isValidGameState } from "@/lib/game-validation";
 import { Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Json } from "@/integrations/supabase/types";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -93,15 +93,18 @@ const Index = () => {
           schema: 'public',
           table: 'games',
           filter: `id=eq.${gameId}`,
-        }, (payload: any) => {
+        }, (payload: { new: { game_status: string; state: Json } }) => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus("playing");
-            const newState = payload.new.state as unknown as GameState;
-            if (isValidGameState(newState)) {
-              setGameState(newState);
+            const parsedState = typeof payload.new.state === 'string' 
+              ? JSON.parse(payload.new.state) 
+              : payload.new.state;
+            
+            if (isValidGameState(parsedState)) {
+              setGameState(parsedState);
             } else {
-              console.error('Invalid game state received:', newState);
+              console.error('Invalid game state received:', parsedState);
               toast.error('Failed to load game state');
             }
           }
