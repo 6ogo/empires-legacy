@@ -15,12 +15,18 @@ const queryClient = new QueryClient();
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
+  // Show a loading state while checking authentication
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
   }
 
+  // If not authenticated, redirect to auth page
   if (!user) {
-    return <Navigate to="/auth" />;
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
@@ -35,17 +41,28 @@ const App = () => (
         <Routes>
           {/* Make the root path redirect to auth */}
           <Route path="/" element={<Navigate to="/auth" replace />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/game" element={
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } />
+          <Route 
+            path="/auth" 
+            element={
+              <Auth />
+            } 
+          />
+          <Route 
+            path="/game" 
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
