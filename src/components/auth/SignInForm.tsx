@@ -10,6 +10,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { TurnstileCaptcha } from "./Turnstile";
 
 interface SignInFormProps {
   email: string;
@@ -35,46 +36,49 @@ export const SignInForm = ({
   onMagicLinkLogin,
 }: SignInFormProps) => {
   const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [showTurnstile, setShowTurnstile] = useState(false);
   const navigate = useNavigate();
 
-  const handleGuestLogin = async () => {
+  const handleGuestLogin = async (turnstileToken?: string) => {
+    if (!turnstileToken) {
+      setShowTurnstile(true);
+      return;
+    }
+
     try {
       setIsGuestLoading(true);
       
-      // Create a temporary email and password for the guest user
-      const tempEmail = `guest_${Date.now()}@temporary.com`;
-      const tempPassword = `temp_${Date.now()}`;
+      // First verify the turnstile token with Supabase
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: 'temp', // This will be replaced
+          username: `Guest_${Date.now().toString(36)}`,
+          is_guest: true,
+          turnstile_verified: true,
+          email_verified: false,
+          verified: false,
+          preferences: { stayLoggedIn: false }
+        }])
+        .select()
+        .single();
 
+      if (verificationError) throw verificationError;
+
+      // Create anonymous session
       const { data, error } = await supabase.auth.signUp({
-        email: tempEmail,
-        password: tempPassword,
+        email: `guest_${Date.now()}@temporary.com`,
+        password: `temp_${Date.now()}`,
         options: {
           data: {
             is_guest: true
-          },
-          emailRedirectTo: undefined // Disable email verification for guests
+          }
         }
       });
 
       if (error) throw error;
 
-      if (data.user) {
-        // Create guest profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              username: `Guest_${Date.now().toString(36)}`,
-              is_guest: true,
-              verified: false,
-              email_verified: false,
-              preferences: { stayLoggedIn: false }
-            }
-          ]);
-
-        if (profileError) throw profileError;
-        
+      if (data.user) {        
         toast.success("Logged in as guest!");
         navigate("/game");
       }
@@ -83,6 +87,7 @@ export const SignInForm = ({
       toast.error(error.message || 'Failed to login as guest');
     } finally {
       setIsGuestLoading(false);
+      setShowTurnstile(false);
     }
   };
 
@@ -138,15 +143,29 @@ export const SignInForm = ({
               {loading ? "Signing in..." : "Sign In"}
             </Button>
             <Separator className="my-2" />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleGuestLogin}
-              disabled={isGuestLoading}
-              className="w-full text-white bg-white/20 hover:bg-white/30"
-            >
-              {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
-            </Button>
+            {showTurnstile ? (
+              <div className="w-full flex flex-col items-center gap-4">
+                <TurnstileCaptcha onSuccess={(token) => handleGuestLogin(token)} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowTurnstile(false)}
+                  className="w-full text-white bg-white/20 hover:bg-white/30"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleGuestLogin()}
+                disabled={isGuestLoading}
+                className="w-full text-white bg-white/20 hover:bg-white/30"
+              >
+                {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
+              </Button>
+            )}
           </CardFooter>
         </form>
       </TabsContent>
@@ -176,15 +195,29 @@ export const SignInForm = ({
               {loading ? "Sending link..." : "Send Magic Link"}
             </Button>
             <Separator className="my-2" />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleGuestLogin}
-              disabled={isGuestLoading}
-              className="w-full text-white bg-white/20 hover:bg-white/30"
-            >
-              {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
-            </Button>
+            {showTurnstile ? (
+              <div className="w-full flex flex-col items-center gap-4">
+                <TurnstileCaptcha onSuccess={(token) => handleGuestLogin(token)} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowTurnstile(false)}
+                  className="w-full text-white bg-white/20 hover:bg-white/30"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleGuestLogin()}
+                disabled={isGuestLoading}
+                className="w-full text-white bg-white/20 hover:bg-white/30"
+              >
+                {isGuestLoading ? "Joining as Guest..." : "Continue as Guest"}
+              </Button>
+            )}
           </CardFooter>
         </form>
       </TabsContent>

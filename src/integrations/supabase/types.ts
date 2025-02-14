@@ -184,6 +184,7 @@ export type Database = {
           total_games_played: number | null
           total_gametime: number | null
           total_wins: number | null
+          turnstile_verified: boolean | null
           username: string | null
           verified: boolean | null
           xp: number | null
@@ -203,6 +204,7 @@ export type Database = {
           total_games_played?: number | null
           total_gametime?: number | null
           total_wins?: number | null
+          turnstile_verified?: boolean | null
           username?: string | null
           verified?: boolean | null
           xp?: number | null
@@ -222,6 +224,7 @@ export type Database = {
           total_games_played?: number | null
           total_gametime?: number | null
           total_wins?: number | null
+          turnstile_verified?: boolean | null
           username?: string | null
           verified?: boolean | null
           xp?: number | null
