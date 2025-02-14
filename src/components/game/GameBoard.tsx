@@ -1,4 +1,3 @@
-
 import React from "react";
 import HexGrid from "./HexGrid";
 import ResourceDisplay from "./ResourceDisplay";
@@ -8,6 +7,8 @@ import RecruitmentMenu from "./RecruitmentMenu";
 import MobileMenu from "./MobileMenu";
 import { GameState, Territory, Player } from "@/types/game";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Trophy } from "lucide-react";
 
 interface GameBoardProps {
   gameState: GameState;
@@ -49,7 +50,17 @@ const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-2 sm:p-4 lg:p-8">
       <div className="max-w-[2000px] mx-auto space-y-4 lg:space-y-8">
-        <MobileMenu onGiveUp={onGiveUp} />
+        <div className="flex justify-between items-center">
+          <MobileMenu onGiveUp={onGiveUp} />
+          <Button
+            variant="outline"
+            onClick={() => window.location.href = '/achievements'}
+            className="bg-white/10 text-white hover:bg-white/20"
+          >
+            <Trophy className="h-4 w-4 mr-2" />
+            Achievements
+          </Button>
+        </div>
         
         <div className="text-center space-y-2">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-game-gold">Empire's Legacy</h1>

@@ -236,18 +236,21 @@ export type Database = {
           achievement_id: number | null
           earned_at: string | null
           id: string
+          progress: number | null
           user_id: string | null
         }
         Insert: {
           achievement_id?: number | null
           earned_at?: string | null
           id?: string
+          progress?: number | null
           user_id?: string | null
         }
         Update: {
           achievement_id?: number | null
           earned_at?: string | null
           id?: string
+          progress?: number | null
           user_id?: string | null
         }
         Relationships: [

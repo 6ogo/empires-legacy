@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { GameState, Territory, GameUpdate, PlayerColor } from "@/types/game";
 import { toast } from "sonner";
@@ -8,6 +7,52 @@ import { Json } from "@/integrations/supabase/types";
 export const useGameState = (gameMode: "local" | "online" | null) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
+
+  const checkAchievementProgress = async (userId: string) => {
+    if (!gameState) return;
+
+    const { data: achievements, error } = await supabase
+      .from('achievements')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching achievements:', error);
+      return;
+    }
+
+    achievements.forEach(async (achievement) => {
+      let progress = 0;
+
+      // Calculate progress based on achievement type
+      switch (achievement.title) {
+        case 'Land Grabber':
+          const territories = gameState.territories.filter(t => t.owner === gameState.currentPlayer);
+          progress = (territories.length / 10) * 100;
+          break;
+        // Add more achievement progress calculations here
+      }
+
+      // If progress is close to completion (90% or more) and achievement not yet earned
+      if (progress >= 90) {
+        const { data: userAchievement } = await supabase
+          .from('user_achievements')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('achievement_id', achievement.id)
+          .single();
+
+        if (!userAchievement) {
+          toast.success(
+            `Almost there! ${achievement.title} - ${Math.floor(progress)}%`,
+            {
+              description: achievement.description,
+              duration: 5000,
+            }
+          );
+        }
+      }
+    });
+  };
 
   const handleTerritoryClick = async (territory: Territory, gameId: number | null) => {
     if (!gameState) return;
@@ -82,6 +127,12 @@ export const useGameState = (gameMode: "local" | "online" | null) => {
             .eq('id', gameId);
 
           if (error) throw error;
+
+          // Check achievement progress after state update
+          const user = (await supabase.auth.getUser()).data.user;
+          if (user) {
+            await checkAchievementProgress(user.id);
+          }
         } catch (error) {
           console.error('Error updating game:', error);
           toast.error('Failed to update game state. Please try again.');
