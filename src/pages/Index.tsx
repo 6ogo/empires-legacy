@@ -39,6 +39,17 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
+  // Handle back button in game
+  const handleBackFromGame = () => {
+    setGameStarted(false);
+    setGameStatus("mode_select");
+    setGameMode(null);
+    setGameState(null);
+    if (joinRoomId) {
+      setJoinRoomId('');
+    }
+  };
+
   useEffect(() => {
     if (gameId) {
       const subscription = supabase
@@ -51,7 +62,7 @@ const Index = () => {
         }, (payload: any) => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
-            setGameStatus('playing');
+            setGameStatus("playing");
             const newState = payload.new.state as unknown as GameState;
             if (isValidGameState(newState)) {
               setGameState(newState);
@@ -121,7 +132,7 @@ const Index = () => {
     );
   }
 
-  return <GameContainer gameMode={gameMode} />;
+  return <GameContainer gameMode={gameMode} onBack={handleBackFromGame} />;
 };
 
 export default Index;

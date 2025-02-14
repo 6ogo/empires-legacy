@@ -9,9 +9,10 @@ import { toast } from "sonner";
 
 interface GameContainerProps {
   gameMode: "local" | "online" | null;
+  onBack: () => void;
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({ gameMode }) => {
+const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
   const {
     gameState,
     setGameState,
@@ -142,6 +143,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ gameMode }) => {
       onBuild={handleBuild}
       onRecruit={handleRecruit}
       onGiveUp={handleGiveUp}
+      onBack={onBack}
     />
   );
 };
