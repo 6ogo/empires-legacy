@@ -16,7 +16,7 @@ const Callback = () => {
 
         if (session?.user) {
           // Update the user's profile to mark email as verified
-          const { error: updateError } = await supabase
+          await supabase
             .from('profiles')
             .update({
               email_verified: true,
@@ -24,18 +24,16 @@ const Callback = () => {
             })
             .eq('id', session.user.id);
 
-          if (updateError) throw updateError;
-
           toast.success('Email verified successfully!');
-          navigate('/game');
+          navigate('/game', { replace: true });
         } else {
           toast.error('Verification failed. Please try again.');
-          navigate('/auth');
+          navigate('/auth', { replace: true });
         }
       } catch (error: any) {
         console.error('Error handling email confirmation:', error);
         toast.error(error.message);
-        navigate('/auth');
+        navigate('/auth', { replace: true });
       }
     };
 
@@ -44,7 +42,7 @@ const Callback = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-      <div className="text-white text-lg">Verifying your email...</div>
+      <div className="text-white text-lg animate-pulse">Verifying your email...</div>
     </div>
   );
 };

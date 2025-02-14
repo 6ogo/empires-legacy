@@ -18,26 +18,24 @@ export const useAuthForm = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
       if (data.user) {
-        const { error: updateError } = await supabase
+        // Update preferences after successful sign in
+        await supabase
           .from('profiles')
           .update({ preferences: { stayLoggedIn } })
           .eq('id', data.user.id);
 
-        if (updateError) {
-          console.error('Error updating preferences:', updateError);
-        }
-
         toast.success("Signed in successfully!");
-        navigate("/game");
+        navigate("/game", { replace: true });
       }
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -50,7 +48,7 @@ export const useAuthForm = () => {
 
     try {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: {
@@ -63,7 +61,7 @@ export const useAuthForm = () => {
       if (signUpError) throw signUpError;
 
       if (authData.user) {
-        const { error: profileError } = await supabase
+        await supabase
           .from('profiles')
           .insert([
             {
@@ -76,12 +74,11 @@ export const useAuthForm = () => {
             },
           ]);
 
-        if (profileError) throw profileError;
-
         toast.success("Verification email sent! Please check your inbox.");
         toast.info("You'll need to verify your email before accessing all features.");
       }
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -94,7 +91,7 @@ export const useAuthForm = () => {
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: email.trim(),
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -104,6 +101,7 @@ export const useAuthForm = () => {
 
       toast.success("Magic link sent! Please check your email.");
     } catch (error: any) {
+      console.error('Magic link error:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
