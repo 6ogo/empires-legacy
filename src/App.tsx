@@ -13,10 +13,10 @@ import { useAuth } from "./hooks/useAuth";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
 
-  // Show a loading state while checking authentication
-  if (loading) {
+  // Only show loading state if we haven't initialized auth yet
+  if (!initialized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
         <div className="text-white text-lg">Loading...</div>
@@ -24,11 +24,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If not authenticated, redirect to auth page
+  // If we're initialized and there's no user, redirect to auth
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
+  // If we have a user, render the protected content
   return <>{children}</>;
 }
 
