@@ -18,7 +18,7 @@ export const useGuestLogin = () => {
 
     try {
       setIsGuestLoading(true);
-      console.log('Fetching guest credentials...'); // Debug log
+      console.log('Fetching guest credentials with turnstile token...', turnstileToken); // Debug log
 
       const { data: guestCreds, error: guestCredsError } = await supabase
         .from('guest_credentials')
@@ -27,12 +27,19 @@ export const useGuestLogin = () => {
         .limit(1)
         .maybeSingle();
 
-      if (guestCredsError || !guestCreds) {
-        console.error('Error fetching guest credentials:', guestCredsError); // Debug log
+      if (guestCredsError) {
+        console.error('Error fetching guest credentials:', guestCredsError);
+        throw new Error('Failed to fetch guest credentials');
+      }
+
+      if (!guestCreds) {
         throw new Error('No guest accounts available');
       }
 
-      console.log('Found guest credentials, attempting login...', { email: guestCreds.email }); // Debug log
+      console.log('Found guest credentials, attempting login...'); // Debug log
+
+      // First, sign out any existing session
+      await supabase.auth.signOut();
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: guestCreds.email,
@@ -40,35 +47,44 @@ export const useGuestLogin = () => {
       });
 
       if (signInError) {
-        console.error('Sign in error:', signInError); // Debug log
+        console.error('Sign in error:', signInError);
         throw signInError;
       }
 
-      if (data.user) {
-        console.log('Guest login successful, updating last_used_at...'); // Debug log
-        
-        const { error: updateError } = await supabase
-          .from('guest_credentials')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('email', guestCreds.email);
-
-        if (updateError) {
-          console.error('Error updating last_used_at:', updateError); // Debug log
-        }
-
-        // Update the profile's turnstile verification
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ turnstile_verified: true })
-          .eq('id', data.user.id);
-
-        if (profileError) {
-          console.error('Error updating profile turnstile verification:', profileError);
-        }
-
-        toast.success('Logged in as guest!');
-        navigate("/game", { replace: true });
+      if (!data.user) {
+        throw new Error('Failed to create guest session');
       }
+
+      console.log('Guest login successful, updating timestamps...'); // Debug log
+
+      // Update last used timestamp
+      const { error: updateError } = await supabase
+        .from('guest_credentials')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('email', guestCreds.email);
+
+      if (updateError) {
+        console.error('Error updating last_used_at:', updateError);
+      }
+
+      // Update turnstile verification in profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          turnstile_verified: true,
+          last_login: new Date().toISOString()
+        })
+        .eq('id', data.user.id);
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+      }
+
+      toast.success('Logged in as guest successfully!');
+      
+      // Force navigation after successful login
+      console.log('Redirecting to game page...'); // Debug log
+      navigate("/game", { replace: true });
     } catch (error: any) {
       console.error('Guest login error:', error);
       toast.error(error.message || 'Failed to login as guest');
