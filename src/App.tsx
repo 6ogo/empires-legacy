@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
+import Achievements from "./components/game/Achievements";
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -15,11 +16,11 @@ const queryClient = new QueryClient();
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, initialized } = useAuth();
 
-  // Only show loading state if we haven't initialized auth yet
+  // Show loading state only briefly while initializing
   if (!initialized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
+        <div className="text-white text-lg animate-pulse">Loading...</div>
       </div>
     );
   }
@@ -40,30 +41,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Make the root path redirect to auth */}
-          <Route path="/" element={<Navigate to="/auth" replace />} />
-          <Route 
-            path="/auth" 
-            element={
-              <Auth />
-            } 
-          />
-          <Route 
-            path="/game" 
-            element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/settings" 
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/" element={<Navigate to="/game" replace />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/game" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

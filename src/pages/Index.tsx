@@ -42,9 +42,18 @@ const Index = () => {
   // Handle back button in game
   const handleBackFromGame = () => {
     setGameStarted(false);
-    setGameStatus("mode_select");
+    setGameStatus("menu");
     setGameMode(null);
     setGameState(null);
+    if (joinRoomId) {
+      setJoinRoomId('');
+    }
+  };
+
+  // Handle back button in mode selection
+  const handleBackToMenu = () => {
+    setGameMode(null);
+    setGameStatus("menu");
     if (joinRoomId) {
       setJoinRoomId('');
     }
@@ -103,10 +112,7 @@ const Index = () => {
         <PreGameScreens
           showLeaderboard={showLeaderboard}
           gameStatus={gameStatus}
-          onBackToMenu={() => {
-            setShowLeaderboard(false);
-            setGameStatus("menu");
-          }}
+          onBackToMenu={handleBackToMenu}
         >
           <MainMenu
             gameStatus={gameStatus}

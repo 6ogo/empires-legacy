@@ -8,16 +8,16 @@ import { Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface GameStartMenuProps {
-  gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting";
+  gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
   gameMode: "local" | "online" | null;
   onSelectMode: (mode: "local" | "online") => void;
-  onCreateGame: (numPlayers: number, boardSize: number) => void;
-  onJoinGame: () => void;
+  onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
+  onJoinGame: () => Promise<void>;
   joinRoomId: string;
   onJoinRoomIdChange: (value: string) => void;
   isHost?: boolean;
   onStartAnyway?: () => void;
-  connectedPlayers?: { username: string }[];
+  connectedPlayers: { username: string }[];
   selectedBoardSize?: number;
   maxPlayers?: number;
   onShowRandomEventsInfo: () => void;
@@ -75,30 +75,35 @@ const GameStartMenu: React.FC<GameStartMenuProps> = ({
               {selectedBoardSize > 0 && (
                 <p><span className="text-game-gold">Board Size:</span> {selectedBoardSize} hexes</p>
               )}
+              {gameMode === 'online' && (
+                <p><span className="text-game-gold">Room ID:</span> {joinRoomId}</p>
+              )}
             </div>
           </div>
 
-          {/* Room ID Section */}
-          <div className="mb-8 p-6 bg-white/10 rounded-lg inline-block min-w-[300px] border border-game-gold">
-            <h3 className="text-2xl mb-4 text-game-gold">Room ID</h3>
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Input 
-                value={joinRoomId}
-                readOnly
-                className="font-mono text-3xl text-game-gold bg-transparent border-none text-center tracking-wider"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyRoomId}
-                className="hover:bg-white/10 border border-game-gold"
-                title="Copy Room ID"
-              >
-                <Copy className="h-4 w-4 text-game-gold" />
-              </Button>
+          {/* Room ID Section for online games */}
+          {gameMode === 'online' && (
+            <div className="mb-8 p-6 bg-white/10 rounded-lg inline-block min-w-[300px] border border-game-gold">
+              <h3 className="text-2xl mb-4 text-game-gold">Room ID</h3>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Input 
+                  value={joinRoomId}
+                  readOnly
+                  className="font-mono text-3xl text-game-gold bg-transparent border-none text-center tracking-wider"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyRoomId}
+                  className="hover:bg-white/10 border border-game-gold"
+                  title="Copy Room ID"
+                >
+                  <Copy className="h-4 w-4 text-game-gold" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-400">Share this code with other players to join</p>
             </div>
-            <p className="text-sm text-gray-400">Share this code with other players to join</p>
-          </div>
+          )}
           
           {/* Connected Players */}
           <div className="mb-8">
