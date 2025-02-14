@@ -29,7 +29,6 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -77,33 +76,40 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
+    console.log('Auth initialization started');
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
+        console.log('Getting session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Session error:', error);
+          throw error;
+        }
+        
+        console.log('Session result:', session ? 'Session exists' : 'No session');
         
         if (mounted) {
           setUser(session?.user ?? null);
           if (session?.user) {
             await fetchProfile(session.user.id);
           }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-      } finally {
         if (mounted) {
           setLoading(false);
-          setInitialized(true);
         }
       }
     };
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
       if (mounted) {
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -134,8 +140,7 @@ export const useAuth = () => {
   return {
     user,
     profile,
-    loading: loading && !initialized,
-    initialized,
+    loading,
     signOut,
   };
 };
