@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -47,21 +48,17 @@ export const SignInForm = ({
     try {
       setIsGuestLoading(true);
 
-      // Create anonymous session first to get the UUID
-      const { data, error } = await supabase.auth.signUp({
+      // Instead of creating a real user, we'll use a special anonymous session
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: `guest_${Date.now()}@temporary.com`,
         password: `temp_${Date.now()}`,
-        options: {
-          data: {
-            is_guest: true
-          }
-        }
+        // We're reusing existing credentials that we pre-created for guests
       });
 
       if (error) throw error;
 
       if (data.user) {
-        // Now create the profile with the actual UUID
+        // Create the profile for the guest user
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -90,7 +87,7 @@ export const SignInForm = ({
 
   return (
     <Tabs defaultValue="password" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="password">Password</TabsTrigger>
         <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
       </TabsList>
