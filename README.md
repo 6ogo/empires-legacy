@@ -5,77 +5,129 @@
 
 Empire's Legacy is a turn-based strategy game where players compete to build and expand their empires through resource management, territory control, and military conquest. The game combines elements of classic 4X games (eXplore, eXpand, eXploit, and eXterminate) with modern web technologies.
 
-## Features
+## Game Modes
 
-- **Multi-player Support**: Play with 2-6 players locally or online
-- **Resource Management**: Manage gold, wood, stone, and food resources
-- **Territory Control**: Claim and defend territories with different resource yields
-- **Building System**: Construct various buildings to boost production and military capabilities
-- **Combat System**: Strategic combat with different unit types and terrain bonuses
-- **Real-time Updates**: Watch game progress through the updates panel
+### Local Multiplayer
+- Play with 2-6 players on the same device
+- Perfect for learning the game mechanics
+- Instant turns without waiting for server responses
+- Great for local tournaments or friendly matches
 
-## Game Rules
+### Online Multiplayer
+- Create or join game rooms with 2-6 players
+- Real-time player synchronization
+- Chat with other players during the game
+- Persistent game state across sessions
+- Achievement tracking and XP progression
 
-### Setup Phase
+## Core Game Mechanics
 
-1. Players take turns claiming their starting territories
-2. Each player receives initial resources:
-   - 100 Gold
-   - 50 Wood
-   - 50 Stone
-   - 50 Food
+### Resources
+- **Gold**: Main currency for purchasing units and buildings
+- **Wood**: Required for basic buildings and military structures
+- **Stone**: Used for defensive structures and advanced buildings
+- **Food**: Maintains military units and population
 
-### Turn Structure
+### Territory Types
+- **Plains**: Balanced resource output
+- **Mountains**: Enhanced stone production and defense bonuses
+- **Forests**: Increased wood production and ambush opportunities
+- **Coast**: Trading advantages and naval bonuses
+- **Capital**: Enhanced production and strategic importance
 
-Each turn consists of five phases:
+### Buildings
+1. **Resource Buildings**
+   - Lumber Mill: +20 Wood production
+   - Mine: +20 Stone production
+   - Market: +20 Gold + trade bonuses
+   - Farm: +8 Food production
 
-1. **Resource Phase**
-   - Collect resources from controlled territories
-   - Base income per territory:
-     - 10 Gold
-     - 5 Wood
-     - 5 Stone
-     - 5 Food
-   - Buildings provide additional resources:
-     - Lumber Mill: +20 Wood
-     - Mine: +20 Stone
-     - Market: +20 Gold (plus trade bonuses)
-     - Farm: +8 Food
+2. **Military Buildings**
+   - Barracks: Enables infantry recruitment
+   - Fortress: Provides defensive bonuses
+   - Road: Improves unit movement
 
-2. **Building Phase**
-   - Construct buildings in controlled territories
-   - Available buildings:
-     - Lumber Mill (Wood production)
-     - Mine (Stone production)
-     - Market (Gold and trade)
-     - Farm (Food production)
-     - Barracks (Military units)
-     - Fortress (Defense)
+### Military Units
+1. **Infantry** (100 Gold, 1 Food upkeep)
+   - Basic military unit
+   - Strong in defensive positions
+   - Effective in forest terrain
 
-3. **Recruitment Phase**
-   - Train military units if you have the required buildings
-   - Unit types:
-     - Infantry (100 Gold, 1 Food upkeep)
-     - Cavalry (200 Gold, 2 Food upkeep)
-     - Artillery (300 Gold, 2 Food upkeep)
+2. **Cavalry** (200 Gold, 2 Food upkeep)
+   - Fast-moving unit
+   - Strong first strike capability
+   - Excellent for raiding and quick attacks
 
-4. **Movement Phase**
-   - Move units between adjacent territories
-   - Different terrain types affect movement costs
+3. **Artillery** (300 Gold, 2 Food upkeep)
+   - Powerful ranged unit
+   - Strong against buildings
+   - Vulnerable in close combat
 
-5. **Combat Phase**
-   - Initiate battles between opposing forces
-   - Combat considers:
-     - Unit types and numbers
-     - Terrain bonuses
-     - Building effects (e.g., Fortress defense bonus)
+## Random Events System
 
-### Victory Conditions
+Random events add unpredictability and excitement to each game:
 
-Win the game by achieving one of the following:
-1. **Domination**: Control 75% of the map
-2. **Economic**: Accumulate 10,000 gold and control 3 trade centers
-3. **Military**: Capture all enemy capitals
+### Resource Events
+- Bountiful Harvest: +50% food production for 2 turns
+- Gold Rush: +100% gold production for 1 turn
+- Drought: -30% food production for 3 turns
+- Trade Boom: +75% trade income for 2 turns
+
+### Combat Events
+- Fog of War: Combat visibility reduced for 1 turn
+- Morale Surge: Units gain +25% combat strength for 1 turn
+- Supply Line Disruption: Units cost +50% upkeep for 2 turns
+- Veteran Training: New units start with +1 experience
+
+### Territory Events
+- Natural Disaster: Random territory loses 50% production for 1 turn
+- Border Dispute: Random neutral territory becomes claimable
+- Resource Discovery: Random territory gains +1 resource production
+- Cultural Festival: +50% influence generation in a random territory
+
+## Experience System
+
+### XP Rewards
+- **Participation**: 100 XP for completing any game
+- **Victory Rewards** (based on player count):
+  - 2 Players: 750 XP
+  - 3 Players: 1000 XP
+  - 4 Players: 1250 XP
+  - 5 Players: 1500 XP
+  - 6 Players: 2000 XP
+
+### Level Progression
+- Each level requires progressively more XP
+- Unlock achievements for additional XP rewards
+- Track your progress in the achievements page
+
+## Victory Conditions
+
+1. **Domination Victory**
+   - Control 75% of the map
+   - Eliminate all enemy forces
+
+2. **Economic Victory**
+   - Accumulate 10,000 gold
+   - Control at least 3 trade centers
+
+3. **Military Victory**
+   - Capture all enemy capitals
+   - Maintain control for one full turn
+
+## Game Phases
+
+1. **Setup Phase**
+   - Players select starting territories
+   - Initial resource allocation
+   - First building placement
+
+2. **Main Game Phase** (Turn Structure)
+   - Resource Collection
+   - Building Construction
+   - Unit Recruitment
+   - Movement
+   - Combat Resolution
 
 ## Technologies Used
 
@@ -84,82 +136,18 @@ Win the game by achieving one of the following:
 - Tailwind CSS
 - Shadcn/ui
 - Supabase (for online multiplayer)
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- Git
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/6ogo/empires-legacy.git
-
-# Navigate to project directory
-cd empires-legacy
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-### Playing Online
-
-1. Choose "Online Mode" when starting a game
-2. Create a new game or join an existing one with a Room ID
-3. Share the Room ID with other players to join
-4. Start the game when all players are ready
+- Tanstack Query
+- Lucide Icons
+- Recharts
 
 ## Contributing
 
-We welcome contributions! Here's how you can help:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Areas for Improvement
-
-1. **Enhanced AI for Single Player**
-   - Implement computer-controlled opponents
-   - Add difficulty levels
-
-2. **Additional Game Features**
-   - More unit types and buildings
-   - Technology tree
-   - Diplomacy system
-   - Trade routes
-
-3. **UI/UX Improvements**
-   - Better mobile responsiveness
-   - Animated battles
-   - Tutorial system
-   - Improved resource visualization
-
-4. **Technical Enhancements**
-   - Game state persistence
-   - Replay system
-   - Spectator mode
-   - Performance optimizations
+We welcome contributions! Please check our issues page for current tasks or suggest improvements.
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
-
-- Built with [Lovable](https://lovable.dev)
-- UI Components from [shadcn/ui](https://ui.shadcn.com)
-- Icons from [Lucide](https://lucide.dev)
-
 ## Support
 
-For support, please open an issue in the GitHub repository or join our [Discord community](https://discord.gg/your-discord-link).
+For support, please open an issue in the GitHub repository.
