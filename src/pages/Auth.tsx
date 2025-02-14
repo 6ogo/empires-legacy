@@ -59,17 +59,17 @@ const Auth = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm text-white">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-black/20 backdrop-blur-sm border border-zinc-800">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-game-gold">Empire's Legacy</CardTitle>
         </CardHeader>
         <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-zinc-800/50">
+            <TabsTrigger value="signin" className="data-[state=active]:bg-zinc-700">Sign In</TabsTrigger>
+            <TabsTrigger value="signup" className="data-[state=active]:bg-zinc-700">Sign Up</TabsTrigger>
           </TabsList>
-          <TabsContent value="signin">
+          <TabsContent value="signin" className="text-white">
             <SignInForm
               email={email}
               setEmail={setEmail}
@@ -82,7 +82,7 @@ const Auth = () => {
               onMagicLinkLogin={handleMagicLinkLogin}
             />
           </TabsContent>
-          <TabsContent value="signup">
+          <TabsContent value="signup" className="text-white">
             <SignUpForm
               email={email}
               setEmail={setEmail}
