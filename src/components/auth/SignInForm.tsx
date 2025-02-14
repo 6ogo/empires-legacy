@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -47,25 +46,8 @@ export const SignInForm = ({
 
     try {
       setIsGuestLoading(true);
-      
-      // First verify the turnstile token with Supabase
-      const { data: verificationData, error: verificationError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: 'temp', // This will be replaced
-          username: `Guest_${Date.now().toString(36)}`,
-          is_guest: true,
-          turnstile_verified: true,
-          email_verified: false,
-          verified: false,
-          preferences: { stayLoggedIn: false }
-        }])
-        .select()
-        .single();
 
-      if (verificationError) throw verificationError;
-
-      // Create anonymous session
+      // Create anonymous session first to get the UUID
       const { data, error } = await supabase.auth.signUp({
         email: `guest_${Date.now()}@temporary.com`,
         password: `temp_${Date.now()}`,
@@ -78,7 +60,22 @@ export const SignInForm = ({
 
       if (error) throw error;
 
-      if (data.user) {        
+      if (data.user) {
+        // Now create the profile with the actual UUID
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            username: `Guest_${Date.now().toString(36)}`,
+            is_guest: true,
+            turnstile_verified: true,
+            email_verified: false,
+            verified: false,
+            preferences: { stayLoggedIn: false }
+          }]);
+
+        if (profileError) throw profileError;
+        
         toast.success("Logged in as guest!");
         navigate("/game");
       }
