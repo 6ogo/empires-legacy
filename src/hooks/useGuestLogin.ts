@@ -11,6 +11,7 @@ export const useGuestLogin = () => {
 
   const handleGuestLogin = async (turnstileToken?: string) => {
     if (!turnstileToken) {
+      console.log('No turnstile token, showing captcha...'); // Debug log
       setShowTurnstile(true);
       return;
     }
@@ -24,11 +25,11 @@ export const useGuestLogin = () => {
         .select('email, password')
         .order('last_used_at', { ascending: true, nullsFirst: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (guestCredsError) {
+      if (guestCredsError || !guestCreds) {
         console.error('Error fetching guest credentials:', guestCredsError); // Debug log
-        throw guestCredsError;
+        throw new Error('No guest accounts available');
       }
 
       console.log('Found guest credentials, attempting login...', { email: guestCreds.email }); // Debug log
@@ -46,7 +47,6 @@ export const useGuestLogin = () => {
       if (data.user) {
         console.log('Guest login successful, updating last_used_at...'); // Debug log
         
-        // Update the last used timestamp
         const { error: updateError } = await supabase
           .from('guest_credentials')
           .update({ last_used_at: new Date().toISOString() })
@@ -56,15 +56,25 @@ export const useGuestLogin = () => {
           console.error('Error updating last_used_at:', updateError); // Debug log
         }
 
+        // Update the profile's turnstile verification
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ turnstile_verified: true })
+          .eq('id', data.user.id);
+
+        if (profileError) {
+          console.error('Error updating profile turnstile verification:', profileError);
+        }
+
         toast.success('Logged in as guest!');
         navigate("/game", { replace: true });
       }
     } catch (error: any) {
       console.error('Guest login error:', error);
       toast.error(error.message || 'Failed to login as guest');
+      setShowTurnstile(false);
     } finally {
       setIsGuestLoading(false);
-      setShowTurnstile(false);
     }
   };
 

@@ -11,7 +11,7 @@ export const GuestLoginButton = () => {
       {showTurnstile ? (
         <div className="w-full flex flex-col items-center gap-4">
           <TurnstileCaptcha onSuccess={(token) => {
-            console.log('Turnstile verification successful'); // Debug log
+            console.log('Turnstile verification successful, token:', token); // Enhanced debug log
             handleGuestLogin(token);
           }} />
           <Button
@@ -27,7 +27,7 @@ export const GuestLoginButton = () => {
         <Button
           type="button"
           variant="secondary"
-          onClick={() => handleGuestLogin()}
+          onClick={() => handleGuestLogin()} // This will trigger showing Turnstile
           disabled={isGuestLoading}
           className="w-full text-white bg-white/20 hover:bg-white/30"
         >

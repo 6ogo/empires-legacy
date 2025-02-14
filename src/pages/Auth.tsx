@@ -27,12 +27,35 @@ const Auth = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Checking session...'); // Debug log
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Session check error:', error); // Debug log
+        return;
+      }
+      
       if (session) {
-        navigate("/game");
+        console.log('Active session found, redirecting...', session); // Debug log
+        navigate("/game", { replace: true });
       }
     };
     checkSession();
+  }, [navigate]);
+
+  // Set up auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email); // Debug log
+      
+      if (session) {
+        navigate("/game", { replace: true });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return (
