@@ -194,6 +194,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          achievements: Json[] | null
           avatar_url: string | null
           created_at: string
           domination_wins: number | null
@@ -214,6 +215,7 @@ export type Database = {
           xp: number | null
         }
         Insert: {
+          achievements?: Json[] | null
           avatar_url?: string | null
           created_at?: string
           domination_wins?: number | null
@@ -234,6 +236,7 @@ export type Database = {
           xp?: number | null
         }
         Update: {
+          achievements?: Json[] | null
           avatar_url?: string | null
           created_at?: string
           domination_wins?: number | null

@@ -63,7 +63,7 @@ export const useAuth = () => {
           xp: data.xp || 0,
           level: data.level || 1,
           last_username_change: data.last_username_change,
-          achievements: data.achievements || [],
+          achievements: Array.isArray(data.achievements) ? data.achievements : [],
         };
         setProfile(transformedProfile);
       } else {
