@@ -135,6 +135,7 @@ export const useAuth = () => {
     user,
     profile,
     loading: loading && !initialized,
+    initialized,
     signOut,
   };
 };
