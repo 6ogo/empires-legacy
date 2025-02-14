@@ -32,39 +32,6 @@ const Index = () => {
     onJoinGame,
   } = useGameInit();
 
-  // Handle page refresh and navigation
-  useEffect(() => {
-    const handlePageRefresh = () => {
-      // If we're in a game but reload the page, redirect to menu
-      if (window.location.pathname === '/game' && !gameStatus) {
-        setGameStarted(false);
-        setGameStatus("menu");
-        setGameMode(null);
-      }
-    };
-
-    handlePageRefresh();
-
-    // Also handle cases where user navigates away and comes back
-    window.addEventListener('focus', handlePageRefresh);
-    return () => {
-      window.removeEventListener('focus', handlePageRefresh);
-    };
-  }, [gameStatus, setGameStarted, setGameStatus, setGameMode]);
-
-  // Ensure gameStatus is set to "menu" when component mounts and user is authenticated
-  useEffect(() => {
-    if (!authLoading && user && !gameStatus) {
-      console.log("Setting initial game status to menu for user:", user.email);
-      try {
-        setGameStatus("menu");
-      } catch (error) {
-        console.error("Error setting initial game status:", error);
-        setInitializationError("Failed to initialize game. Please try refreshing the page.");
-      }
-    }
-  }, [authLoading, user, gameStatus, setGameStatus]);
-
   const { gameState, setGameState } = useGameState(gameMode);
 
   const {
@@ -99,6 +66,24 @@ const Index = () => {
     }
   };
 
+  // Handle page refresh and navigation
+  useEffect(() => {
+    const handlePageRefresh = () => {
+      if (window.location.pathname === '/game' && !gameStatus) {
+        setGameStarted(false);
+        setGameStatus("menu");
+        setGameMode(null);
+      }
+    };
+
+    handlePageRefresh();
+    window.addEventListener('focus', handlePageRefresh);
+    return () => {
+      window.removeEventListener('focus', handlePageRefresh);
+    };
+  }, [gameStatus, setGameStarted, setGameStatus, setGameMode]);
+
+  // Handle online game updates
   useEffect(() => {
     if (gameId) {
       const subscription = supabase
@@ -129,29 +114,19 @@ const Index = () => {
     }
   }, [gameId, setGameStarted, setGameStatus, setGameState]);
 
-  const wrappedJoinGame = async () => {
-    try {
-      const data = await handleJoinGame();
-      if (data) {
-        const parsedState = data.state as unknown as GameState;
-        if (isValidGameState(parsedState)) {
-          return {
-            state: parsedState,
-            game_status: data.game_status
-          };
-        } else {
-          console.error('Invalid game state received:', data.state);
-          toast.error('Failed to load game state');
-          return undefined;
-        }
+  // Ensure gameStatus is set to "menu" when component mounts
+  useEffect(() => {
+    if (!authLoading && user && !gameStatus) {
+      console.log("Setting initial game status to menu for user:", user.email);
+      try {
+        setGameStatus("menu");
+      } catch (error) {
+        console.error("Error setting initial game status:", error);
+        setInitializationError("Failed to initialize game. Please try refreshing the page.");
       }
-    } catch (error) {
-      console.error('Error joining game:', error);
-      toast.error('Failed to join game. Please try again.');
     }
-  };
+  }, [authLoading, user, gameStatus, setGameStatus]);
 
-  // Show proper loading state while auth is being checked
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
@@ -161,7 +136,6 @@ const Index = () => {
     );
   }
 
-  // Show error state if initialization failed
   if (initializationError) {
     return (
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
@@ -181,7 +155,6 @@ const Index = () => {
     );
   }
 
-  // Redirect if not authenticated
   if (!user || !profile) {
     window.location.href = '/auth';
     return (
@@ -192,7 +165,6 @@ const Index = () => {
     );
   }
 
-  // Show loading state while game status is being initialized
   if (!gameStatus) {
     return (
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
@@ -228,7 +200,14 @@ const Index = () => {
             }}
             onJoinGame={async () => {
               try {
-                await onJoinGame(wrappedJoinGame, setGameState);
+                const result = await handleJoinGame();
+                if (result && 'state' in result) {
+                  setGameState(result.state);
+                  if (result.game_status === 'playing') {
+                    setGameStarted(true);
+                    setGameStatus('playing');
+                  }
+                }
               } catch (error) {
                 console.error('Error joining game:', error);
                 toast.error('Failed to join game. Please try again.');

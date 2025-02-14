@@ -28,20 +28,24 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onBack,
 }) => {
   return (
-    <>
-      <GameBoard
-        gameState={gameState}
-        selectedTerritory={selectedTerritory}
-        onTerritoryClick={onTerritoryClick}
-        onEndTurn={onEndTurn}
-        onEndPhase={onEndPhase}
-        onBuild={onBuild}
-        onRecruit={onRecruit}
-        onGiveUp={onGiveUp}
-        onBack={onBack}
-      />
-      <GameUpdatesPanel gameState={gameState} />
-    </>
+    <div className="flex flex-col md:flex-row w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="flex-1 h-[70vh] md:h-screen relative">
+        <GameBoard
+          gameState={gameState}
+          selectedTerritory={selectedTerritory}
+          onTerritoryClick={onTerritoryClick}
+          onEndTurn={onEndTurn}
+          onEndPhase={onEndPhase}
+          onBuild={onBuild}
+          onRecruit={onRecruit}
+          onGiveUp={onGiveUp}
+          onBack={onBack}
+        />
+      </div>
+      <div className="h-[30vh] md:w-80 md:h-screen overflow-y-auto border-t md:border-l border-gray-700">
+        <GameUpdatesPanel gameState={gameState} />
+      </div>
+    </div>
   );
 };
 

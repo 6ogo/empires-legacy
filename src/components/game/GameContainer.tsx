@@ -2,7 +2,6 @@
 import React from "react";
 import { Territory } from "@/types/game";
 import { useGameState } from "@/hooks/useGameState";
-import { useOnlineGame } from "@/hooks/useOnlineGame";
 import { useGameActions } from "@/hooks/useGameActions";
 import GameScreen from "./GameScreen";
 import { toast } from "sonner";
@@ -131,7 +130,13 @@ const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
     setSelectedTerritory(null);
   };
 
-  if (!gameState) return null;
+  if (!gameState) {
+    return (
+      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
+        <div className="text-white text-lg">Loading game state...</div>
+      </div>
+    );
+  }
 
   return (
     <GameScreen
