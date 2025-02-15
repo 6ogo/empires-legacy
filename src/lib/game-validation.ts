@@ -1,9 +1,15 @@
-import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase } from '@/types/game';
+import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate } from '@/types/game';
 
 export interface CombatResult {
   defenderDestroyed: boolean;
   attackerDamage: number;
   defenderDamage: number;
+}
+
+export interface GameActionHistory {
+  type: string;
+  playerId: string;
+  timestamp: number;
 }
 
 export class GameStateValidator {
@@ -14,7 +20,6 @@ export class GameStateValidator {
   }
 
   validateAction(action: GameAction): ValidationResult {
-    // First check if it's the player's turn
     if (action.playerId !== this.state.currentPlayer) {
       return {
         valid: false,
@@ -48,7 +53,6 @@ export class GameStateValidator {
   validateGameState(state: GameState): ValidationResult {
     const errors: string[] = [];
 
-    // Validate basic state structure
     if (!this.validateStateStructure(state)) {
       return {
         valid: false,
@@ -56,7 +60,6 @@ export class GameStateValidator {
       };
     }
 
-    // Validate territories
     state.territories.forEach(territory => {
       const territoryValidation = this.validateTerritory(territory);
       if (!territoryValidation.valid) {
@@ -64,7 +67,6 @@ export class GameStateValidator {
       }
     });
 
-    // Validate players
     state.players.forEach(player => {
       const playerValidation = this.validatePlayer(player);
       if (!playerValidation.valid) {
@@ -72,17 +74,14 @@ export class GameStateValidator {
       }
     });
 
-    // Validate current player
     if (!state.players.some(p => p.id === state.currentPlayer)) {
       errors.push("Current player not found in players list");
     }
 
-    // Validate game phase
     if (!['setup', 'building', 'recruitment', 'combat', 'end'].includes(state.phase)) {
       errors.push("Invalid game phase");
     }
 
-    // Validate turn number
     if (typeof state.turn !== 'number' || state.turn < 1) {
       errors.push("Invalid turn number");
     }
@@ -116,24 +115,20 @@ export class GameStateValidator {
   private validateTerritory(territory: Territory): ValidationResult {
     const errors: string[] = [];
 
-    // Validate coordinates
     if (!territory.coordinates || 
         typeof territory.coordinates.q !== 'number' || 
         typeof territory.coordinates.r !== 'number') {
       errors.push("Invalid coordinates");
     }
 
-    // Validate resources
     if (!this.validateResources(territory.resources)) {
       errors.push("Invalid resources");
     }
 
-    // Validate military unit if present
     if (territory.militaryUnit && !this.validateMilitaryUnit(territory.militaryUnit)) {
       errors.push("Invalid military unit");
     }
 
-    // Validate owner reference
     if (territory.owner && !this.state.players.some(p => p.id === territory.owner)) {
       errors.push("Invalid owner reference");
     }
@@ -147,17 +142,16 @@ export class GameStateValidator {
   private validatePlayer(player: Player): ValidationResult {
     const errors: string[] = [];
 
-    // Validate resources
     if (!this.validateResources(player.resources)) {
       errors.push("Invalid resources");
     }
 
-    // Validate territories list
     if (!Array.isArray(player.territories)) {
       errors.push("Invalid territories list");
     } else {
+      const validTerritoryIds = new Set(this.state.territories.map(t => t.id));
       player.territories.forEach(territoryId => {
-        if (!this.state.territories.some(t => t.id === territoryId)) {
+        if (!validTerritoryIds.has(territoryId)) {
           errors.push(`Invalid territory reference: ${territoryId}`);
         }
       });
@@ -212,7 +206,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check if in setup phase
     if (this.state.phase !== 'setup') {
       return {
         valid: false,
@@ -220,7 +213,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check if player has already claimed a territory
     const playerTerritories = this.state.territories.filter(t => t.owner === action.playerId);
     if (playerTerritories.length >= 1) {
       return {
@@ -256,7 +248,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check building phase
     if (this.state.phase !== 'building') {
       return {
         valid: false,
@@ -264,7 +255,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check if player has sufficient resources
     const player = this.state.players.find(p => p.id === action.playerId);
     if (!player || !this.validateResources(player.resources)) {
       return {
@@ -300,7 +290,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check recruitment phase
     if (this.state.phase !== 'recruitment') {
       return {
         valid: false,
@@ -308,7 +297,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check if territory has barracks
     if (territory.building !== 'barracks') {
       return {
         valid: false,
@@ -316,7 +304,6 @@ export class GameStateValidator {
       };
     }
 
-    // Validate unit being recruited
     if (!this.validateMilitaryUnit(action.payload.unit)) {
       return {
         valid: false,
@@ -324,7 +311,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check if player has sufficient resources
     const player = this.state.players.find(p => p.id === action.playerId);
     if (!player) {
       return {
@@ -385,7 +371,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check combat phase
     if (this.state.phase !== 'combat') {
       return {
         valid: false,
@@ -393,7 +378,6 @@ export class GameStateValidator {
       };
     }
 
-    // Check if territories are adjacent
     if (!this.areTerritoriesAdjacent(fromTerritory, toTerritory)) {
       return {
         valid: false,
@@ -405,7 +389,6 @@ export class GameStateValidator {
   }
 
   private validateEndTurn(action: GameAction): ValidationResult {
-    // Check if player has completed required actions for the phase
     const mandatoryActions = this.getMandatoryActionsForPhase(this.state.phase);
     const playerActions = this.state.updates.filter(
       update => update.type === 'action' && 
@@ -426,13 +409,11 @@ export class GameStateValidator {
   }
 
   private validateEndPhase(action: GameAction): ValidationResult {
-    // Check if phase can be ended
     const canEndPhase = this.canEndPhase(this.state.phase);
     if (!canEndPhase.valid) {
       return canEndPhase;
     }
 
-    // Check if all players have taken their turns
     const uniquePlayers = new Set(
       this.state.updates
         .filter(update => update.type === 'action' && update.timestamp > this.state.lastUpdated)
@@ -450,7 +431,6 @@ export class GameStateValidator {
   }
 
   private validateSetState(action: GameAction): ValidationResult {
-    // Validate the entire new state
     return this.validateGameState(action.payload.state);
   }
 
@@ -479,7 +459,6 @@ export class GameStateValidator {
   private canEndPhase(phase: GamePhase): ValidationResult {
     switch (phase) {
       case 'setup':
-        // Check if all players have claimed their starting territory
         const claimedTerritories = this.state.territories.filter(t => t.owner !== null);
         if (claimedTerritories.length < this.state.players.length) {
           return {
@@ -490,7 +469,6 @@ export class GameStateValidator {
         break;
 
       case 'building':
-        // Check if any player has pending resources to spend
         for (const player of this.state.players) {
           if (this.hasExcessResources(player.resources)) {
             return {
@@ -502,7 +480,6 @@ export class GameStateValidator {
         break;
 
       case 'combat':
-        // Combat phase can always be ended
         break;
 
       default:
@@ -516,7 +493,6 @@ export class GameStateValidator {
   }
 
   private hasExcessResources(resources: Resources): boolean {
-    // Define resource thresholds for excess
     const thresholds = {
       gold: 200,
       wood: 100,
@@ -528,9 +504,18 @@ export class GameStateValidator {
       ([resource, amount]) => amount > thresholds[resource as keyof typeof thresholds]
     );
   }
+
+  private getActionHistory(): GameActionHistory[] {
+    return this.state.updates
+      .filter(update => update.type === 'territory' || update.type === 'combat')
+      .map(update => ({
+        type: update.type,
+        playerId: update.message.split(' ')[1],
+        timestamp: update.timestamp
+      }));
+  }
 }
 
-// Export helper functions for external use
 export function isValidGameState(state: unknown): state is GameState {
   const validator = new GameStateValidator(state as GameState);
   const validation = validator.validateGameState(state as GameState);

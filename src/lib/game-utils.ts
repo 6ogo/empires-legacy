@@ -1,4 +1,4 @@
-import { GameState, GameAction, GamePhase, Territory, Player } from '@/types/game';
+import { GameState, GameAction, GamePhase, Territory, Player, CombatResult } from '@/types/game';
 import { GameStateValidator } from './game-validation';
 
 export class GameStateManager {
@@ -16,6 +16,32 @@ export class GameStateManager {
 
   setState(newState: GameState): void {
     this.state = newState;
+  }
+
+  validateGameAction(action: GameAction): ValidationResult {
+    return this.validator.validateAction(action);
+  }
+
+  getCombatResult(fromTerritory: Territory, toTerritory: Territory): CombatResult {
+    const attackerUnit = fromTerritory.militaryUnit;
+    const defenderUnit = toTerritory.militaryUnit;
+
+    if (!attackerUnit || !defenderUnit) {
+      return {
+        defenderDestroyed: !defenderUnit,
+        attackerDamage: 0,
+        defenderDamage: 0
+      };
+    }
+
+    const attackerDamage = Math.floor(defenderUnit.damage * (1 + defenderUnit.experience * 0.1));
+    const defenderDamage = Math.floor(attackerUnit.damage * (1 + attackerUnit.experience * 0.1));
+
+    return {
+      defenderDestroyed: defenderDamage >= defenderUnit.health,
+      attackerDamage,
+      defenderDamage
+    };
   }
 
   applyAction(action: GameAction): boolean {

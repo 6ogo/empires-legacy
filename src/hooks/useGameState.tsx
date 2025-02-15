@@ -1,10 +1,10 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameAction, ValidationResult, GamePhase } from '@/types/game';
+import { GameState, GameAction, ValidationResult, GamePhase, CombatResult } from '@/types/game';
 import { GameStateManager } from '@/lib/game-utils';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 interface GameStateOptions {
   persist?: boolean;
@@ -59,25 +59,11 @@ export const useGameState = (
     }
   }, [options.persist, options.validateState]);
 
-  // Persist state changes if enabled
-  useEffect(() => {
-    if (options.persist) {
-      localStorage.setItem(PERSIST_KEY, JSON.stringify(gameState));
-    }
-  }, [gameState, options.persist]);
-
-  // Notify parent of state changes
-  useEffect(() => {
-    options.onStateChange?.(gameState);
-  }, [gameState, options]);
-
   const addToHistory = useCallback((state: GameState) => {
-    // Remove any future states if we're not at the end
     historyRef.current = historyRef.current.slice(0, currentIndexRef.current + 1);
     historyRef.current.push(state);
     currentIndexRef.current++;
     
-    // Limit history size
     if (historyRef.current.length > 50) {
       historyRef.current = historyRef.current.slice(-50);
       currentIndexRef.current = historyRef.current.length - 1;
@@ -117,16 +103,13 @@ export const useGameState = (
         const toTerritory = newState.territories.find(t => t.id === action.payload.toTerritoryId);
         
         if (fromTerritory && toTerritory) {
-          // Apply combat results
-          const combatResult = gameStateManagerRef.current.resolveCombat(fromTerritory, toTerritory);
+          const combatResult = gameStateManagerRef.current.getCombatResult(fromTerritory, toTerritory);
           
-          // Update territories based on combat result
           if (combatResult.defenderDestroyed) {
             toTerritory.owner = fromTerritory.owner;
             toTerritory.militaryUnit = null;
           }
           
-          // Update unit health
           if (fromTerritory.militaryUnit) {
             fromTerritory.militaryUnit.health -= combatResult.attackerDamage;
           }
@@ -134,7 +117,6 @@ export const useGameState = (
             toTerritory.militaryUnit.health -= combatResult.defenderDamage;
           }
           
-          // Remove destroyed units
           if (fromTerritory.militaryUnit?.health <= 0) {
             fromTerritory.militaryUnit = null;
           }
@@ -154,7 +136,6 @@ export const useGameState = (
         newState.currentPlayer = newState.players[nextPlayerIndex].id;
         newState.turn += 1;
         
-        // Reset unit movement flags
         newState.territories.forEach(territory => {
           if (territory.militaryUnit) {
             territory.militaryUnit.hasMoved = false;
@@ -178,7 +159,6 @@ export const useGameState = (
       }
     }
 
-    // Update version and timestamp
     newState.version += 1;
     newState.lastUpdated = action.timestamp;
 
@@ -187,17 +167,14 @@ export const useGameState = (
 
   const dispatchAction = useCallback(async (action: GameAction) => {
     try {
-      // Validate action
-      const validation = gameStateManagerRef.current.validateAction(action);
+      const validation = await gameStateManagerRef.current.validateGameAction(action);
       if (!validation.valid) {
         toast.error(validation.message || 'Invalid action');
         return false;
       }
 
-      // Compute new state
       const newState = computeNewState(action, gameState);
 
-      // Validate new state
       if (options.validateState) {
         const stateValidation = options.validateState(newState);
         if (!stateValidation.valid) {
@@ -206,26 +183,23 @@ export const useGameState = (
         }
       }
 
-      // Update state
       setGameState(newState);
       setLastAction(action);
       addToHistory(newState);
       gameStateManagerRef.current.setState(newState);
 
-      // Update cache
       queryClient.setQueryData(['gameState', newState.id], newState);
 
-      // Sync with server if online
       if (action.type !== 'SET_STATE' && newState.id) {
         await supabase
           .from('games')
           .update({ 
-            state: newState,
-            last_action_timestamp: action.timestamp,
+            state: JSON.stringify(newState) as unknown as Json,
+            last_action_timestamp: action.timestamp.toString(),
             current_player: newState.currentPlayer,
             phase: newState.phase
           })
-          .eq('id', newState.id);
+          .eq('id', parseInt(newState.id));
       }
 
       return true;
