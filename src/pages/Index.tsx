@@ -111,43 +111,58 @@ const Index = () => {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/auth" replace />;
   }
 
-  return gameStarted ? (
-    <GameContainer gameMode={gameMode as GameMode} onBack={handleBackFromGame} />
-  ) : (
-    <GameWrapper
-      showLeaderboard={showLeaderboard}
-      gameStatus={gameStatus}
-      gameMode={gameMode}
-      onBackToMenu={handleBackToMenu}
-      onSelectMode={(mode) => {
-        setGameMode(mode);
-        setGameStatus("mode_select");
-      }}
-      onCreateGame={async (numPlayers, boardSize) => {
-        try {
-          await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, handleActionDispatch);
-        } catch (error) {
-          console.error('Error creating game:', error);
-        }
-      }}
-      onJoinGame={async () => {
-        try {
-          await handleJoinGame();
-        } catch (error) {
-          console.error('Error joining game:', error);
-        }
-      }}
-      joinRoomId={joinRoomId}
-      onJoinRoomIdChange={setJoinRoomId}
-      isHost={isHost}
-      onStartAnyway={handleStartAnyway}
-      onShowLeaderboard={() => setShowLeaderboard(true)}
-      onShowStats={() => setGameStatus("stats")}
-      connectedPlayers={connectedPlayers}
-    />
+  // Add debug logging
+  console.log('Index render:', {
+    gameStarted,
+    gameStatus,
+    gameMode,
+    user: !!user,
+    showLeaderboard
+  });
+
+  return (
+    <div className="min-h-screen w-full bg-[#141B2C] text-white">
+      {gameStarted ? (
+        <GameContainer gameMode={gameMode as GameMode} onBack={handleBackFromGame} />
+      ) : (
+        <GameWrapper
+          showLeaderboard={showLeaderboard}
+          gameStatus={gameStatus}
+          gameMode={gameMode}
+          onBackToMenu={handleBackToMenu}
+          onSelectMode={(mode) => {
+            setGameMode(mode);
+            setGameStatus("mode_select");
+          }}
+          onCreateGame={async (numPlayers, boardSize) => {
+            try {
+              await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, handleActionDispatch);
+            } catch (error) {
+              console.error('Error creating game:', error);
+              toast.error('Failed to create game. Please try again.');
+            }
+          }}
+          onJoinGame={async () => {
+            try {
+              await handleJoinGame();
+            } catch (error) {
+              console.error('Error joining game:', error);
+              toast.error('Failed to join game. Please try again.');
+            }
+          }}
+          joinRoomId={joinRoomId}
+          onJoinRoomIdChange={setJoinRoomId}
+          isHost={isHost}
+          onStartAnyway={handleStartAnyway}
+          onShowLeaderboard={() => setShowLeaderboard(true)}
+          onShowStats={() => setGameStatus("stats")}
+          connectedPlayers={connectedPlayers}
+        />
+      )}
+    </div>
   );
 };
 
