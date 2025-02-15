@@ -28,15 +28,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Only redirect if we're done loading and there's no user/profile
     if (!loading && (!user || !profile)) {
+      console.log('No auth, redirecting to login');
       navigate('/auth', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  // Show loading only during initial auth check
+  // Don't show loading if we're already redirecting
+  if (!loading && (!user || !profile)) return null;
   if (loading) return <LoadingScreen message="Checking authentication..." />;
-  if (!user || !profile) return null;
   return <>{children}</>;
 }
 
@@ -45,15 +45,14 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Only redirect if we're done loading and have user/profile
     if (!loading && user && profile) {
+      console.log('Already authenticated, redirecting to game');
       navigate('/game', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  // Don't show loading screen on auth page, let the auth form show immediately
-  if (loading) return null;
-  if (user && profile) return null;
+  // Never show loading on auth page
+  if (loading || (user && profile)) return null;
   return <>{children}</>;
 }
 
