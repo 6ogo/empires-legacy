@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { TurnstileCaptcha } from "./Turnstile";
-import React from "react";
+import { useState } from "react";
 
 interface SignUpFormProps {
   email: string;
@@ -19,8 +18,6 @@ interface SignUpFormProps {
   setStayLoggedIn: (stayLoggedIn: boolean) => void;
   loading: boolean;
   onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
-  showTurnstile?: boolean;
-  onGuestLogin?: () => Promise<void>;
 }
 
 export const SignUpForm = ({
@@ -34,17 +31,56 @@ export const SignUpForm = ({
   setStayLoggedIn,
   loading,
   onSubmit,
-  showTurnstile,
-  onGuestLogin,
 }: SignUpFormProps) => {
-  // Create a synthetic form event
-  const createFormEvent = () => {
-    const event = new Event('submit', { bubbles: true, cancelable: true });
-    return event as unknown as React.FormEvent;
+  const [showTurnstile, setShowTurnstile] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    email?: string;
+    username?: string;
+    password?: string;
+  }>({});
+
+  const validateForm = () => {
+    const errors: typeof validationErrors = {};
+    
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      errors.email = "Please enter a valid email address";
+    }
+    
+    if (username.length < 3) {
+      errors.username = "Username must be at least 3 characters";
+    }
+    
+    if (password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent, turnstileToken?: string) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!turnstileToken) {
+      setShowTurnstile(true);
+      return;
+    }
+
+    try {
+      await onSubmit(e, turnstileToken);
+    } catch (error) {
+      console.error('Sign up failed:', error);
+    } finally {
+      setShowTurnstile(false);
+    }
   };
 
   return (
-    <form onSubmit={(e) => onSubmit(e)}>
+    <form onSubmit={(e) => handleSubmit(e)}>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="signup-email">Email</Label>
@@ -56,7 +92,11 @@ export const SignUpForm = ({
             onChange={(e) => setEmail(e.target.value)}
             required
             className="bg-white/10"
+            aria-invalid={!!validationErrors.email}
           />
+          {validationErrors.email && (
+            <p className="text-sm text-red-500">{validationErrors.email}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="username">Username</Label>
@@ -69,7 +109,11 @@ export const SignUpForm = ({
             required
             minLength={3}
             className="bg-white/10"
+            aria-invalid={!!validationErrors.username}
           />
+          {validationErrors.username && (
+            <p className="text-sm text-red-500">{validationErrors.username}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="signup-password">Password</Label>
@@ -82,7 +126,11 @@ export const SignUpForm = ({
             required
             minLength={6}
             className="bg-white/10"
+            aria-invalid={!!validationErrors.password}
           />
+          {validationErrors.password && (
+            <p className="text-sm text-red-500">{validationErrors.password}</p>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -94,7 +142,7 @@ export const SignUpForm = ({
         </div>
         {showTurnstile && (
           <div className="flex justify-center">
-            <TurnstileCaptcha onSuccess={(token) => onSubmit(createFormEvent(), token)} />
+            <TurnstileCaptcha onSuccess={(token) => handleSubmit(new Event('submit') as React.FormEvent, token)} />
           </div>
         )}
       </CardContent>
@@ -106,20 +154,6 @@ export const SignUpForm = ({
         >
           {loading ? "Creating account..." : "Sign Up"}
         </Button>
-        {onGuestLogin && (
-          <>
-            <Separator className="my-2" />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onGuestLogin}
-              disabled={loading}
-              className="w-full"
-            >
-              Continue as Guest
-            </Button>
-          </>
-        )}
       </CardFooter>
     </form>
   );
