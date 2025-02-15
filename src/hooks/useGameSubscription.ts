@@ -35,13 +35,13 @@ export const useGameSubscription = (
             
             try {
               const state = payload.new.state;
-              const stateObj = typeof state === 'string' ? JSON.parse(state) : state;
-              const validatedState = stateObj as unknown;
+              // First convert to unknown, then validate
+              const parsedState = (typeof state === 'string' ? JSON.parse(state) : state) as unknown;
               
-              if (isValidGameState(validatedState)) {
-                setGameState(validatedState);
+              if (isValidGameState(parsedState)) {
+                setGameState(parsedState);
               } else {
-                console.error('Invalid game state received:', validatedState);
+                console.error('Invalid game state received:', parsedState);
                 toast.error('Received invalid game state from server');
               }
             } catch (error) {
