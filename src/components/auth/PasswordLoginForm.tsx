@@ -57,8 +57,26 @@ export const PasswordLoginForm = ({
   const onTurnstileVerify = (token: string) => {
     console.log('Turnstile verified, submitting form with token');
     setTurnstileToken(token);
-    // Automatically submit the form when we get the token
-    onSubmit(new Event('submit') as React.FormEvent, token);
+    // Create a synthetic form event instead of using a raw Event
+    const syntheticEvent = {
+      preventDefault: () => {},
+      target: document.createElement('form'),
+      currentTarget: document.createElement('form'),
+      nativeEvent: new Event('submit'),
+      isDefaultPrevented: () => false,
+      isPropagationStopped: () => false,
+      persist: () => {},
+      bubbles: true,
+      cancelable: true,
+      defaultPrevented: false,
+      isTrusted: true,
+      stopPropagation: () => {},
+      stopImmediatePropagation: () => {},
+      type: 'submit'
+    } as React.FormEvent<HTMLFormElement>;
+
+    // Call onSubmit with the proper event type
+    onSubmit(syntheticEvent, token);
   };
 
   return (
