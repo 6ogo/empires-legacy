@@ -11,22 +11,7 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : null,
-      flowType: 'pkce',
-      debug: true // Temporarily enable this to debug auth issues
-    },
-    global: {
-      headers: {
-        'x-application-name': 'empires-legacy'
-      }
+      detectSessionInUrl: true
     }
   }
 );
-
-// Add auth state change listener for debugging
-if (typeof window !== 'undefined') {
-  supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event, session);
-  });
-}
