@@ -14,20 +14,48 @@ import {
   ChevronRight,
   LogIn,
   Gamepad,
-  Trophy,
   Shield,
   Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const Landing = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  // Handle redirection for authenticated users
+  useEffect(() => {
+    if (user && !isLoading) {
+      // Set a small delay to ensure smooth transition
+      const timer = setTimeout(() => {
+        setShouldRedirect(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isLoading]);
+
+  // Handle actual redirection
+  useEffect(() => {
+    if (shouldRedirect) {
+      navigate('/game');
+    }
+  }, [shouldRedirect, navigate]);
 
   const handlePlayNowClick = () => {
     navigate('/auth');
   };
+
+  // Don't render anything while checking initial auth state
+  if (isLoading) {
+    return null;
+  }
+
+  // Don't render content if we're about to redirect
+  if (shouldRedirect) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden">
