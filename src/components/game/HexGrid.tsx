@@ -93,7 +93,57 @@ const HexGrid: React.FC<HexGridProps> = ({
 
     return true;
   };
+  
+  const validateTerritorySelection = (territory: Territory, phase: string, currentPlayer: string): boolean => {
+  // Setup phase validation
+  if (phase === 'setup') {
+    if (territory.owner !== null) {
+      return false;
+    }
+    
+    // Check if there are any adjacent claimed territories
+    const hasAdjacentClaimed = territories.some(t => 
+      t.owner !== null && isAdjacent(territory, t)
+    );
+    
+    return !hasAdjacentClaimed;
+  }
 
+  // Building phase validation
+  if (phase === 'building') {
+    if (territory.owner !== currentPlayer) {
+      return false;
+    }
+    
+    // Can only build in territories adjacent to owned territories
+    return hasAdjacentOwnedTerritory(territory);
+  }
+
+  // Recruitment phase validation
+  if (phase === 'recruitment') {
+    if (territory.owner !== currentPlayer) {
+      return false;
+    }
+    
+    // Can only recruit in territories with barracks
+    return territory.building === 'barracks';
+  }
+
+  // Combat phase validation
+  if (phase === 'combat') {
+    // Can select own territories with units for attack
+    if (territory.owner === currentPlayer) {
+      return territory.militaryUnit !== null;
+    }
+    
+    // Can select enemy territories adjacent to selected territory
+    if (selectedTerritory && territory.owner !== currentPlayer) {
+      return isAdjacent(territory, selectedTerritory);
+    }
+  }
+
+  return false;
+};
   const canPurchaseTerritory = (territory: Territory) => {
     if (phase !== "building") return false;
     if (territory.owner) return false;
