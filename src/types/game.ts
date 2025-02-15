@@ -1,7 +1,8 @@
+
 export type ResourceType = "gold" | "wood" | "stone" | "food";
 export type TerritoryType = "plains" | "mountains" | "forests" | "coast" | "capital";
 export type PlayerColor = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
-export type GamePhase = "setup" | "resource" | "building" | "recruitment" | "movement" | "combat";
+export type GamePhase = "build" | "recruit" | "attack";
 export type GameStatus = "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting";
 
 export interface Resources {
@@ -22,6 +23,9 @@ export interface MilitaryUnit {
   health: number;
   damage: number;
   cost: Partial<Resources>;
+  currentHealth?: number;
+  currentDamage?: number;
+  needsRestoration?: boolean;
 }
 
 export interface Territory {
@@ -33,6 +37,7 @@ export interface Territory {
   building?: string;
   buildings?: string[];
   militaryUnit?: MilitaryUnit;
+  totalResourceYield?: Partial<Resources>;
 }
 
 export interface Player {
@@ -40,10 +45,12 @@ export interface Player {
   resources: Resources;
   units: Units;
   territories: Territory[];
+  hasExpandedThisTurn?: boolean;
+  hasRecruitedThisTurn?: boolean;
 }
 
 export interface GameUpdate {
-  type: "territory_claimed" | "building_constructed" | "resources_collected" | "turn_ended" | "phase_changed";
+  type: "territory_claimed" | "building_constructed" | "unit_recruited" | "territory_expanded" | "attack_performed" | "turn_ended";
   message: string;
   timestamp: number;
 }
@@ -55,4 +62,6 @@ export interface GameState {
   phase: GamePhase;
   turn: number;
   updates: GameUpdate[];
+  hasExpandedThisTurn: boolean;
+  hasRecruitedThisTurn: boolean;
 }

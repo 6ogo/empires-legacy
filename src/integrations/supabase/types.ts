@@ -136,8 +136,11 @@ export type Database = {
           created_at: string
           current_player: string
           game_status: string
+          has_expanded_this_turn: boolean | null
+          has_recruited_this_turn: boolean | null
           id: number
           joined_players: number
+          last_action_timestamp: string | null
           last_message_timestamp: string | null
           max_players: number
           num_players: number
@@ -150,8 +153,11 @@ export type Database = {
           created_at?: string
           current_player: string
           game_status?: string
+          has_expanded_this_turn?: boolean | null
+          has_recruited_this_turn?: boolean | null
           id?: number
           joined_players?: number
+          last_action_timestamp?: string | null
           last_message_timestamp?: string | null
           max_players?: number
           num_players?: number
@@ -164,8 +170,11 @@ export type Database = {
           created_at?: string
           current_player?: string
           game_status?: string
+          has_expanded_this_turn?: boolean | null
+          has_recruited_this_turn?: boolean | null
           id?: number
           joined_players?: number
+          last_action_timestamp?: string | null
           last_message_timestamp?: string | null
           max_players?: number
           num_players?: number
@@ -267,6 +276,56 @@ export type Database = {
           xp?: number | null
         }
         Relationships: []
+      }
+      unit_states: {
+        Row: {
+          created_at: string | null
+          current_damage: number
+          current_health: number
+          game_id: number | null
+          id: string
+          max_damage: number
+          max_health: number
+          needs_restoration: boolean | null
+          territory_id: string
+          unit_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_damage: number
+          current_health: number
+          game_id?: number | null
+          id?: string
+          max_damage: number
+          max_health: number
+          needs_restoration?: boolean | null
+          territory_id: string
+          unit_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_damage?: number
+          current_health?: number
+          game_id?: number | null
+          id?: string
+          max_damage?: number
+          max_health?: number
+          needs_restoration?: boolean | null
+          territory_id?: string
+          unit_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_states_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_achievements: {
         Row: {
