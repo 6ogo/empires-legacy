@@ -36,6 +36,56 @@ export type Database = {
         }
         Relationships: []
       }
+      combat_history: {
+        Row: {
+          action: string
+          attacker: string | null
+          damage_dealt: number
+          defender: string | null
+          game_id: number | null
+          id: string
+          result: string
+          territory_from: string
+          territory_to: string
+          timestamp: string | null
+          units_lost: number
+        }
+        Insert: {
+          action: string
+          attacker?: string | null
+          damage_dealt: number
+          defender?: string | null
+          game_id?: number | null
+          id?: string
+          result: string
+          territory_from: string
+          territory_to: string
+          timestamp?: string | null
+          units_lost: number
+        }
+        Update: {
+          action?: string
+          attacker?: string | null
+          damage_dealt?: number
+          defender?: string | null
+          game_id?: number | null
+          id?: string
+          result?: string
+          territory_from?: string
+          territory_to?: string
+          timestamp?: string | null
+          units_lost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combat_history_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           created_at: string
