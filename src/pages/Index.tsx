@@ -1,43 +1,16 @@
 
 import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useLocation } from "react-router-dom";
+import { GameState } from "@/types/game";
+import { useAuth } from "@/hooks/useAuth";
 import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
-import { useAuth } from "@/hooks/useAuth";
-import MainMenu from "@/components/game/MainMenu";
-import PreGameScreens from "@/components/game/PreGameScreens";
+import { useGameSubscription } from "@/hooks/useGameSubscription";
+import LoadingScreen from "@/components/game/LoadingScreen";
+import ErrorScreen from "@/components/game/ErrorScreen";
+import GameWrapper from "@/components/game/GameWrapper";
 import GameContainer from "@/components/game/GameContainer";
-import { GameState, GamePhase, PlayerColor } from "@/types/game";
-import { Loader } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Json } from "@/integrations/supabase/types";
-
-// Helper function to validate GameState shape
-const isValidGameState = (state: unknown): state is GameState => {
-  if (!state || typeof state !== 'object') return false;
-  
-  const gameState = state as Partial<GameState>;
-  return !!(
-    gameState &&
-    Array.isArray(gameState.players) &&
-    Array.isArray(gameState.territories) &&
-    typeof gameState.currentPlayer === 'string' &&
-    typeof gameState.phase === 'string' &&
-    typeof gameState.turn === 'number' &&
-    Array.isArray(gameState.updates) &&
-    typeof gameState.hasExpandedThisTurn === 'boolean' &&
-    typeof gameState.hasRecruitedThisTurn === 'boolean'
-  );
-};
-
-interface GameUpdatePayload {
-  new: {
-    game_status: string;
-    state: Json;
-  };
-}
 
 const Index = () => {
   const navigate = useNavigate();
@@ -71,6 +44,8 @@ const Index = () => {
     handleJoinGame,
     handleStartAnyway,
   } = useOnlineGame();
+
+  useGameSubscription(gameId, setGameStarted, setGameStatus, setGameState);
 
   const handleBackFromGame = () => {
     setGameStarted(false);
@@ -128,138 +103,64 @@ const Index = () => {
     };
   }, [gameStatus, location.pathname]);
 
-  useEffect(() => {
-    if (gameId) {
-      const subscription = supabase
-        .channel(`game_updates_${gameId}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${gameId}`,
-        }, (payload: GameUpdatePayload) => {
-          if (payload.new.game_status === 'playing') {
-            setGameStarted(true);
-            setGameStatus("playing");
-            
-            try {
-              const rawState = payload.new.state as unknown;
-              
-              const parsedState = typeof rawState === 'string' 
-                ? JSON.parse(rawState) as unknown
-                : rawState;
-
-              if (isValidGameState(parsedState)) {
-                setGameState(parsedState);
-              } else {
-                console.error('Invalid game state received:', parsedState);
-                toast.error('Received invalid game state from server');
-              }
-            } catch (error) {
-              console.error('Error parsing game state:', error);
-              toast.error('Error parsing game state');
-            }
-          }
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
-  }, [gameId, setGameStarted, setGameStatus, setGameState]);
-
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Loading..." />;
   }
 
   if (initializationError) {
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <div className="text-white text-lg mb-4">{initializationError}</div>
-        <button 
-          onClick={handleBackToMainMenu}
-          className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
-        >
-          Return to Menu
-        </button>
-      </div>
-    );
+    return <ErrorScreen message={initializationError} onRetry={handleBackToMainMenu} />;
   }
 
   if (!user || !profile) {
     navigate('/auth', { replace: true });
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
-        <div className="text-white text-lg">Redirecting to login...</div>
-      </div>
-    );
+    return <LoadingScreen message="Redirecting to login..." />;
   }
 
   if (!gameStatus) {
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
-        <div className="text-white text-lg">Initializing game...</div>
-      </div>
-    );
+    return <LoadingScreen message="Initializing game..." />;
   }
 
   if (!gameStarted) {
     console.log("Game not started, showing pre-game screens");
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 px-4 py-6 md:px-0 md:py-0">
-        <PreGameScreens
-          showLeaderboard={showLeaderboard}
-          gameStatus={gameStatus}
-          onBackToMenu={handleBackToMenu}
-        >
-          <MainMenu
-            gameStatus={gameStatus}
-            gameMode={gameMode}
-            onSelectMode={(mode) => {
-              setGameMode(mode);
-              setGameStatus("mode_select");
-            }}
-            onCreateGame={async (numPlayers, boardSize) => {
-              try {
-                await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState);
-              } catch (error) {
-                console.error('Error creating game:', error);
-                toast.error('Failed to create game. Please try again.');
+      <GameWrapper
+        showLeaderboard={showLeaderboard}
+        gameStatus={gameStatus}
+        gameMode={gameMode}
+        onBackToMenu={handleBackToMenu}
+        onSelectMode={(mode) => {
+          setGameMode(mode);
+          setGameStatus("mode_select");
+        }}
+        onCreateGame={async (numPlayers, boardSize) => {
+          try {
+            await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState);
+          } catch (error) {
+            console.error('Error creating game:', error);
+          }
+        }}
+        onJoinGame={async () => {
+          try {
+            const result = await handleJoinGame();
+            if (result && 'state' in result) {
+              setGameState(result.state as GameState);
+              if (result.game_status === 'playing') {
+                setGameStarted(true);
+                setGameStatus('playing');
               }
-            }}
-            onJoinGame={async () => {
-              try {
-                const result = await handleJoinGame();
-                if (result && 'state' in result) {
-                  setGameState(result.state as GameState);
-                  if (result.game_status === 'playing') {
-                    setGameStarted(true);
-                    setGameStatus('playing');
-                  }
-                }
-              } catch (error) {
-                console.error('Error joining game:', error);
-                toast.error('Failed to join game. Please try again.');
-              }
-            }}
-            joinRoomId={joinRoomId}
-            onJoinRoomIdChange={setJoinRoomId}
-            isHost={isHost}
-            onStartAnyway={handleStartAnyway}
-            onShowLeaderboard={() => setShowLeaderboard(true)}
-            onShowStats={() => setGameStatus("stats")}
-            connectedPlayers={connectedPlayers}
-          />
-        </PreGameScreens>
-      </div>
+            }
+          } catch (error) {
+            console.error('Error joining game:', error);
+          }
+        }}
+        joinRoomId={joinRoomId}
+        onJoinRoomIdChange={setJoinRoomId}
+        isHost={isHost}
+        onStartAnyway={handleStartAnyway}
+        onShowLeaderboard={() => setShowLeaderboard(true)}
+        onShowStats={() => setGameStatus("stats")}
+        connectedPlayers={connectedPlayers}
+      />
     );
   }
 
