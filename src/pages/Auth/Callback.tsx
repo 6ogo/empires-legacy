@@ -39,9 +39,9 @@ const Callback = () => {
             throw updateError;
           }
 
-          // Set the session explicitly
+          // Set session explicitly
           await supabase.auth.setSession(session);
-
+          
           toast.success('Email verified successfully!');
           // Use replace to prevent back navigation to callback
           navigate('/game', { replace: true });
@@ -57,12 +57,8 @@ const Callback = () => {
       }
     };
 
-    // Add a small delay to ensure Supabase has time to process the URL
-    const timeoutId = setTimeout(() => {
-      handleEmailConfirmation();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
+    // No delay needed here, directly handle the callback
+    handleEmailConfirmation();
   }, [navigate]);
 
   return <LoadingScreen message="Verifying your email..." />;

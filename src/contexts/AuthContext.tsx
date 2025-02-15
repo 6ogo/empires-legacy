@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { UserProfile } from '@/types/auth';
 import { fetchProfile } from '@/utils/profile';
-import LoadingScreen from '@/components/game/LoadingScreen';
 
 interface AuthContextType {
   user: User | null;
@@ -147,10 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  if (loading) {
-    return <LoadingScreen message="Checking authentication..." />;
-  }
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, signOut }}>
