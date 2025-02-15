@@ -83,15 +83,21 @@ const Index = () => {
   useEffect(() => {
     // Only proceed if auth loading is complete
     if (!authLoading) {
+      console.log("Auth loading complete. User:", user?.email, "Profile:", profile?.username);
+      
       if (user && profile) {
         // User is authenticated, set game status to menu
-        console.log("Auth complete, setting game status to menu for user:", user.email);
+        console.log("Setting game status to menu for authenticated user");
         setGameStatus("menu");
       } else if (!user) {
         // User is not authenticated, redirect to auth
-        console.log("No user found, redirecting to auth");
+        console.log("No user found, redirecting to auth page");
         navigate('/auth', { replace: true });
+      } else {
+        console.log("User found but no profile:", user.email);
       }
+    } else {
+      console.log("Auth still loading...");
     }
   }, [authLoading, user, profile, navigate, setGameStatus]);
 
@@ -111,31 +117,35 @@ const Index = () => {
     };
   }, [gameStatus, location.pathname, user, profile, setGameStatus]);
 
-  // Show loading only during initial auth check
+  // Show loading screen during initial auth check
   if (authLoading) {
+    console.log("Rendering loading screen - auth check in progress");
     return <LoadingScreen message="Checking authentication..." />;
   }
 
-  // Show error if initialization failed
+  // Handle initialization error
   if (initializationError) {
+    console.log("Rendering error screen:", initializationError);
     return <ErrorScreen message={initializationError} onRetry={handleBackToMainMenu} />;
   }
 
   // Redirect to auth if no user
   if (!user || !profile) {
+    console.log("No user or profile, redirecting to auth");
+    navigate('/auth', { replace: true });
     return <LoadingScreen message="Redirecting to login..." />;
   }
 
-  // Always show game menu if we have user and profile
+  // Initialize game menu if we have user and profile but no game status
   if (!gameStatus && user && profile) {
-    console.log("No game status but user authenticated, setting to menu");
+    console.log("Initializing game menu for authenticated user");
     setGameStatus("menu");
     return <LoadingScreen message="Loading game menu..." />;
   }
 
   // Show regular game UI once everything is initialized
   if (!gameStarted) {
-    console.log("Game not started, showing pre-game screens");
+    console.log("Rendering pre-game screens");
     return (
       <GameWrapper
         showLeaderboard={showLeaderboard}
