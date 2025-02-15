@@ -79,22 +79,28 @@ const Index = () => {
     }
   };
 
+  // Initialize game status when auth is ready
   useEffect(() => {
-    if (!authLoading && user && !gameStatus) {
-      console.log("Setting initial game status to menu for user:", user.email);
-      try {
+    // Only proceed if auth loading is complete
+    if (!authLoading) {
+      if (user && profile) {
+        // User is authenticated, set game status to menu
+        console.log("Auth complete, setting game status to menu for user:", user.email);
         setGameStatus("menu");
-      } catch (error) {
-        console.error("Error setting initial game status:", error);
-        setInitializationError("Failed to initialize game. Please try refreshing the page.");
+      } else if (!user) {
+        // User is not authenticated, redirect to auth
+        console.log("No user found, redirecting to auth");
+        navigate('/auth', { replace: true });
       }
     }
-  }, [authLoading, user, gameStatus, setGameStatus]);
+  }, [authLoading, user, profile, navigate, setGameStatus]);
 
+  // Handle page refreshes and focus events
   useEffect(() => {
     const handlePageRefresh = () => {
-      if (location.pathname === '/game' && !gameStatus) {
-        handleBackToMainMenu();
+      if (location.pathname === '/game' && user && profile && !gameStatus) {
+        console.log("Page refresh detected, reinitializing game menu");
+        setGameStatus("menu");
       }
     };
 
@@ -103,25 +109,31 @@ const Index = () => {
     return () => {
       window.removeEventListener('focus', handlePageRefresh);
     };
-  }, [gameStatus, location.pathname]);
+  }, [gameStatus, location.pathname, user, profile, setGameStatus]);
 
+  // Show loading only during initial auth check
   if (authLoading) {
-    return <LoadingScreen message="Loading..." />;
+    return <LoadingScreen message="Checking authentication..." />;
   }
 
+  // Show error if initialization failed
   if (initializationError) {
     return <ErrorScreen message={initializationError} onRetry={handleBackToMainMenu} />;
   }
 
+  // Redirect to auth if no user
   if (!user || !profile) {
-    navigate('/auth', { replace: true });
     return <LoadingScreen message="Redirecting to login..." />;
   }
 
-  if (!gameStatus) {
-    return <LoadingScreen message="Initializing game..." />;
+  // Always show game menu if we have user and profile
+  if (!gameStatus && user && profile) {
+    console.log("No game status but user authenticated, setting to menu");
+    setGameStatus("menu");
+    return <LoadingScreen message="Loading game menu..." />;
   }
 
+  // Show regular game UI once everything is initialized
   if (!gameStarted) {
     console.log("Game not started, showing pre-game screens");
     return (
