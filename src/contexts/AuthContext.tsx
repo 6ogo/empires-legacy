@@ -67,12 +67,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       
       if (session?.user) {
+        console.log('Refreshing session for user:', session.user.email);
         setUser(session.user);
         setSession(session);
         const userProfile = await fetchProfile(session.user.id);
         if (userProfile) {
+          console.log('Profile found:', userProfile);
           setProfile(userProfile);
         } else {
+          console.log('No profile found for user');
           throw new Error('Profile not found');
         }
       } else {
