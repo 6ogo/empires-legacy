@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TurnstileCaptcha } from "@/components/auth/Turnstile";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface SignUpFormProps {
   email: string;
@@ -41,6 +42,7 @@ export const SignUpForm = ({
   validationErrors,
 }: SignUpFormProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string>();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (showTurnstile) {
@@ -59,6 +61,7 @@ export const SignUpForm = ({
 
     try {
       await onSubmit(e, turnstileToken);
+      navigate('/game');
     } catch (error) {
       console.error('Signup error:', error);
       toast.error('Failed to create account. Please try again.');
@@ -126,6 +129,9 @@ export const SignUpForm = ({
           <TurnstileCaptcha onVerify={(token) => {
             console.log('Turnstile token received');
             setTurnstileToken(token);
+            // Auto-submit form after Turnstile verification
+            const formEvent = new Event('submit', { bubbles: true, cancelable: true });
+            document.querySelector('form')?.dispatchEvent(formEvent);
           }} />
         </div>
       )}
