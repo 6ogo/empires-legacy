@@ -11,6 +11,8 @@ import LoadingScreen from "@/components/game/LoadingScreen";
 import ErrorScreen from "@/components/game/ErrorScreen";
 import GameWrapper from "@/components/game/GameWrapper";
 import GameContainer from "@/components/game/GameContainer";
+import { isValidGameState } from "@/lib/game-validation";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -143,10 +145,16 @@ const Index = () => {
           try {
             const result = await handleJoinGame();
             if (result && 'state' in result) {
-              setGameState(result.state as GameState);
-              if (result.game_status === 'playing') {
-                setGameStarted(true);
-                setGameStatus('playing');
+              const stateToValidate = result.state as unknown;
+              if (isValidGameState(stateToValidate)) {
+                setGameState(stateToValidate);
+                if (result.game_status === 'playing') {
+                  setGameStarted(true);
+                  setGameStatus('playing');
+                }
+              } else {
+                console.error('Invalid game state received:', result.state);
+                toast.error('Invalid game state received');
               }
             }
           } catch (error) {
