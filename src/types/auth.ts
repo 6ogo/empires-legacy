@@ -1,4 +1,3 @@
-
 import { Database } from '@/integrations/supabase/types';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -13,7 +12,14 @@ export interface UserProfile {
   level?: number;
   verified?: boolean;
   email_verified?: boolean;
-  preferences?: { stayLoggedIn: boolean };
+  preferences?: { 
+    stayLoggedIn: boolean;
+    theme?: 'light' | 'dark';
+    notifications?: {
+      email: boolean;
+      push: boolean;
+    };
+  };
   total_gametime?: number;
   total_games_played?: number;
   total_wins?: number;
@@ -21,6 +27,7 @@ export interface UserProfile {
   domination_wins?: number;
   createdAt: string;
   updatedAt: string;
+  lastLoginAt?: string;
 }
 
 export interface AuthContextType {
@@ -29,4 +36,6 @@ export interface AuthContextType {
   profile: UserProfile | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
