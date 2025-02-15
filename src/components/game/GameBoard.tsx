@@ -37,25 +37,41 @@ const GameBoard: React.FC<GameBoardProps> = ({
   );
 
   const handleTerritoryClick = useCallback((territory: Territory) => {
-    if (gameState.phase === 'setup') {
-      if (claimTerritory(territory.id, gameState.currentPlayer)) {
-        setSelectedTerritory(null);
-      }
-    } else {
+    const action: GameAction = {
+      type: gameState.phase === 'setup' ? 'CLAIM_TERRITORY' : 'SELECT_TERRITORY',
+      playerId: gameState.currentPlayer,
+      timestamp: Date.now(),
+      payload: { territoryId: territory.id }
+    };
+  
+    if (handleAction(action)) {
       setSelectedTerritory(territory);
     }
-  }, [gameState.phase, gameState.currentPlayer, claimTerritory]);
+  }, [gameState.phase, gameState.currentPlayer, handleAction]);
 
+
+  // Update the handleBuild function
   const handleBuild = useCallback((buildingType: string) => {
     if (!selectedTerritory) {
       toast.error("No territory selected");
       return;
     }
-
-    if (buildStructure(selectedTerritory.id, buildingType, gameState.currentPlayer)) {
+  
+    const action: GameAction = {
+      type: 'BUILD',
+      playerId: gameState.currentPlayer,
+      timestamp: Date.now(),
+      payload: {
+        territoryId: selectedTerritory.id,
+        buildingType
+      }
+    };
+  
+    if (handleAction(action)) {
       setSelectedTerritory(null);
     }
-  }, [selectedTerritory, gameState.currentPlayer, buildStructure]);
+  }, [selectedTerritory, gameState.currentPlayer, handleAction]);
+
 
   const handleRecruit = useCallback((unitType: string) => {
     if (!selectedTerritory) {
