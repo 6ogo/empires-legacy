@@ -6,8 +6,6 @@ import { toast } from 'sonner';
 import { UserProfile } from '@/types/auth';
 import { fetchProfile } from '@/utils/profile';
 
-const PERSIST_KEY = 'auth:session';
-
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
@@ -32,36 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const navigate = useNavigate();
 
   const handleError = useCallback((error: Error) => {
     console.error('Auth error:', error);
     setError(error);
-    toast.error(error.message);
+    setIsLoading(false);
   }, []);
-
-  const initialize = useCallback(async () => {
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-
-      if (session?.user) {
-        setUser(session.user);
-        setSession(session);
-        
-        const userProfile = await fetchProfile(session.user.id);
-        if (userProfile) {
-          setProfile(userProfile);
-        }
-      }
-    } catch (error) {
-      handleError(error as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [handleError]);
 
   const signOut = async () => {
     try {
@@ -71,44 +48,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       setSession(null);
-      localStorage.removeItem(PERSIST_KEY);
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (error: any) {
       handleError(error);
     }
   };
 
-  const refreshSession = useCallback(async () => {
+  const refreshSession = async () => {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-
+      setIsLoading(true);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) throw error;
+      
       if (session?.user) {
         setUser(session.user);
         setSession(session);
-        
         const userProfile = await fetchProfile(session.user.id);
         if (userProfile) {
           setProfile(userProfile);
         }
       }
-    } catch (error) {
-      handleError(error as Error);
+    } catch (error: any) {
+      handleError(error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [handleError]);
+  };
 
+  // Initial session check
   useEffect(() => {
-    initialize();
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+        
+        if (session?.user && mounted) {
+          setUser(session.user);
+          setSession(session);
+          const userProfile = await fetchProfile(session.user.id);
+          if (mounted && userProfile) {
+            setProfile(userProfile);
+          }
+        }
+      } catch (error: any) {
+        if (mounted) {
+          handleError(error);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+      if (!mounted) return;
 
       if (session?.user) {
         setUser(session.user);
         setSession(session);
-        
         const userProfile = await fetchProfile(session.user.id);
-        if (userProfile) {
+        if (mounted && userProfile) {
           setProfile(userProfile);
         }
       } else {
@@ -116,19 +122,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         setSession(null);
       }
-      setLoading(false);
+      setIsLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, [initialize]);
+  }, [handleError]);
 
   const value = {
     user,
     profile,
     session,
-    isLoading: loading,
+    isLoading,
     error,
     signOut,
     refreshSession,
