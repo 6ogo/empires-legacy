@@ -1,12 +1,16 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { useAuthForm } from "@/hooks/useAuthForm";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const {
     email,
     setEmail,
@@ -22,6 +26,12 @@ const Auth = () => {
     handleMagicLinkLogin,
     showTurnstile,
   } = useAuthForm();
+
+  useEffect(() => {
+    if (user && profile) {
+      navigate('/game', { replace: true });
+    }
+  }, [user, profile, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center p-4">
