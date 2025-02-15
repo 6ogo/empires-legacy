@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { GuestLoginButton } from "./GuestLoginButton";
 import { TurnstileCaptcha } from "./Turnstile";
-import React from "react";
+import React, { useState } from "react";
 
 interface PasswordLoginFormProps {
   email: string;
@@ -19,6 +19,10 @@ interface PasswordLoginFormProps {
   loading: boolean;
   onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
   showTurnstile?: boolean;
+  validationErrors?: {
+    email?: string;
+    password?: string;
+  };
 }
 
 export const PasswordLoginForm = ({
@@ -31,15 +35,17 @@ export const PasswordLoginForm = ({
   loading,
   onSubmit,
   showTurnstile,
+  validationErrors,
 }: PasswordLoginFormProps) => {
-  // Create a synthetic form event
-  const createFormEvent = () => {
-    const event = new Event('submit', { bubbles: true, cancelable: true });
-    return event as unknown as React.FormEvent;
+  const [turnstileToken, setTurnstileToken] = useState<string>();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(e, turnstileToken);
   };
 
   return (
-    <form onSubmit={(e) => onSubmit(e)}>
+    <form onSubmit={handleSubmit}>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="signin-email">Email</Label>
@@ -52,6 +58,9 @@ export const PasswordLoginForm = ({
             required
             className="bg-white/10"
           />
+          {validationErrors?.email && (
+            <p className="text-red-500 text-sm">{validationErrors.email}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="signin-password">Password</Label>
@@ -64,6 +73,9 @@ export const PasswordLoginForm = ({
             required
             className="bg-white/10"
           />
+          {validationErrors?.password && (
+            <p className="text-red-500 text-sm">{validationErrors.password}</p>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -75,7 +87,7 @@ export const PasswordLoginForm = ({
         </div>
         {showTurnstile && (
           <div className="flex justify-center">
-            <TurnstileCaptcha onVerify={(token) => onSubmit(createFormEvent(), token)} />
+            <TurnstileCaptcha onVerify={setTurnstileToken} />
           </div>
         )}
       </CardContent>

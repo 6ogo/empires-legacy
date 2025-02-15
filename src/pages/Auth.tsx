@@ -28,11 +28,13 @@ const Auth = () => {
     handleSignUp,
     handleMagicLinkLogin,
     showTurnstile,
+    setShowTurnstile,
+    validationErrors,
   } = useAuthForm();
 
   useEffect(() => {
-    console.log('Auth page state:', { user, profile, isLoading });
-  }, [user, profile, isLoading]);
+    console.log('Auth page state:', { user, profile, isLoading, showTurnstile });
+  }, [user, profile, isLoading, showTurnstile]);
 
   // Show loading screen while checking auth status
   if (isLoading) {
@@ -93,6 +95,7 @@ const Auth = () => {
               onSubmit={handleSignIn}
               onMagicLinkLogin={handleMagicLinkLogin}
               showTurnstile={showTurnstile}
+              validationErrors={validationErrors}
             />
           </TabsContent>
           <TabsContent value="signup" className="text-white">
@@ -108,6 +111,7 @@ const Auth = () => {
               loading={authFormLoading}
               onSubmit={handleSignUp}
               showTurnstile={showTurnstile}
+              validationErrors={validationErrors}
             />
           </TabsContent>
         </Tabs>

@@ -5,16 +5,13 @@ import { useGuestLogin } from "@/hooks/useGuestLogin";
 import { useState } from "react";
 
 export const GuestLoginButton = () => {
-  const { isGuestLoading, handleGuestLogin } = useGuestLogin();
-  const [showTurnstile, setShowTurnstile] = useState(false);
+  const { isGuestLoading, handleGuestLogin, showTurnstile, setShowTurnstile } = useGuestLogin();
 
   const onTurnstileVerify = async (token: string) => {
     try {
       await handleGuestLogin(token);
     } catch (error) {
       console.error('Guest login failed:', error);
-    } finally {
-      setShowTurnstile(false);
     }
   };
 

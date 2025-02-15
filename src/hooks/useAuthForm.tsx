@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,9 +51,9 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
           ? null 
           : 'Username must be 3-20 characters';
       case 'password':
-        return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(input)
+        return input.length >= 6
           ? null
-          : 'Password must be at least 8 characters with letters and numbers';
+          : 'Password must be at least 6 characters';
       default:
         return null;
     }
@@ -66,7 +67,6 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
     setFormState(prev => {
       const newState = { ...prev, [field]: value };
       
-      // Validate input fields
       if (typeof value === 'string' && ['email', 'password', 'username'].includes(field)) {
         const error = validateInput(value, field as 'email' | 'password' | 'username');
         newState.validationErrors = {
@@ -90,15 +90,9 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
     setFormState(prev => ({ ...prev, loading: true }));
 
     try {
-      // First sign out to clear any existing sessions
-      await supabase.auth.signOut();
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formState.email.trim(),
         password: formState.password,
-        options: {
-          captchaToken: turnstileToken
-        }
       });
 
       if (error) throw error;
@@ -170,7 +164,6 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
             username: formState.username,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-          captchaToken: turnstileToken
         },
       });
 
@@ -203,6 +196,9 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
       if (options.requireVerification) {
         toast.info("You'll need to verify your email before accessing all features.");
       }
+
+      // Navigate to the game page
+      navigate('/game', { replace: true });
     } catch (error: any) {
       console.error('Sign up error:', error);
       toast.error(error.message || 'Failed to sign up');
@@ -241,6 +237,7 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
     setPassword: (password: string) => updateFormState('password', password),
     setUsername: (username: string) => updateFormState('username', username),
     setStayLoggedIn: (stayLoggedIn: boolean) => updateFormState('stayLoggedIn', stayLoggedIn),
+    setShowTurnstile: (show: boolean) => updateFormState('showTurnstile', show),
     handleSignIn,
     handleSignUp,
     handleMagicLinkLogin,
