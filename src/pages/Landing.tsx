@@ -1,3 +1,4 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -64,13 +65,19 @@ const Landing = () => {
       <div 
         className="relative min-h-screen flex items-center justify-center w-full overflow-hidden"
         style={{
-          backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80')",
+          backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('/bg.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundAttachment: "fixed"
         }}
       >
-        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto w-full">
+        <div className="absolute inset-0 bg-black opacity-60"></div>
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center">
+          <img 
+            src="/testLogo.png" 
+            alt="Empire's Legacy Logo" 
+            className="w-1/2 mb-8 opacity-80"
+          />
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 text-[#F5D547] animate-float">
             Empire's Legacy
           </h1>
