@@ -3,42 +3,12 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Trophy, ArrowLeft, Medal, Swords, Building2, Sparkles } from "lucide-react";
-
-interface Achievement {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  points: number;
-  created_at: string;
-}
-
-const categoryIcons: Record<string, React.ElementType> = {
-  game: Trophy,
-  resource: Medal,
-  military: Swords,
-  building: Building2,
-  social: Sparkles,
-};
-
-const xpRewards = [
-  { players: 2, participation: 100, victory: 750 },
-  { players: 3, participation: 100, victory: 1000 },
-  { players: 4, participation: 100, victory: 1250 },
-  { players: 5, participation: 100, victory: 1500 },
-  { players: 6, participation: 100, victory: 2000 },
-];
+import { ArrowLeft } from "lucide-react";
+import { XPRewardsCard } from "./achievements/XPRewardsCard";
+import { CategorySection } from "./achievements/CategorySection";
+import type { Achievement, UserAchievement } from "./achievements/types";
 
 const Achievements = () => {
   const { user } = useAuth();
@@ -69,7 +39,7 @@ const Achievements = () => {
       return data.map((ua) => ({
         achievementId: ua.achievement_id,
         progress: ua.progress,
-      }));
+      })) as UserAchievement[];
     },
     enabled: !!user,
   });
@@ -97,110 +67,16 @@ const Achievements = () => {
           <h1 className="text-3xl font-bold text-game-gold">Achievements</h1>
         </div>
 
-        {/* XP Rewards Info Card */}
-        <Card className="bg-white/5 border-white/10 mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-game-gold" />
-              XP Rewards
-            </CardTitle>
-            <CardDescription>
-              Earn XP by participating in games and achieving victory
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg text-game-gold">Participation Reward</h3>
-                <p className="text-gray-400">Earn 100 XP for completing any game</p>
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg text-game-gold">Victory Rewards</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {xpRewards.map((reward) => (
-                    <div key={reward.players} className="bg-white/10 p-4 rounded-lg">
-                      <p className="font-semibold">{reward.players} Player Game</p>
-                      <p className="text-game-gold">{reward.victory} XP for victory</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <XPRewardsCard />
 
         <div className="grid gap-6">
           {Object.entries(achievementsByCategory).map(([category, categoryAchievements]) => (
-            <Card key={category} className="bg-white/5 border-white/10">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  {React.createElement(categoryIcons[category] || Trophy, {
-                    className: "h-6 w-6 text-game-gold",
-                  })}
-                  <CardTitle className="capitalize">{category} Achievements</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-full">
-                  <div className="grid gap-4">
-                    {categoryAchievements.map((achievement) => {
-                      const userAchievement = userAchievements?.find(
-                        (ua) => ua.achievementId === achievement.id
-                      );
-                      const progress = userAchievement?.progress || 0;
-                      const isUnlocked = progress >= 100;
-
-                      return (
-                        <div
-                          key={achievement.id}
-                          className={`p-4 rounded-lg ${
-                            isUnlocked ? "bg-white/20" : "bg-white/5"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-semibold text-lg">
-                                {achievement.title}
-                              </h3>
-                              <p className="text-sm text-gray-400">
-                                {achievement.description}
-                              </p>
-                              {!isUnlocked && progress > 0 && (
-                                <div className="mt-2">
-                                  <div className="h-1 bg-white/10 rounded-full">
-                                    <div
-                                      className="h-full bg-game-gold rounded-full"
-                                      style={{ width: `${progress}%` }}
-                                    />
-                                  </div>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {progress.toFixed(0)}% complete
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Trophy
-                                className={`h-5 w-5 ${
-                                  isUnlocked ? "text-game-gold" : "text-gray-500"
-                                }`}
-                              />
-                              <span
-                                className={
-                                  isUnlocked ? "text-game-gold" : "text-gray-500"
-                                }
-                              >
-                                {achievement.points} XP
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            <CategorySection
+              key={category}
+              category={category}
+              achievements={categoryAchievements}
+              userAchievements={userAchievements || []}
+            />
           ))}
         </div>
       </div>
