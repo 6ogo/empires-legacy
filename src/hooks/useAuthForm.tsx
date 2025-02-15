@@ -265,6 +265,40 @@ export const useAuthForm = () => {
     }
   };
 
+  const handleMagicLinkLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Handling magic link login...', { email: formState.email });
+
+    const emailError = validateInput(formState.email, 'email');
+    if (emailError) {
+      setFormState(prev => ({
+        ...prev,
+        validationErrors: { email: emailError }
+      }));
+      return;
+    }
+
+    setFormState(prev => ({ ...prev, loading: true }));
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: formState.email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Magic link sent! Check your email.");
+    } catch (error: any) {
+      console.error('Magic link error:', error);
+      toast.error(error.message || 'Failed to send magic link');
+    } finally {
+      setFormState(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   return {
     ...formState,
     setEmail: (email: string) => updateFormState('email', email),
@@ -275,6 +309,7 @@ export const useAuthForm = () => {
     setShowTurnstile: (show: boolean) => updateFormState('showTurnstile', show),
     handleSignIn,
     handleSignUp,
+    handleMagicLinkLogin,
     handleResetPassword,
   };
 };

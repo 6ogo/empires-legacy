@@ -28,6 +28,7 @@ const Auth = () => {
     setStayLoggedIn,
     handleSignIn,
     handleSignUp,
+    handleMagicLinkLogin,
     showTurnstile,
     setShowTurnstile,
     validationErrors,
@@ -87,6 +88,7 @@ const Auth = () => {
               setStayLoggedIn={setStayLoggedIn}
               loading={authFormLoading}
               onSubmit={handleSignIn}
+              onMagicLinkLogin={handleMagicLinkLogin}
               showTurnstile={showTurnstile}
               validationErrors={validationErrors}
             />
