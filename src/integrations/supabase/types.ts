@@ -135,7 +135,9 @@ export type Database = {
           chat_messages: Json[] | null
           created_at: string
           current_player: string
+          end_time: string | null
           game_status: string
+          game_summary: Json | null
           has_expanded_this_turn: boolean | null
           has_recruited_this_turn: boolean | null
           id: number
@@ -145,14 +147,18 @@ export type Database = {
           max_players: number
           num_players: number
           phase: string
+          players_info: Json[] | null
           room_id: string
           state: Json
+          winner_id: string | null
         }
         Insert: {
           chat_messages?: Json[] | null
           created_at?: string
           current_player: string
+          end_time?: string | null
           game_status?: string
+          game_summary?: Json | null
           has_expanded_this_turn?: boolean | null
           has_recruited_this_turn?: boolean | null
           id?: number
@@ -162,14 +168,18 @@ export type Database = {
           max_players?: number
           num_players?: number
           phase: string
+          players_info?: Json[] | null
           room_id?: string
           state: Json
+          winner_id?: string | null
         }
         Update: {
           chat_messages?: Json[] | null
           created_at?: string
           current_player?: string
+          end_time?: string | null
           game_status?: string
+          game_summary?: Json | null
           has_expanded_this_turn?: boolean | null
           has_recruited_this_turn?: boolean | null
           id?: number
@@ -179,10 +189,20 @@ export type Database = {
           max_players?: number
           num_players?: number
           phase?: string
+          players_info?: Json[] | null
           room_id?: string
           state?: Json
+          winner_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guest_credentials: {
         Row: {

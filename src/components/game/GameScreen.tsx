@@ -1,8 +1,12 @@
 
 import React from "react";
-import { GameState, Territory } from "@/types/game";
+import { Territory, GameState } from "@/types/game";
 import GameBoard from "./GameBoard";
+import GameControls from "./GameControls";
+import ResourceDisplay from "./ResourceDisplay";
 import GameUpdatesPanel from "./GameUpdatesPanel";
+import { Button } from "@/components/ui/button";
+import { History } from "lucide-react";
 
 interface GameScreenProps {
   gameState: GameState;
@@ -14,6 +18,7 @@ interface GameScreenProps {
   onRecruit: (unitType: string) => void;
   onGiveUp: () => void;
   onBack: () => void;
+  onShowCombatHistory: () => void;
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({
@@ -26,24 +31,55 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onRecruit,
   onGiveUp,
   onBack,
+  onShowCombatHistory,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="flex-1 h-[70vh] md:h-screen relative">
-        <GameBoard
-          gameState={gameState}
-          selectedTerritory={selectedTerritory}
-          onTerritoryClick={onTerritoryClick}
-          onEndTurn={onEndTurn}
-          onEndPhase={onEndPhase}
-          onBuild={onBuild}
-          onRecruit={onRecruit}
-          onGiveUp={onGiveUp}
-          onBack={onBack}
-        />
+    <div className="min-h-screen bg-[#141B2C] relative">
+      <div className="absolute top-4 left-4 z-10 flex gap-2">
+        <Button 
+          variant="outline" 
+          onClick={onBack}
+          className="bg-white/10 hover:bg-white/20"
+        >
+          Back to Menu
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onShowCombatHistory}
+          className="bg-white/10 hover:bg-white/20"
+        >
+          <History className="w-4 h-4 mr-2" />
+          Combat History
+        </Button>
       </div>
-      <div className="h-[30vh] md:w-80 md:h-screen overflow-y-auto border-t md:border-l border-gray-700">
-        <GameUpdatesPanel gameState={gameState} />
+      
+      <div className="flex flex-col md:flex-row min-h-screen">
+        <div className="flex-grow relative">
+          <GameBoard
+            territories={gameState.territories}
+            selectedTerritory={selectedTerritory}
+            onTerritoryClick={onTerritoryClick}
+            currentPlayer={gameState.currentPlayer}
+          />
+        </div>
+        
+        <div className="w-full md:w-80 bg-gray-900/50 backdrop-blur-sm p-4 space-y-4">
+          <ResourceDisplay
+            resources={gameState.players.find(p => p.id === gameState.currentPlayer)?.resources || {
+              gold: 0,
+              wood: 0,
+              stone: 0,
+              food: 0,
+            }}
+          />
+          <GameControls
+            gameState={gameState}
+            onEndTurn={onEndTurn}
+            onEndPhase={onEndPhase}
+            onGiveUp={onGiveUp}
+          />
+          <GameUpdatesPanel updates={gameState.updates} />
+        </div>
       </div>
     </div>
   );

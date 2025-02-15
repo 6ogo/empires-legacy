@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Territory } from "@/types/game";
 import { useGameState } from "@/hooks/useGameState";
 import { useGameActions } from "@/hooks/useGameActions";
 import GameScreen from "./GameScreen";
+import CombatHistory from "./CombatHistory";
 import { toast } from "sonner";
 
 interface GameContainerProps {
@@ -12,6 +13,7 @@ interface GameContainerProps {
 }
 
 const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
+  const [showCombatHistory, setShowCombatHistory] = useState(false);
   const {
     gameState,
     setGameState,
@@ -139,17 +141,23 @@ const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
   }
 
   return (
-    <GameScreen
-      gameState={gameState}
-      selectedTerritory={selectedTerritory}
-      onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory, null)}
-      onEndTurn={handleEndTurn}
-      onEndPhase={handleEndPhase}
-      onBuild={handleBuild}
-      onRecruit={handleRecruit}
-      onGiveUp={handleGiveUp}
-      onBack={onBack}
-    />
+    <>
+      <GameScreen
+        gameState={gameState}
+        selectedTerritory={selectedTerritory}
+        onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory, null)}
+        onEndTurn={handleEndTurn}
+        onEndPhase={handleEndPhase}
+        onBuild={handleBuild}
+        onRecruit={handleRecruit}
+        onGiveUp={handleGiveUp}
+        onBack={onBack}
+        onShowCombatHistory={() => setShowCombatHistory(true)}
+      />
+      {showCombatHistory && (
+        <CombatHistory onClose={() => setShowCombatHistory(false)} />
+      )}
+    </>
   );
 };
 
