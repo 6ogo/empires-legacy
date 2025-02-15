@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +32,6 @@ export const useAuthForm = () => {
     validationErrors: {},
   });
 
-  // Input validation
   const validateInput = useCallback((input: string, type: 'email' | 'username' | 'password' | 'confirmPassword'): string | null => {
     switch (type) {
       case 'email':
@@ -127,7 +125,7 @@ export const useAuthForm = () => {
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profileData) {
         console.error('Profile fetch error:', profileError);
@@ -145,6 +143,10 @@ export const useAuthForm = () => {
 
       if (updateError) {
         console.error('Failed to update profile:', updateError);
+      }
+
+      if (!data.user.email_confirmed_at) {
+        toast.warning("Please verify your email to access all features");
       }
 
       console.log('Sign in successful, navigating to game');
@@ -254,7 +256,7 @@ export const useAuthForm = () => {
         throw profileError;
       }
 
-      toast.success("Account created successfully! Check your email for verification.");
+      toast.success("Account created! Please check your email for verification.");
       console.log('Sign up successful, navigating to game');
       navigate('/game', { replace: true });
     } catch (error: any) {

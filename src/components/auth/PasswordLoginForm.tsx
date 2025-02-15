@@ -59,7 +59,6 @@ export const PasswordLoginForm = ({
 
     try {
       await onSubmit(e, turnstileToken);
-      navigate('/game');
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Failed to sign in. Please try again.');
@@ -71,29 +70,7 @@ export const PasswordLoginForm = ({
     setTurnstileToken(token);
     
     try {
-      const nativeEvent = new Event('submit', {
-        bubbles: true,
-        cancelable: true
-      });
-
-      const syntheticEvent: React.FormEvent<HTMLFormElement> = Object.assign(
-        new Event('submit', { bubbles: true, cancelable: true }), {
-        target: document.createElement('form'),
-        currentTarget: document.createElement('form'),
-        nativeEvent,
-        preventDefault: () => {},
-        isDefaultPrevented: () => false,
-        stopPropagation: () => {},
-        isPropagationStopped: () => false,
-        persist: () => {},
-        timeStamp: Date.now(),
-        type: 'submit',
-        eventPhase: 2,
-      }
-      ) as unknown as React.FormEvent<HTMLFormElement>;
-
-      await onSubmit(syntheticEvent, token);
-      navigate('/game');
+      await onSubmit(new Event('submit'), token);
     } catch (error) {
       console.error('Login error after Turnstile:', error);
       toast.error('Failed to sign in. Please try again.');
