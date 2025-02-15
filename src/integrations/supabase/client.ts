@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -13,7 +12,9 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storage: window?.localStorage // Explicitly set storage
+      storage: typeof window !== 'undefined' ? window.localStorage : null,
+      flowType: 'pkce',
+      debug: true // Temporarily enable this to debug auth issues
     },
     global: {
       headers: {
@@ -22,3 +23,10 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Add auth state change listener for debugging
+if (typeof window !== 'undefined') {
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth state changed:', event, session);
+  });
+}
