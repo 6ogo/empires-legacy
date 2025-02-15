@@ -56,10 +56,15 @@ const GameScreen: React.FC<GameScreenProps> = ({
       <div className="flex flex-col md:flex-row min-h-screen">
         <div className="flex-grow relative">
           <GameBoard
-            territories={gameState.territories}
+            gameState={gameState}
             selectedTerritory={selectedTerritory}
             onTerritoryClick={onTerritoryClick}
-            currentPlayer={gameState.currentPlayer}
+            onEndTurn={onEndTurn}
+            onEndPhase={onEndPhase}
+            onBuild={onBuild}
+            onRecruit={onRecruit}
+            onGiveUp={onGiveUp}
+            onBack={onBack}
           />
         </div>
         
