@@ -22,19 +22,16 @@ const GameControls: React.FC<GameControlsProps> = ({
         Turn {gameState.turn} - {gameState.phase.toUpperCase()}
       </div>
       <div className="flex gap-2">
-        {gameState.phase !== "setup" && (
-          <Button
-            variant="outline"
-            onClick={onEndPhase}
-            className="flex-1 hover:bg-white/10"
-          >
-            End {gameState.phase}
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          onClick={onEndPhase}
+          className="flex-1 hover:bg-white/10"
+        >
+          End {gameState.phase}
+        </Button>
         <Button
           onClick={onEndTurn}
           className="flex-1 bg-game-gold hover:bg-game-gold/90 text-black"
-          disabled={gameState.phase === "setup"}
         >
           End Turn
         </Button>

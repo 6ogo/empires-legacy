@@ -25,7 +25,7 @@ export const useGameActions = (
     const updatedState: GameState = {
       ...gameState,
       currentPlayer: nextPlayer,
-      phase: "resource",
+      phase: "build",
       turn: gameState.turn + 1,
       updates: [...gameState.updates, newUpdate],
     };
@@ -39,7 +39,7 @@ export const useGameActions = (
           .update({ 
             state: updatedState as unknown as Json,
             current_player: nextPlayer,
-            phase: "resource",
+            phase: "build",
           })
           .eq('id', gameId);
 
@@ -56,15 +56,11 @@ export const useGameActions = (
   const handleEndPhase = () => {
     if (!gameState) return;
 
-    const phases = ["resource", "building", "recruitment", "movement", "combat"] as const;
-    const currentPhaseIndex = phases.indexOf(gameState.phase as any);
+    const phases: Array<"build" | "recruit" | "attack"> = ["build", "recruit", "attack"];
+    const currentPhaseIndex = phases.indexOf(gameState.phase);
     const nextPhase = currentPhaseIndex === phases.length - 1
       ? phases[0]
       : phases[currentPhaseIndex + 1];
-
-    if (gameState.phase === "resource") {
-      collectResources();
-    }
 
     if (currentPhaseIndex === phases.length - 1) {
       handleEndTurn();

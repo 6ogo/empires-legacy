@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { GameState, Territory, GameUpdate, PlayerColor } from "@/types/game";
 import { toast } from "sonner";
@@ -70,90 +69,76 @@ export const useGameState = (gameMode: "local" | "online" | null) => {
       return;
     }
 
-    if (gameState.phase === "setup") {
-      if (territory.owner) {
-        toast.error("This territory is already claimed!");
-        return;
-      }
+    const currentPlayerTerritories = gameState.territories.filter(
+      t => t.owner === gameState.currentPlayer
+    );
 
-      const currentPlayerTerritories = gameState.territories.filter(
-        t => t.owner === gameState.currentPlayer
-      );
+    const updatedTerritories = gameState.territories.map((t) =>
+      t.id === territory.id ? { ...t, owner: gameState.currentPlayer } : t
+    );
 
-      if (currentPlayerTerritories.length >= 1) {
-        toast.error("You can only claim one starting territory!");
-        return;
-      }
-
-      const updatedTerritories = gameState.territories.map((t) =>
-        t.id === territory.id ? { ...t, owner: gameState.currentPlayer } : t
-      );
-
-      const updatedPlayers = gameState.players.map((player) =>
-        player.id === gameState.currentPlayer
-          ? {
-              ...player,
-              territories: [...player.territories, territory],
-            }
-          : player
-      );
-
-      // Find next player index
-      const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
-      const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
-
-      const allPlayersHaveClaimed = updatedPlayers.every(
-        player => player.territories.length === 1
-      );
-
-      const newUpdate: GameUpdate = {
-        type: "territory_claimed",
-        message: `${gameState.currentPlayer} claimed their starting territory`,
-        timestamp: Date.now(),
-      };
-
-      const updatedState: GameState = {
-        ...gameState,
-        territories: updatedTerritories,
-        players: updatedPlayers,
-        currentPlayer: nextPlayer,
-        phase: allPlayersHaveClaimed ? "resource" : "setup",
-        updates: [...gameState.updates, newUpdate],
-      };
-
-      setGameState(updatedState);
-
-      if (gameMode === "online" && gameId) {
-        try {
-          const { error } = await supabase
-            .from('games')
-            .update({ 
-              state: updatedState as unknown as Json,
-              current_player: nextPlayer,
-              phase: allPlayersHaveClaimed ? "resource" : "setup",
-            })
-            .eq('id', gameId);
-
-          if (error) throw error;
-
-          // Check achievement progress after state update
-          const user = (await supabase.auth.getUser()).data.user;
-          if (user) {
-            await checkAchievementProgress(user.id);
+    const updatedPlayers = gameState.players.map((player) =>
+      player.id === gameState.currentPlayer
+        ? {
+            ...player,
+            territories: [...player.territories, territory],
           }
-        } catch (error) {
-          console.error('Error updating game:', error);
-          toast.error('Failed to update game state. Please try again.');
-        }
-      }
+        : player
+    );
 
-      if (allPlayersHaveClaimed) {
-        toast.success("All players have claimed their starting territories. Moving to resource phase!");
-      } else {
-        toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
+    // Find next player index
+    const currentPlayerIndex = gameState.players.findIndex(p => p.id === gameState.currentPlayer);
+    const nextPlayer = gameState.players[(currentPlayerIndex + 1) % gameState.players.length].id;
+
+    const allPlayersHaveClaimed = updatedPlayers.every(
+      player => player.territories.length === 1
+    );
+
+    const newUpdate: GameUpdate = {
+      type: "territory_claimed",
+      message: `${gameState.currentPlayer} claimed their territory`,
+      timestamp: Date.now(),
+    };
+
+    const updatedState: GameState = {
+      ...gameState,
+      territories: updatedTerritories,
+      players: updatedPlayers,
+      currentPlayer: nextPlayer,
+      phase: allPlayersHaveClaimed ? "build" : "build",
+      updates: [...gameState.updates, newUpdate],
+    };
+
+    setGameState(updatedState);
+
+    if (gameMode === "online" && gameId) {
+      try {
+        const { error } = await supabase
+          .from('games')
+          .update({ 
+            state: updatedState as unknown as Json,
+            current_player: nextPlayer,
+            phase: allPlayersHaveClaimed ? "build" : "build",
+          })
+          .eq('id', gameId);
+
+        if (error) throw error;
+
+        // Check achievement progress after state update
+        const user = (await supabase.auth.getUser()).data.user;
+        if (user) {
+          await checkAchievementProgress(user.id);
+        }
+      } catch (error) {
+        console.error('Error updating game:', error);
+        toast.error('Failed to update game state. Please try again.');
       }
-    } else if (gameState.phase === "building") {
-      setSelectedTerritory(territory);
+    }
+
+    if (allPlayersHaveClaimed) {
+      toast.success("All players have claimed their territories. Moving to build phase!");
+    } else {
+      toast.success(`Territory claimed by ${gameState.currentPlayer}!`);
     }
   };
 
