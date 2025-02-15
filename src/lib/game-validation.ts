@@ -186,8 +186,9 @@ export class GameStateValidator {
   private validateTurnActions(playerId: string): ValidationResult {
     const turnUpdates = this.state.updates.filter(update => {
       const timestamp = Number(update.timestamp);
-      if (isNaN(timestamp)) return false;
-      return timestamp > this.state.lastUpdated && update.playerId === playerId;
+      const lastUpdated = Number(this.state.lastUpdated);
+      if (isNaN(timestamp) || isNaN(lastUpdated)) return false;
+      return timestamp > lastUpdated && update.playerId === playerId;
     });
 
     return {
@@ -397,14 +398,20 @@ export class GameStateValidator {
 
   private validateEndTurn(action: GameAction): ValidationResult {
     const mandatoryActions = this.getMandatoryActionsForPhase(this.state.phase);
-    const playerActions = this.state.updates.filter(
-      update => update.type === 'action' && 
-                update.playerId === action.playerId &&
-                update.timestamp > this.state.lastUpdated
+    const playerUpdates = this.state.updates.filter(
+      update => update.playerId === action.playerId &&
+                update.timestamp > this.state.lastUpdated &&
+                (update.type === 'territory' || update.type === 'combat' || update.type === 'building')
     );
 
     for (const actionType of mandatoryActions) {
-      if (!playerActions.some(action => action.type === actionType)) {
+      const hasRequiredAction = playerUpdates.some(update => 
+        (actionType === 'CLAIM_TERRITORY' && update.type === 'territory') ||
+        (actionType === 'BUILD' && update.type === 'building') ||
+        (actionType === 'ATTACK' && update.type === 'combat')
+      );
+
+      if (!hasRequiredAction) {
         return {
           valid: false,
           message: `Must perform ${actionType} before ending turn`
@@ -423,7 +430,11 @@ export class GameStateValidator {
 
     const uniquePlayers = new Set(
       this.state.updates
-        .filter(update => update.type === 'action' && update.timestamp > this.state.lastUpdated)
+        .filter(update => 
+          update.timestamp > this.state.lastUpdated &&
+          (update.type === 'territory' || update.type === 'combat' || update.type === 'building') &&
+          update.playerId
+        )
         .map(update => update.playerId)
     );
 
