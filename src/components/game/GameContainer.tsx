@@ -1,163 +1,85 @@
-
-import React, { useState } from "react";
-import { Territory } from "@/types/game";
-import { useGameState } from "@/hooks/useGameState";
-import { useGameActions } from "@/hooks/useGameActions";
-import GameScreen from "./GameScreen";
-import CombatHistory from "./CombatHistory";
-import { toast } from "sonner";
+// src/components/game/GameContainer.tsx
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import GameNavigation from './GameNavigation';
+import { GameStatus } from '@/types/game';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GameContainerProps {
-  gameMode: "local" | "online" | null;
-  onBack: () => void;
+  children: React.ReactNode;
+  gameStatus: GameStatus;
+  className?: string;
+  roomId?: string;
+  onNavigateBack?: () => void;
+  currentView?: 'menu' | 'achievements' | 'leaderboard' | 'settings' | 'game';
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
-  const [showCombatHistory, setShowCombatHistory] = useState(false);
-  const {
-    gameState,
-    setGameState,
-    selectedTerritory,
-    setSelectedTerritory,
-    handleTerritoryClick,
-  } = useGameState(gameMode);
+const GameContainer: React.FC<GameContainerProps> = ({
+  children,
+  gameStatus,
+  className,
+  roomId,
+  onNavigateBack,
+  currentView = 'menu'
+}) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const {
-    handleEndTurn,
-    handleEndPhase,
-    handleGiveUp,
-  } = useGameActions(gameState, setGameState, gameMode, null);
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+  }, []);
 
-  const handleBuild = (buildingType: string) => {
-    if (!gameState || !selectedTerritory) return;
-
-    const buildingCost = {
-      lumber_mill: { gold: 50, wood: 20, stone: 0, food: 0 },
-      mine: { gold: 50, stone: 20, wood: 0, food: 0 },
-      market: { gold: 100, wood: 30, stone: 0, food: 0 },
-      farm: { gold: 50, wood: 20, stone: 0, food: 0 },
-      road: { wood: 25, stone: 25, gold: 0, food: 0 },
-      barracks: { gold: 150, wood: 50, stone: 50, food: 0 },
-      fortress: { gold: 300, stone: 150, wood: 0, food: 0 },
-    }[buildingType] || { gold: 0, wood: 0, stone: 0, food: 0 };
-
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
-    if (!currentPlayer) return;
-
-    if (currentPlayer.resources.gold < (buildingCost.gold || 0) ||
-        currentPlayer.resources.wood < (buildingCost.wood || 0) ||
-        currentPlayer.resources.stone < (buildingCost.stone || 0) ||
-        currentPlayer.resources.food < (buildingCost.food || 0)) {
-      toast.error("Insufficient resources!");
+  const handleBack = async () => {
+    if (onNavigateBack) {
+      onNavigateBack();
       return;
     }
 
-    const updatedPlayers = gameState.players.map(player => {
-      if (player.id === gameState.currentPlayer) {
-        return {
-          ...player,
-          resources: {
-            gold: player.resources.gold - (buildingCost.gold || 0),
-            wood: player.resources.wood - (buildingCost.wood || 0),
-            stone: player.resources.stone - (buildingCost.stone || 0),
-            food: player.resources.food - (buildingCost.food || 0),
-          },
-        };
-      }
-      return player;
-    });
-
-    const updatedTerritories = gameState.territories.map(t => {
-      if (t.id === selectedTerritory.id) {
-        return {
-          ...t,
-          building: buildingType,
-        };
-      }
-      return t;
-    });
-
-    setGameState({
-      ...gameState,
-      players: updatedPlayers,
-      territories: updatedTerritories,
-    });
-
-    toast.success(`${buildingType} built!`);
-    setSelectedTerritory(null);
-  };
-
-  const handleRecruit = (unitType: string) => {
-    if (!gameState || !selectedTerritory) return;
-
-    const unitCost = {
-      infantry: { gold: 100, food: 1, wood: 0, stone: 0 },
-      cavalry: { gold: 200, food: 2, wood: 0, stone: 0 },
-      artillery: { gold: 300, food: 2, wood: 0, stone: 0 },
-    }[unitType] || { gold: 0, food: 0, wood: 0, stone: 0 };
-
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
-    if (!currentPlayer) return;
-
-    if (currentPlayer.resources.gold < (unitCost.gold || 0) ||
-        currentPlayer.resources.food < (unitCost.food || 0)) {
-      toast.error("Insufficient resources!");
-      return;
+    // Default navigation logic
+    switch (currentView) {
+      case 'achievements':
+      case 'leaderboard':
+      case 'settings':
+        navigate('/game', { replace: true });
+        break;
+      case 'game':
+        if (gameStatus === 'playing' || gameStatus === 'waiting') {
+          // If in a game, confirm before leaving
+          if (window.confirm('Are you sure you want to leave the game?')) {
+            navigate('/game', { replace: true });
+          }
+        } else {
+          navigate('/game', { replace: true });
+        }
+        break;
+      default:
+        if (!isAuthenticated) {
+          navigate('/', { replace: true });
+        }
     }
-
-    const updatedPlayers = gameState.players.map(player => {
-      if (player.id === gameState.currentPlayer) {
-        return {
-          ...player,
-          resources: {
-            ...player.resources,
-            gold: player.resources.gold - (unitCost.gold || 0),
-            food: player.resources.food - (unitCost.food || 0),
-          },
-          units: {
-            ...player.units,
-            [unitType]: (player.units[unitType as keyof typeof player.units] || 0) + 1,
-          },
-        };
-      }
-      return player;
-    });
-
-    setGameState({
-      ...gameState,
-      players: updatedPlayers,
-    });
-
-    toast.success(`${unitType} recruited!`);
-    setSelectedTerritory(null);
   };
-
-  if (!gameState) {
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <div className="text-white text-lg">Loading game state...</div>
-      </div>
-    );
-  }
 
   return (
-    <>
-      <GameScreen
-        gameState={gameState}
-        selectedTerritory={selectedTerritory}
-        onTerritoryClick={(territory: Territory) => handleTerritoryClick(territory, null)}
-        onEndTurn={handleEndTurn}
-        onEndPhase={handleEndPhase}
-        onBuild={handleBuild}
-        onRecruit={handleRecruit}
-        onGiveUp={handleGiveUp}
-        onBack={onBack}
-        onShowCombatHistory={() => setShowCombatHistory(true)}
+    <div className={cn(
+      "min-h-screen bg-background flex flex-col",
+      className
+    )}>
+      <GameNavigation
+        onBack={handleBack}
+        mode={gameStatus}
+        isInRoom={gameStatus === 'waiting' || gameStatus === 'playing'}
+        roomId={roomId}
       />
-      {showCombatHistory && (
-        <CombatHistory onClose={() => setShowCombatHistory(false)} />
-      )}
-    </>
+      <main className="flex-1 container mx-auto px-4 py-8">
+        {children}
+      </main>
+    </div>
   );
 };
 
