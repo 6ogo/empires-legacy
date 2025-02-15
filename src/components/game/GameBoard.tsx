@@ -22,6 +22,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onBack,
 }) => {
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
+  const [showMenus, setShowMenus] = useState(false);
   
   const {
     claimTerritory,
@@ -37,41 +38,42 @@ const GameBoard: React.FC<GameBoardProps> = ({
   );
 
   const handleTerritoryClick = useCallback((territory: Territory) => {
-    const action: GameAction = {
-      type: gameState.phase === 'setup' ? 'CLAIM_TERRITORY' : 'SELECT_TERRITORY',
-      playerId: gameState.currentPlayer,
-      timestamp: Date.now(),
-      payload: { territoryId: territory.id }
-    };
-  
-    if (handleAction(action)) {
-      setSelectedTerritory(territory);
+    // If it's setup phase, handle territory claiming
+    if (gameState.phase === 'setup') {
+      if (territory.owner === null) {
+        if (claimTerritory(territory.id, gameState.currentPlayer)) {
+          setSelectedTerritory(null);
+        }
+      } else {
+        toast.error("This territory is already claimed");
+      }
+      return;
     }
-  }, [gameState.phase, gameState.currentPlayer, handleAction]);
 
+    // For other phases, validate territory selection
+    if (territory.owner === gameState.currentPlayer) {
+      setSelectedTerritory(territory);
+      setShowMenus(true);
+    } else if (selectedTerritory && territory.owner !== gameState.currentPlayer) {
+      // Handle attack if we have a selected territory and click on enemy territory
+      if (attackTerritory(selectedTerritory.id, territory.id, gameState.currentPlayer)) {
+        setSelectedTerritory(null);
+        setShowMenus(false);
+      }
+    }
+  }, [gameState.phase, gameState.currentPlayer, claimTerritory, attackTerritory, selectedTerritory]);
 
-  // Update the handleBuild function
   const handleBuild = useCallback((buildingType: string) => {
     if (!selectedTerritory) {
       toast.error("No territory selected");
       return;
     }
-  
-    const action: GameAction = {
-      type: 'BUILD',
-      playerId: gameState.currentPlayer,
-      timestamp: Date.now(),
-      payload: {
-        territoryId: selectedTerritory.id,
-        buildingType
-      }
-    };
-  
-    if (handleAction(action)) {
-      setSelectedTerritory(null);
-    }
-  }, [selectedTerritory, gameState.currentPlayer, handleAction]);
 
+    if (buildStructure(selectedTerritory.id, buildingType, gameState.currentPlayer)) {
+      setSelectedTerritory(null);
+      setShowMenus(false);
+    }
+  }, [selectedTerritory, gameState.currentPlayer, buildStructure]);
 
   const handleRecruit = useCallback((unitType: string) => {
     if (!selectedTerritory) {
@@ -83,21 +85,16 @@ const GameBoard: React.FC<GameBoardProps> = ({
       type: unitType,
       health: 100,
       damage: 50,
+      experience: 0,
+      hasMoved: false,
       cost: { gold: 100 }
     };
 
     if (recruitUnit(selectedTerritory.id, unit, gameState.currentPlayer)) {
       setSelectedTerritory(null);
+      setShowMenus(false);
     }
   }, [selectedTerritory, gameState.currentPlayer, recruitUnit]);
-
-  const handleEndTurn = useCallback(() => {
-    endTurn(gameState.currentPlayer);
-  }, [gameState.currentPlayer, endTurn]);
-
-  const handleEndPhase = useCallback(() => {
-    endPhase(gameState.currentPlayer);
-  }, [gameState.currentPlayer, endPhase]);
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
@@ -110,7 +107,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
         <ArrowLeft className="h-4 w-4" />
       </Button>
 
-      <div className="absolute top-0 left-0 right-0 p-4">
+      {/* Single ResourceDisplay at the top */}
+      <div className="absolute top-0 left-0 right-0 p-4 flex justify-center">
         <ResourceDisplay
           resources={currentPlayer?.resources || {
             gold: 0,
@@ -140,38 +138,34 @@ const GameBoard: React.FC<GameBoardProps> = ({
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
         <GameControls
           gameState={gameState}
-          onEndTurn={handleEndTurn}
-          onEndPhase={handleEndPhase}
+          onEndTurn={endTurn}
+          onEndPhase={endPhase}
         />
       </div>
 
-      {selectedTerritory && (
-        <>
-          <div className="absolute top-24 left-4">
-            <BuildingMenu 
-              onBuild={handleBuild}
-              selectedTerritory={selectedTerritory}
-              resources={currentPlayer?.resources || {
-                gold: 0,
-                wood: 0,
-                stone: 0,
-                food: 0,
-              }}
-            />
-          </div>
-          <div className="absolute top-24 right-4">
-            <RecruitmentMenu 
-              onRecruit={handleRecruit}
-              resources={currentPlayer?.resources || {
-                gold: 0,
-                wood: 0,
-                stone: 0,
-                food: 0,
-              }}
-              selectedTerritory={selectedTerritory}
-            />
-          </div>
-        </>
+      {showMenus && selectedTerritory && (
+        <div className="absolute top-24 inset-x-4 md:inset-x-auto md:left-4 md:right-4 flex flex-col md:flex-row justify-center gap-4">
+          <BuildingMenu 
+            onBuild={handleBuild}
+            selectedTerritory={selectedTerritory}
+            resources={currentPlayer?.resources || {
+              gold: 0,
+              wood: 0,
+              stone: 0,
+              food: 0,
+            }}
+          />
+          <RecruitmentMenu 
+            onRecruit={handleRecruit}
+            resources={currentPlayer?.resources || {
+              gold: 0,
+              wood: 0,
+              stone: 0,
+              food: 0,
+            }}
+            selectedTerritory={selectedTerritory}
+          />
+        </div>
       )}
     </div>
   );
