@@ -11,7 +11,7 @@ import Callback from "./pages/Auth/Callback";
 import Settings from "./pages/Settings";
 import Achievements from "./components/game/Achievements";
 import { useAuth } from "./hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import LoadingScreen from "@/components/game/LoadingScreen";
 
 const queryClient = new QueryClient({
@@ -27,141 +27,51 @@ function RouteHandler() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading, profile } = useAuth();
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [initializationTimeout, setInitializationTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Set a timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (!isInitialized) {
-        console.error('Initialization timed out');
-        setIsInitialized(true);
+    if (!loading) {
+      if (!user && location.pathname !== '/auth' && location.pathname !== '/auth/callback') {
         navigate('/auth', { replace: true });
-      }
-    }, 5000); // 5 seconds timeout
-
-    setInitializationTimeout(timeout);
-
-    return () => {
-      if (initializationTimeout) {
-        clearTimeout(initializationTimeout);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      // Don't proceed if still loading
-      if (loading) return;
-
-      // Clear timeout since we got a response
-      if (initializationTimeout) {
-        clearTimeout(initializationTimeout);
-      }
-
-      // Mark as initialized since we have a response
-      if (!isInitialized) {
-        setIsInitialized(true);
-      }
-
-      console.log('Auth state:', { user, profile, loading, pathname: location.pathname });
-
-      // Handle authentication routing
-      if (!user && !loading && location.pathname !== '/auth' && location.pathname !== '/auth/callback') {
-        console.log('No user found, redirecting to auth');
+      } else if (user && !profile && location.pathname !== '/auth/callback') {
         navigate('/auth', { replace: true });
-        return;
-      }
-
-      // If we have a user but no profile, redirect to auth
-      if (user && !profile && !loading && location.pathname !== '/auth/callback') {
-        console.log('No profile found, redirecting to auth');
-        navigate('/auth', { replace: true });
-        return;
-      }
-
-      // If authenticated and on auth page, redirect to game
-      if (user && profile && location.pathname === '/auth') {
-        console.log('User is authenticated, redirecting to game');
-        navigate('/game', { replace: true });
-        return;
-      }
-
-      // If we're on a game sub-route and it's a page refresh, redirect to main game page
-      if (location.pathname.includes('/game/') && !location.key) {
-        console.log('Game sub-route detected on refresh, redirecting to main game page');
+      } else if (user && profile && location.pathname === '/auth') {
         navigate('/game', { replace: true });
       }
-    };
+    }
+  }, [loading, user, profile, location.pathname, navigate]);
 
-    initializeAuth();
-  }, [loading, user, profile, location, navigate, isInitialized, initializationTimeout]);
-
-  // Only show loading screen during initial load
-  if (loading && !isInitialized) {
-    return <LoadingScreen message="Checking authentication..." />;
+  if (loading) {
+    return <LoadingScreen message="Loading..." />;
   }
 
   return null;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, profile } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [authChecked, setAuthChecked] = useState(false);
   
   useEffect(() => {
-    const checkAuth = async () => {
-      if (!loading) {
-        if (!user || !profile) {
-          console.log('Protected route - no user or profile, redirecting to auth');
-          navigate('/auth', { replace: true });
-        }
-        setAuthChecked(true);
-      }
-    };
+    if (!user || !profile) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, profile, navigate]);
 
-    checkAuth();
-  }, [loading, user, profile, navigate]);
-
-  if (loading && !authChecked) {
-    return <LoadingScreen message="Verifying access..." />;
-  }
-  
-  if (!user || !profile) {
-    return null;
-  }
-
+  if (!user || !profile) return null;
   return <>{children}</>;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, profile } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [authChecked, setAuthChecked] = useState(false);
   
   useEffect(() => {
-    const checkAuth = async () => {
-      if (!loading) {
-        if (user && profile) {
-          console.log('Auth route - user is logged in, redirecting to game');
-          navigate('/game', { replace: true });
-        }
-        setAuthChecked(true);
-      }
-    };
+    if (user && profile) {
+      navigate('/game', { replace: true });
+    }
+  }, [user, profile, navigate]);
 
-    checkAuth();
-  }, [loading, user, profile, navigate]);
-
-  if (loading && !authChecked) {
-    return <LoadingScreen message="Checking session..." />;
-  }
-  
-  if (user && profile) {
-    return null;
-  }
-
+  if (user && profile) return null;
   return <>{children}</>;
 }
 
