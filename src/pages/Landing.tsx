@@ -31,7 +31,7 @@ const Landing = () => {
     if (backgroundRef.current) {
       const { clientX, clientY } = e;
       const { width, height } = backgroundRef.current.getBoundingClientRect();
-      const x = (clientX / width - 0.5) * 20; // 20px max movement
+      const x = (clientX / width - 0.5) * 20;
       const y = (clientY / height - 0.5) * 20;
       setMousePosition({ x, y });
     }
@@ -51,7 +51,7 @@ const Landing = () => {
 
   return (
     <div 
-      className="min-h-screen bg-[#141B2C] text-[#ffd02f] overflow-x-hidden w-full"
+      className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden w-full"
       onMouseMove={handleMouseMove}
     >
       <nav className="fixed top-0 right-0 z-50 p-4 flex items-center gap-4">
@@ -68,7 +68,7 @@ const Landing = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/auth')}
-              className="border-[#ffd02f] text-[#ffd02f] hover:bg-[#ffd02f]/10"
+              className="bg-white/10 text-white hover:bg-white/20"
             >
               <LogIn className="h-4 w-4 mr-2" />
               Login
@@ -89,7 +89,7 @@ const Landing = () => {
         }}
       >
         <div className="absolute inset-0 bg-black opacity-60"></div>
-        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center justify-center min-h-screen">
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center justify-center min-h-screen -mt-32">
           <img 
             src="/testLogo.png" 
             alt="Empire's Legacy Logo" 
@@ -98,7 +98,7 @@ const Landing = () => {
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 text-[#ffd02f] animate-float">
             Empire's Legacy
           </h1>
-          <p className="text-xl md:text-2xl lg:text-3xl mb-8 text-[#ffd02f]">
+          <p className="text-xl md:text-2xl lg:text-3xl mb-8 text-gray-200">
             A Turn-Based Strategy Game of Conquest and Empire Building
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -219,7 +219,7 @@ const GameFeatureCard = ({ icon: Icon, title, description, bgColor }: {
   <div className={`game-card bg-gradient-to-br ${bgColor} to-transparent`}>
     <Icon className="w-12 h-12 text-[#ffd02f] mb-4" />
     <h3 className="text-xl font-bold mb-2 text-[#ffd02f]">{title}</h3>
-    <p className="text-[#ffd02f]">{description}</p>
+    <p className="text-gray-200">{description}</p>
   </div>
 );
 
@@ -233,7 +233,7 @@ const GameModeCard = ({ icon: Icon, title, features }: {
     <h3 className="text-xl font-bold mb-4 text-[#ffd02f]">{title}</h3>
     <ul className="space-y-3">
       {features.map((feature, index) => (
-        <li key={index} className="flex items-center gap-2 text-[#ffd02f]">
+        <li key={index} className="flex items-center gap-2 text-gray-200">
           <ChevronRight className="w-4 h-4 text-[#ffd02f]" />
           {feature}
         </li>
@@ -253,7 +253,7 @@ const VictoryCard = ({ icon: Icon, title, description }: {
       <Icon className="w-16 h-16 text-[#ffd02f] mx-auto mb-4 relative z-10" />
     </div>
     <h3 className="text-xl font-bold mb-2 text-[#ffd02f]">{title}</h3>
-    <p className="text-[#ffd02f]">{description}</p>
+    <p className="text-gray-200">{description}</p>
   </div>
 );
 
