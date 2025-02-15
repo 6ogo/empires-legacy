@@ -13,45 +13,45 @@ import {
   Sword,
   ChevronRight,
   LogIn,
-  Gamepad
+  Gamepad,
+  Trophy,
+  Shield,
+  Target
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 
 const Landing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Only redirect if user is already authenticated
-  useEffect(() => {
-    if (user) {
-      navigate('/game');
-    }
-  }, [user, navigate]);
-
   const handlePlayNowClick = () => {
     navigate('/auth');
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden">
       {/* Navigation */}
-      <nav className="fixed top-0 right-0 z-50 p-4">
+      <nav className="fixed top-0 right-0 z-50 p-4 flex items-center gap-4">
         {user ? (
-          <Link
-            to="/game"
-            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-all"
+          <Button 
+            onClick={() => navigate('/game')}
+            className="bg-[#F5D547] text-black hover:bg-[#F5D547]/90"
           >
-            <Gamepad className="w-4 h-4" />
+            <Gamepad className="h-4 w-4 mr-2" />
             Play Now
-          </Link>
+          </Button>
         ) : (
-          <Link
-            to="/auth"
-            className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 border border-gray-700 hover:border-yellow-400 transition-all"
-          >
-            <LogIn className="w-4 h-4" />
-            Login
-          </Link>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/auth')}
+              className="bg-white/10 text-white hover:bg-white/20"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Login
+            </Button>
+          </>
         )}
       </nav>
 
@@ -62,195 +62,174 @@ const Landing = () => {
           backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80')",
           backgroundSize: "cover",
           backgroundPosition: "center",
+          backgroundAttachment: "fixed"
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gray-900"></div>
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
-          <h1 className="text-6xl md:text-7xl font-bold mb-4 text-yellow-400">
+          <h1 className="text-6xl md:text-7xl font-bold mb-4 text-[#F5D547] animate-float">
             Empire's Legacy
           </h1>
           <p className="text-2xl md:text-3xl mb-8 text-gray-200">
-            Forge Your Empire, Conquer Your Destiny
+            A Turn-Based Strategy Game of Conquest and Empire Building
           </p>
-          <div className="flex gap-4 justify-center">
-            <button
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
               onClick={handlePlayNowClick}
-              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg flex items-center gap-2 transform hover:scale-105 transition"
+              className="game-button-primary text-lg px-8 py-6"
             >
-              Play Now <ChevronRight className="w-5 h-5" />
-            </button>
+              Play Now <ChevronRight className="h-5 w-5 ml-2" />
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Overview Section */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold mb-12 text-center text-yellow-400">
-            Master the Art of Empire Building
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition">
-              <Compass className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2">eXplore</h3>
-              <p className="text-gray-400">Discover vast territories and hidden resources across diverse landscapes</p>
-            </div>
-            <div className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition">
-              <Building2 className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2">eXpand</h3>
-              <p className="text-gray-400">Grow your empire through strategic building and territory control</p>
-            </div>
-            <div className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition">
-              <Coins className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2">eXploit</h3>
-              <p className="text-gray-400">Manage resources and optimize production for maximum efficiency</p>
-            </div>
-            <div className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition">
-              <Swords className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2">eXterminate</h3>
-              <p className="text-gray-400">Build armies and engage in tactical combat to defeat your rivals</p>
-            </div>
+      {/* Features Section */}
+      <section className="game-section bg-[#1a2237]">
+        <div className="game-container">
+          <h2 className="game-title">Strategic Gameplay Features</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <GameFeatureCard
+              icon={Castle}
+              title="Empire Building"
+              description="Construct cities, manage resources, and expand your territory strategically"
+              bgColor="from-purple-900/50"
+            />
+            <GameFeatureCard
+              icon={Sword}
+              title="Tactical Combat"
+              description="Command armies in hex-based tactical warfare with unique unit abilities"
+              bgColor="from-red-900/50"
+            />
+            <GameFeatureCard
+              icon={Crown}
+              title="Dynamic Economy"
+              description="Balance resources, trade, and development to grow your empire"
+              bgColor="from-blue-900/50"
+            />
           </div>
         </div>
       </section>
 
       {/* Game Modes Section */}
-      <section className="py-20 px-4 bg-gray-800">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold mb-12 text-center text-yellow-400">
-            Choose Your Battle
-          </h2>
+      <section className="game-section bg-[#141B2C]">
+        <div className="game-container">
+          <h2 className="game-title">Multiple Ways to Play</h2>
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-8 bg-gray-900 rounded-lg border border-gray-700 hover:border-yellow-400 transition">
-              <Users className="w-12 h-12 text-yellow-400 mb-6" />
-              <h3 className="text-2xl font-bold mb-4">Local Multiplayer</h3>
-              <ul className="space-y-3">
-                {[
-                  "2-6 players on the same device",
-                  "Perfect for learning the game",
-                  "Instant turn-taking",
-                  "Host local tournaments"
-                ].map((item, index) => (
-                  <li key={index} className="flex items-center gap-2 text-gray-300">
-                    <ChevronRight className="w-4 h-4 text-yellow-400" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="p-8 bg-gray-900 rounded-lg border border-gray-700 hover:border-yellow-400 transition">
-              <Globe className="w-12 h-12 text-yellow-400 mb-6" />
-              <h3 className="text-2xl font-bold mb-4">Online Multiplayer</h3>
-              <ul className="space-y-3">
-                {[
-                  "Create or join game rooms",
-                  "Real-time synchronization",
-                  "In-game chat system",
-                  "Achievement tracking"
-                ].map((item, index) => (
-                  <li key={index} className="flex items-center gap-2 text-gray-300">
-                    <ChevronRight className="w-4 h-4 text-yellow-400" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <GameModeCard
+              icon={Users}
+              title="Local Multiplayer"
+              features={[
+                "2-6 players on the same device",
+                "Perfect for learning the game",
+                "Instant turn-taking",
+                "Host local tournaments"
+              ]}
+            />
+            <GameModeCard
+              icon={Globe}
+              title="Online Multiplayer"
+              features={[
+                "Create or join game rooms",
+                "Real-time synchronization",
+                "In-game chat system",
+                "Achievement tracking"
+              ]}
+            />
           </div>
         </div>
       </section>
 
-      {/* Game Features Section */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold mb-12 text-center text-yellow-400">
-            Core Game Features
-          </h2>
+      {/* Victory Conditions */}
+      <section className="game-section bg-[#1a2237]">
+        <div className="game-container">
+          <h2 className="game-title">Paths to Victory</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="p-6 bg-gray-800 rounded-lg">
-              <Coins className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-4">Resources</h3>
-              <ul className="space-y-2">
-                {["Gold", "Wood", "Stone", "Food"].map((item, index) => (
-                  <li key={index} className="flex items-center gap-2 text-gray-300">
-                    <ChevronRight className="w-4 h-4 text-yellow-400" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="p-6 bg-gray-800 rounded-lg">
-              <Mountain className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-4">Territory Types</h3>
-              <ul className="space-y-2">
-                {["Plains", "Mountains", "Forests", "Coast", "Capital"].map((item, index) => (
-                  <li key={index} className="flex items-center gap-2 text-gray-300">
-                    <ChevronRight className="w-4 h-4 text-yellow-400" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="p-6 bg-gray-800 rounded-lg">
-              <Castle className="w-8 h-8 text-yellow-400 mb-4" />
-              <h3 className="text-xl font-bold mb-4">Buildings</h3>
-              <ul className="space-y-2">
-                {["Lumber Mill", "Mine", "Market", "Farm", "Barracks"].map((item, index) => (
-                  <li key={index} className="flex items-center gap-2 text-gray-300">
-                    <ChevronRight className="w-4 h-4 text-yellow-400" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Victory Conditions Section */}
-      <section className="py-20 px-4 bg-gray-800">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold mb-12 text-center text-yellow-400">
-            Path to Victory
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="p-6 bg-gray-900 rounded-lg border border-gray-700 hover:border-yellow-400 transition text-center">
-              <Crown className="w-12 h-12 text-yellow-400 mb-4 mx-auto" />
-              <h3 className="text-xl font-bold mb-2">Domination</h3>
-              <p className="text-gray-400">Control 75% of the map and eliminate enemy forces</p>
-            </div>
-            <div className="p-6 bg-gray-900 rounded-lg border border-gray-700 hover:border-yellow-400 transition text-center">
-              <Coins className="w-12 h-12 text-yellow-400 mb-4 mx-auto" />
-              <h3 className="text-xl font-bold mb-2">Economic</h3>
-              <p className="text-gray-400">Accumulate 10,000 gold and control trade centers</p>
-            </div>
-            <div className="p-6 bg-gray-900 rounded-lg border border-gray-700 hover:border-yellow-400 transition text-center">
-              <Sword className="w-12 h-12 text-yellow-400 mb-4 mx-auto" />
-              <h3 className="text-xl font-bold mb-2">Military</h3>
-              <p className="text-gray-400">Capture all enemy capitals and hold them</p>
-            </div>
+            <VictoryCard
+              icon={Shield}
+              title="Domination"
+              description="Control 75% of the map territories"
+            />
+            <VictoryCard
+              icon={Coins}
+              title="Economic"
+              description="Accumulate vast wealth and economic power"
+            />
+            <VictoryCard
+              icon={Target}
+              title="Military"
+              description="Eliminate all enemy forces and capitals"
+            />
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gray-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-6 text-yellow-400">
-            Ready to Build Your Empire?
+      <section className="game-section bg-[#141B2C]">
+        <div className="game-container text-center">
+          <h2 className="text-4xl font-bold mb-6 text-[#F5D547]">
+            Ready to Begin Your Conquest?
           </h2>
-          <p className="text-xl mb-8 text-gray-300">
-            Join thousands of players in the ultimate strategy experience
+          <p className="text-xl mb-8 text-gray-300 max-w-2xl mx-auto">
+            Join thousands of players in epic battles for territory and resources. 
+            Your empire awaits!
           </p>
-          <button 
+          <Button
             onClick={handlePlayNowClick}
-            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-4 px-12 rounded-lg flex items-center gap-2 mx-auto w-fit transform hover:scale-105 transition"
+            className="game-button-primary text-lg px-12 py-6 transform hover:scale-105 transition-transform"
           >
-            Start Your Journey <ChevronRight className="w-6 h-6" />
-          </button>
+            Start Your Journey <ChevronRight className="h-6 w-6 ml-2" />
+          </Button>
         </div>
       </section>
     </div>
   );
 };
+
+const GameFeatureCard = ({ icon: Icon, title, description, bgColor }: { 
+  icon: any; 
+  title: string; 
+  description: string;
+  bgColor: string;
+}) => (
+  <div className={`game-card bg-gradient-to-br ${bgColor} to-transparent`}>
+    <Icon className="w-12 h-12 text-[#F5D547] mb-4" />
+    <h3 className="text-xl font-bold mb-2">{title}</h3>
+    <p className="text-gray-300">{description}</p>
+  </div>
+);
+
+const GameModeCard = ({ icon: Icon, title, features }: {
+  icon: any;
+  title: string;
+  features: string[];
+}) => (
+  <div className="game-card">
+    <Icon className="w-12 h-12 text-[#F5D547] mb-4" />
+    <h3 className="text-xl font-bold mb-4">{title}</h3>
+    <ul className="space-y-3">
+      {features.map((feature, index) => (
+        <li key={index} className="flex items-center gap-2 text-gray-300">
+          <ChevronRight className="w-4 h-4 text-[#F5D547]" />
+          {feature}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+const VictoryCard = ({ icon: Icon, title, description }: {
+  icon: any;
+  title: string;
+  description: string;
+}) => (
+  <div className="game-card text-center group">
+    <div className="relative">
+      <div className="absolute inset-0 bg-[#F5D547]/10 rounded-full blur-xl transition-opacity group-hover:opacity-100 opacity-0" />
+      <Icon className="w-16 h-16 text-[#F5D547] mx-auto mb-4 relative z-10" />
+    </div>
+    <h3 className="text-xl font-bold mb-2">{title}</h3>
+    <p className="text-gray-300">{description}</p>
+  </div>
+);
 
 export default Landing;
