@@ -1,11 +1,13 @@
+
 import { useState, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface AuthFormState {
   email: string;
   password: string;
+  confirmPassword: string;
   username: string;
   stayLoggedIn: boolean;
   loading: boolean;
@@ -13,16 +15,17 @@ interface AuthFormState {
   validationErrors: {
     email?: string;
     password?: string;
+    confirmPassword?: string;
     username?: string;
   };
 }
 
 export const useAuthForm = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [formState, setFormState] = useState<AuthFormState>({
     email: "",
     password: "",
+    confirmPassword: "",
     username: "",
     stayLoggedIn: false,
     loading: false,
@@ -31,7 +34,7 @@ export const useAuthForm = () => {
   });
 
   // Input validation
-  const validateInput = useCallback((input: string, type: 'email' | 'username' | 'password'): string | null => {
+  const validateInput = useCallback((input: string, type: 'email' | 'username' | 'password' | 'confirmPassword'): string | null => {
     switch (type) {
       case 'email':
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input) ? null : 'Invalid email format';
@@ -39,17 +42,19 @@ export const useAuthForm = () => {
         return /^[a-zA-Z0-9_]{3,20}$/.test(input) ? null : 'Username must be 3-20 characters';
       case 'password':
         return input.length >= 6 ? null : 'Password must be at least 6 characters';
+      case 'confirmPassword':
+        return input === formState.password ? null : 'Passwords do not match';
       default:
         return null;
     }
-  }, []);
+  }, [formState.password]);
 
   const updateFormState = useCallback((field: keyof AuthFormState, value: string | boolean) => {
     setFormState(prev => {
       const newState = { ...prev, [field]: value };
       
-      if (typeof value === 'string' && ['email', 'password', 'username'].includes(field)) {
-        const error = validateInput(value, field as 'email' | 'password' | 'username');
+      if (typeof value === 'string' && ['email', 'password', 'confirmPassword', 'username'].includes(field)) {
+        const error = validateInput(value, field as 'email' | 'password' | 'confirmPassword' | 'username');
         newState.validationErrors = {
           ...prev.validationErrors,
           [field]: error
@@ -113,8 +118,8 @@ export const useAuthForm = () => {
         console.error('Failed to update profile:', updateError);
       }
 
-      toast.success("Signed in successfully!");
       console.log('Sign in successful, navigating to game');
+      toast.success("Signed in successfully!");
       navigate('/game', { replace: true });
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -137,18 +142,25 @@ export const useAuthForm = () => {
     // Validate all fields
     const emailError = validateInput(formState.email, 'email');
     const passwordError = validateInput(formState.password, 'password');
+    const confirmPasswordError = validateInput(formState.confirmPassword, 'confirmPassword');
     const usernameError = validateInput(formState.username, 'username');
 
-    if (emailError || passwordError || usernameError) {
+    if (emailError || passwordError || confirmPasswordError || usernameError) {
       setFormState(prev => ({
         ...prev,
         validationErrors: {
           email: emailError,
           password: passwordError,
+          confirmPassword: confirmPasswordError,
           username: usernameError
         }
       }));
       toast.error('Please fix the validation errors');
+      return;
+    }
+
+    if (formState.password !== formState.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -161,6 +173,26 @@ export const useAuthForm = () => {
     setFormState(prev => ({ ...prev, loading: true }));
 
     try {
+      // Check if email exists
+      const { data: emailExists } = await supabase.rpc('check_email_exists', {
+        email_to_check: formState.email
+      });
+
+      if (emailExists) {
+        toast.error('Email is already registered');
+        return;
+      }
+
+      // Check if username exists
+      const { data: usernameExists } = await supabase.rpc('check_username_exists', {
+        username_to_check: formState.username
+      });
+
+      if (usernameExists) {
+        toast.error('Username is already taken');
+        return;
+      }
+
       console.log('Attempting to create account...');
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formState.email.trim(),
@@ -194,7 +226,13 @@ export const useAuthForm = () => {
           turnstile_verified: true
         }]);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        if (profileError.code === '23505') { // Unique constraint violation
+          toast.error('Username is already taken');
+          return;
+        }
+        throw profileError;
+      }
 
       toast.success("Account created successfully! Check your email for verification.");
       console.log('Sign up successful, navigating to game');
@@ -208,27 +246,18 @@ export const useAuthForm = () => {
     }
   };
 
-  const handleMagicLinkLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Sending magic link...', { email: formState.email });
-    setFormState(prev => ({ ...prev, loading: true }));
-
+  const handleResetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: formState.email.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
       });
-
+      
       if (error) throw error;
-
-      toast.success("Magic link sent! Please check your email.");
+      
+      toast.success('Password reset instructions sent to your email');
     } catch (error: any) {
-      console.error('Magic link error:', error);
-      toast.error(error.message || 'Failed to send magic link');
-    } finally {
-      setFormState(prev => ({ ...prev, loading: false }));
+      console.error('Reset password error:', error);
+      toast.error(error.message || 'Failed to send reset password email');
     }
   };
 
@@ -236,11 +265,12 @@ export const useAuthForm = () => {
     ...formState,
     setEmail: (email: string) => updateFormState('email', email),
     setPassword: (password: string) => updateFormState('password', password),
+    setConfirmPassword: (confirmPassword: string) => updateFormState('confirmPassword', confirmPassword),
     setUsername: (username: string) => updateFormState('username', username),
     setStayLoggedIn: (stayLoggedIn: boolean) => updateFormState('stayLoggedIn', stayLoggedIn),
     setShowTurnstile: (show: boolean) => updateFormState('showTurnstile', show),
     handleSignIn,
     handleSignUp,
-    handleMagicLinkLogin,
+    handleResetPassword,
   };
 };

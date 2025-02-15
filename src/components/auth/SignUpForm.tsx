@@ -1,18 +1,18 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TurnstileCaptcha } from "@/components/auth/Turnstile";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 interface SignUpFormProps {
   email: string;
   setEmail: (email: string) => void;
   password: string;
   setPassword: (password: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (confirmPassword: string) => void;
   username: string;
   setUsername: (username: string) => void;
   stayLoggedIn: boolean;
@@ -23,6 +23,7 @@ interface SignUpFormProps {
   validationErrors?: {
     email?: string;
     password?: string;
+    confirmPassword?: string;
     username?: string;
   };
 }
@@ -32,6 +33,8 @@ export const SignUpForm = ({
   setEmail,
   password,
   setPassword,
+  confirmPassword,
+  setConfirmPassword,
   username,
   setUsername,
   stayLoggedIn,
@@ -41,35 +44,8 @@ export const SignUpForm = ({
   showTurnstile,
   validationErrors,
 }: SignUpFormProps) => {
-  const [turnstileToken, setTurnstileToken] = useState<string>();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (showTurnstile) {
-      console.log('Turnstile should be visible now');
-    }
-  }, [showTurnstile]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submitted', { email, username, showTurnstile, turnstileToken });
-
-    if (!email || !password || !username) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    try {
-      await onSubmit(e, turnstileToken);
-      navigate('/game');
-    } catch (error) {
-      console.error('Signup error:', error);
-      toast.error('Failed to create account. Please try again.');
-    }
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
+    <form onSubmit={(e) => onSubmit(e)} className="space-y-4 px-6 pb-6">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -115,6 +91,21 @@ export const SignUpForm = ({
           <p className="text-red-500 text-sm">{validationErrors.password}</p>
         )}
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          className="bg-white/10"
+        />
+        {validationErrors?.confirmPassword && (
+          <p className="text-red-500 text-sm">{validationErrors.confirmPassword}</p>
+        )}
+      </div>
       <div className="flex items-center space-x-2">
         <Checkbox
           id="stayLoggedIn"
@@ -124,25 +115,19 @@ export const SignUpForm = ({
         <Label htmlFor="stayLoggedIn" className="text-sm">Stay logged in</Label>
       </div>
 
-      {showTurnstile && (
+      {showTurnstile ? (
         <div className="flex justify-center">
-          <TurnstileCaptcha onVerify={(token) => {
-            console.log('Turnstile token received');
-            setTurnstileToken(token);
-            // Auto-submit form after Turnstile verification
-            const formEvent = new Event('submit', { bubbles: true, cancelable: true });
-            document.querySelector('form')?.dispatchEvent(formEvent);
-          }} />
+          <TurnstileCaptcha onVerify={(token) => onSubmit(new Event('submit') as any, token)} />
         </div>
+      ) : (
+        <Button
+          type="submit"
+          className="w-full bg-game-gold hover:bg-game-gold/90"
+          disabled={loading}
+        >
+          {loading ? "Creating account..." : "Create account"}
+        </Button>
       )}
-
-      <Button 
-        type="submit" 
-        className="w-full bg-game-gold hover:bg-game-gold/90"
-        disabled={loading}
-      >
-        {loading ? "Creating account..." : "Create account"}
-      </Button>
     </form>
   );
 };

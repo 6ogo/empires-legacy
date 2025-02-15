@@ -434,6 +434,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_email_exists: {
+        Args: {
+          email_to_check: string
+        }
+        Returns: boolean
+      }
+      check_username_exists: {
+        Args: {
+          username_to_check: string
+        }
+        Returns: boolean
+      }
       is_profane: {
         Args: {
           text_to_check: string

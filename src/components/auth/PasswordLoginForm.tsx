@@ -7,6 +7,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TurnstileCaptcha } from "@/components/auth/Turnstile";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface PasswordLoginFormProps {
   email: string;
@@ -37,6 +44,8 @@ export const PasswordLoginForm = ({
   validationErrors,
 }: PasswordLoginFormProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string>();
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,13 +71,11 @@ export const PasswordLoginForm = ({
     setTurnstileToken(token);
     
     try {
-      // Create a real Event object
       const nativeEvent = new Event('submit', {
         bubbles: true,
         cancelable: true
       });
 
-      // Create a proper React FormEvent
       const syntheticEvent: React.FormEvent<HTMLFormElement> = Object.assign(
         new Event('submit', { bubbles: true, cancelable: true }), {
         target: document.createElement('form'),
@@ -81,17 +88,36 @@ export const PasswordLoginForm = ({
         persist: () => {},
         timeStamp: Date.now(),
         type: 'submit',
-        eventPhase: 2, // Bubbling phase
+        eventPhase: 2,
       }
       ) as unknown as React.FormEvent<HTMLFormElement>;
 
-      // Call onSubmit with the properly typed event and token
       await onSubmit(syntheticEvent, token);
-      // After successful submission, navigate to game
       navigate('/game');
     } catch (error) {
       console.error('Login error after Turnstile:', error);
       toast.error('Failed to sign in. Please try again.');
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Password reset instructions sent to your email');
+      setResetDialogOpen(false);
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      toast.error(error.message || 'Failed to send reset password email');
     }
   };
 
@@ -127,13 +153,50 @@ export const PasswordLoginForm = ({
           <p className="text-red-500 text-sm">{validationErrors.password}</p>
         )}
       </div>
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="stayLoggedIn"
-          checked={stayLoggedIn}
-          onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
-        />
-        <Label htmlFor="stayLoggedIn" className="text-sm">Stay logged in</Label>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="stayLoggedIn"
+            checked={stayLoggedIn}
+            onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
+          />
+          <Label htmlFor="stayLoggedIn" className="text-sm">Stay logged in</Label>
+        </div>
+        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="link"
+              className="text-sm text-yellow-400 hover:text-yellow-300"
+              type="button"
+            >
+              Forgot password?
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="resetEmail">Email</Label>
+                <Input
+                  id="resetEmail"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={handleResetPassword}
+                className="w-full bg-game-gold hover:bg-game-gold/90"
+              >
+                Send Reset Instructions
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {showTurnstile ? (
