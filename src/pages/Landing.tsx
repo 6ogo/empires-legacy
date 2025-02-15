@@ -7,7 +7,12 @@ import {
   Castle,
   Crown,
   Sword,
+  Shield,
+  Coins,
+  Target,
+  ChevronRight,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
 import HeroSection from "@/components/landing/HeroSection";
 import GameFeatureCard from "@/components/landing/GameFeatureCard";
