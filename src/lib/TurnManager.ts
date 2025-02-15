@@ -1,4 +1,5 @@
-import { GameState, Player, GameAction, GamePhase } from '@/types/game';
+
+import { GameState, Player, GameAction, GamePhase, Territory, Resources } from '@/types/game';
 
 export interface ActionLog {
   playerId: string;
@@ -9,11 +10,17 @@ export interface ActionLog {
   details?: any;
 }
 
+export interface TurnValidationResult {
+  valid: boolean;
+  message?: string;
+}
+
 export class TurnManager {
   private state: GameState;
   private actionLogs: ActionLog[] = [];
   private actionsPerformed: Map<string, Set<string>> = new Map();
   private territoriesActedOn: Map<string, Set<string>> = new Map();
+  private resourcesCollected: Set<string> = new Set();
   private phaseRequirements: Map<GamePhase, Set<string>> = new Map([
     ['setup', new Set(['claim'])],
     ['building', new Set(['build', 'expand'])],
@@ -126,7 +133,6 @@ export class TurnManager {
     return [...this.actionLogs];
   }
 
-
   startTurn(): void {
     // Clear tracking sets for new turn
     this.resourcesCollected.clear();
@@ -232,7 +238,6 @@ export class TurnManager {
     return this.state.players.find(p => p.id === this.state.currentPlayer);
   }
 
-  // Phase-specific validations
   private validateSetupPhase(): TurnValidationResult {
     const currentPlayer = this.getCurrentPlayer();
     if (!currentPlayer) return { valid: false, message: "Player not found" };
@@ -368,3 +373,23 @@ export class TurnManager {
     const ds = Math.abs((t1.coordinates.q + t1.coordinates.r) - (t2.coordinates.q + t2.coordinates.r));
     return (dx <= 1 && dy <= 1 && ds <= 1) && !(dx === 0 && dy === 0);
   }
+
+  private validateBuildingLimit(territoryId: string): boolean {
+    const territory = this.state.territories.find(t => t.id === territoryId);
+    if (!territory) return false;
+    return territory.building === null;
+  }
+
+  private validateRecruitmentLimit(territoryId: string): boolean {
+    const territory = this.state.territories.find(t => t.id === territoryId);
+    if (!territory) return false;
+    return territory.militaryUnit === null;
+  }
+
+  private validateExpansion(territoryId: string): boolean {
+    const territory = this.state.territories.find(t => t.id === territoryId);
+    if (!territory) return false;
+    // Add specific expansion validation logic here
+    return true;
+  }
+}

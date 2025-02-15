@@ -1,3 +1,4 @@
+
 import { Territory, MilitaryUnit, GameState } from '@/types/game';
 
 export interface CombatResult {
@@ -184,7 +185,7 @@ export class CombatManager {
     return (dx <= 1 && dy <= 1 && ds <= 1) && !(dx === 0 && dy === 0);
   }
 
-private applyAttackModifiers(
+  private applyAttackModifiers(
     baseDamage: number,
     attackerTerritory: Territory,
     defenderTerritory: Territory
@@ -321,3 +322,4 @@ private applyAttackModifiers(
     // Cap the support bonus
     return Math.min(supportCount, 3); // Maximum 3 supporting units (-15% damage)
   }
+}
