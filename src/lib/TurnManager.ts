@@ -1,18 +1,131 @@
-import { GameState, Player, Territory, Resources, GameUpdate } from '@/types/game';
+import { GameState, Player, GameAction, GamePhase } from '@/types/game';
 
-export interface TurnValidationResult {
-  valid: boolean;
-  message?: string;
+export interface ActionLog {
+  playerId: string;
+  phase: GamePhase;
+  action: string;
+  territoryId: string;
+  timestamp: number;
+  details?: any;
 }
 
 export class TurnManager {
   private state: GameState;
-  private resourcesCollected: Set<string> = new Set();
+  private actionLogs: ActionLog[] = [];
   private actionsPerformed: Map<string, Set<string>> = new Map();
+  private territoriesActedOn: Map<string, Set<string>> = new Map();
+  private phaseRequirements: Map<GamePhase, Set<string>> = new Map([
+    ['setup', new Set(['claim'])],
+    ['building', new Set(['build', 'expand'])],
+    ['recruitment', new Set(['recruit'])],
+    ['combat', new Set(['attack', 'restore'])]
+  ]);
 
   constructor(state: GameState) {
     this.state = state;
+    this.initializeTracking();
   }
+
+  private initializeTracking(): void {
+    // Initialize tracking for current player
+    if (!this.actionsPerformed.has(this.state.currentPlayer)) {
+      this.actionsPerformed.set(this.state.currentPlayer, new Set());
+    }
+    if (!this.territoriesActedOn.has(this.state.currentPlayer)) {
+      this.territoriesActedOn.set(this.state.currentPlayer, new Set());
+    }
+  }
+
+  trackAction(action: GameAction): void {
+    this.initializeTracking();
+    
+    const actionLog: ActionLog = {
+      playerId: action.playerId,
+      phase: this.state.phase,
+      action: action.type,
+      territoryId: action.payload.territoryId,
+      timestamp: Date.now(),
+      details: action.payload
+    };
+
+    // Log the action
+    this.actionLogs.push(actionLog);
+
+    // Track the action type
+    this.actionsPerformed.get(action.playerId)?.add(action.type);
+
+    // Track the territory
+    this.territoriesActedOn.get(action.playerId)?.add(action.payload.territoryId);
+  }
+
+  canPerformAction(action: GameAction): boolean {
+    // Validate player's turn
+    if (action.playerId !== this.state.currentPlayer) {
+      return false;
+    }
+
+    // Validate phase-specific action
+    if (!this.isActionAllowedInPhase(action.type, this.state.phase)) {
+      return false;
+    }
+
+    // Check territory-specific limitations
+    if (!this.canActOnTerritory(action)) {
+      return false;
+    }
+
+    // Check action-specific limitations
+    return this.validateActionLimits(action);
+  }
+
+  private isActionAllowedInPhase(actionType: string, phase: GamePhase): boolean {
+    const allowedActions = this.phaseRequirements.get(phase);
+    return allowedActions?.has(actionType) || false;
+  }
+
+  private canActOnTerritory(action: GameAction): boolean {
+    const territoriesActedOn = this.territoriesActedOn.get(action.playerId);
+    
+    switch (action.type) {
+      case 'build':
+        // Check if territory already has maximum buildings
+        return this.validateBuildingLimit(action.payload.territoryId);
+      case 'recruit':
+        // Check if territory already has units
+        return this.validateRecruitmentLimit(action.payload.territoryId);
+      case 'expand':
+        // Check if territory expansion is valid
+        return this.validateExpansion(action.payload.territoryId);
+      default:
+        return true;
+    }
+  }
+
+  private validateActionLimits(action: GameAction): boolean {
+    const actionsPerformed = this.actionsPerformed.get(action.playerId);
+    
+    switch (action.type) {
+      case 'recruit':
+        // Only one unit type per turn
+        return !actionsPerformed?.has('recruit');
+      case 'expand':
+        // Only one expansion per turn
+        return !actionsPerformed?.has('expand');
+      default:
+        return true;
+    }
+  }
+
+  clearTurnTracking(): void {
+    this.actionsPerformed.delete(this.state.currentPlayer);
+    this.territoriesActedOn.delete(this.state.currentPlayer);
+    this.initializeTracking();
+  }
+
+  getActionHistory(): ActionLog[] {
+    return [...this.actionLogs];
+  }
+
 
   startTurn(): void {
     // Clear tracking sets for new turn
