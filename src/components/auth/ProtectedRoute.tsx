@@ -14,8 +14,14 @@ export function ProtectedRoute({
   children,
   requireEmailVerified = false 
 }: ProtectedRouteProps) {
-  const { user, profile, isLoading, error } = useAuth();
+  const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!user && !isLoading) {
+      refreshSession();
+    }
+  }, [user, isLoading, refreshSession]);
 
   useEffect(() => {
     if (error) {

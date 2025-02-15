@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initial session check
+  // Initial session check and setup auth state listener
   useEffect(() => {
     let mounted = true;
 
@@ -114,11 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             setSession(null);
           }
-        } else if (mounted) {
-          console.log('No session found');
-          setUser(null);
-          setProfile(null);
-          setSession(null);
         }
       } catch (error: any) {
         console.error('Auth initialization error:', error);
@@ -133,33 +128,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Initialize auth state
     initializeAuth();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       if (!mounted) return;
 
-      if (session?.user) {
-        setUser(session.user);
-        setSession(session);
-        try {
-          const userProfile = await fetchProfile(session.user.id);
-          if (mounted && userProfile) {
-            setProfile(userProfile);
-          } else if (mounted) {
-            setUser(null);
-            setSession(null);
-            setProfile(null);
+      try {
+        if (session?.user) {
+          setUser(session.user);
+          setSession(session);
+          try {
+            const userProfile = await fetchProfile(session.user.id);
+            if (mounted && userProfile) {
+              setProfile(userProfile);
+            } else if (mounted) {
+              setUser(null);
+              setSession(null);
+              setProfile(null);
+            }
+          } catch (error: any) {
+            handleError(error);
           }
-        } catch (error: any) {
-          handleError(error);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setSession(null);
         }
-      } else {
-        setUser(null);
-        setProfile(null);
-        setSession(null);
+      } catch (error: any) {
+        handleError(error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => {

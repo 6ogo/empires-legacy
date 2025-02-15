@@ -13,6 +13,7 @@ const GamePage = () => {
   }
 
   if (error) {
+    console.error('Authentication error:', error);
     return <Navigate to="/auth" replace />;
   }
 
