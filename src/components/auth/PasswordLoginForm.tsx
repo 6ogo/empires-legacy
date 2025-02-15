@@ -71,27 +71,20 @@ export const PasswordLoginForm = ({
     setTurnstileToken(token);
     
     try {
-      const form = document.createElement('form');
-      const nativeEvent = new Event('submit', { bubbles: true, cancelable: true });
-      
-      // Create a proper React FormEvent
-      const syntheticEvent: React.FormEvent<HTMLFormElement> = {
-        nativeEvent,
-        currentTarget: form,
-        target: form,
-        bubbles: true,
-        cancelable: true,
-        defaultPrevented: false,
+      // Create a synthetic React form event
+      const syntheticEvent = {
         preventDefault: () => {},
+        target: document.createElement('form'),
+        currentTarget: document.createElement('form'),
+        nativeEvent: new Event('submit'),
         isDefaultPrevented: () => false,
-        stopPropagation: () => {},
         isPropagationStopped: () => false,
         persist: () => {},
-        isTrusted: true,
-        timeStamp: Date.now(),
+        bubbles: true,
+        cancelable: true,
         type: 'submit',
-        eventPhase: nativeEvent.eventPhase
-      };
+        isTrusted: true,
+      } as React.FormEvent<HTMLFormElement>;
 
       await onSubmit(syntheticEvent, token);
     } catch (error) {
