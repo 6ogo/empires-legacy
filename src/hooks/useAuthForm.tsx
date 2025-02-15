@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,12 +18,7 @@ interface AuthFormState {
   };
 }
 
-interface UseAuthFormOptions {
-  redirectPath?: string;
-  requireVerification?: boolean;
-}
-
-export const useAuthForm = (options: UseAuthFormOptions = {}) => {
+export const useAuthForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [formState, setFormState] = useState<AuthFormState>({
@@ -36,34 +31,21 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
     validationErrors: {},
   });
 
-  // Input validation functions
-  const validateInput = useCallback((
-    input: string, 
-    type: 'email' | 'username' | 'password'
-  ): string | null => {
+  // Input validation
+  const validateInput = useCallback((input: string, type: 'email' | 'username' | 'password'): string | null => {
     switch (type) {
       case 'email':
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input) 
-          ? null 
-          : 'Invalid email format';
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input) ? null : 'Invalid email format';
       case 'username':
-        return /^[a-zA-Z0-9_]{3,20}$/.test(input) 
-          ? null 
-          : 'Username must be 3-20 characters';
+        return /^[a-zA-Z0-9_]{3,20}$/.test(input) ? null : 'Username must be 3-20 characters';
       case 'password':
-        return input.length >= 6
-          ? null
-          : 'Password must be at least 6 characters';
+        return input.length >= 6 ? null : 'Password must be at least 6 characters';
       default:
         return null;
     }
   }, []);
 
-  // Update form state with validation
-  const updateFormState = useCallback((
-    field: keyof AuthFormState,
-    value: string | boolean
-  ) => {
+  const updateFormState = useCallback((field: keyof AuthFormState, value: string | boolean) => {
     setFormState(prev => {
       const newState = { ...prev, [field]: value };
       
@@ -81,8 +63,25 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
 
   const handleSignIn = async (e: React.FormEvent, turnstileToken?: string) => {
     e.preventDefault();
-    
+    console.log('Handling sign in...', { email: formState.email, turnstileToken });
+
+    // Validate email and password
+    const emailError = validateInput(formState.email, 'email');
+    const passwordError = validateInput(formState.password, 'password');
+
+    if (emailError || passwordError) {
+      setFormState(prev => ({
+        ...prev,
+        validationErrors: {
+          email: emailError,
+          password: passwordError
+        }
+      }));
+      return;
+    }
+
     if (!turnstileToken) {
+      console.log('No turnstile token, showing captcha');
       setFormState(prev => ({ ...prev, showTurnstile: true }));
       return;
     }
@@ -101,26 +100,23 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
         throw new Error('No user data returned after sign in');
       }
 
-      // Update preferences after successful sign in
+      // Update profile with login info
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ 
-          preferences: { stayLoggedIn: formState.stayLoggedIn },
+        .update({
           last_login: new Date().toISOString(),
-          turnstile_verified: true
+          turnstile_verified: true,
+          preferences: { stayLoggedIn: formState.stayLoggedIn }
         })
         .eq('id', data.user.id);
 
       if (updateError) {
-        console.error('Failed to update preferences:', updateError);
+        console.error('Failed to update profile:', updateError);
       }
 
-      setFormState(prev => ({ ...prev, showTurnstile: false }));
       toast.success("Signed in successfully!");
-
-      // Navigate to the intended URL or default
-      const redirectTo = location.state?.from || options.redirectPath || '/game';
-      navigate(redirectTo, { replace: true });
+      console.log('Sign in successful, navigating to game');
+      navigate('/game', { replace: true });
     } catch (error: any) {
       console.error('Sign in error:', error);
       toast.error(error.message || 'Failed to sign in');
@@ -132,23 +128,27 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
 
   const handleSignUp = async (e: React.FormEvent, turnstileToken?: string) => {
     e.preventDefault();
+    console.log('Handling sign up...', { email: formState.email, username: formState.username, turnstileToken });
 
-    // Validate all fields before submission
-    const errors = {
-      email: validateInput(formState.email, 'email'),
-      password: validateInput(formState.password, 'password'),
-      username: validateInput(formState.username, 'username')
-    };
+    // Validate all fields
+    const emailError = validateInput(formState.email, 'email');
+    const passwordError = validateInput(formState.password, 'password');
+    const usernameError = validateInput(formState.username, 'username');
 
-    if (Object.values(errors).some(error => error !== null)) {
+    if (emailError || passwordError || usernameError) {
       setFormState(prev => ({
         ...prev,
-        validationErrors: errors as Record<string, string>
+        validationErrors: {
+          email: emailError,
+          password: passwordError,
+          username: usernameError
+        }
       }));
       return;
     }
 
     if (!turnstileToken) {
+      console.log('No turnstile token, showing captcha');
       setFormState(prev => ({ ...prev, showTurnstile: true }));
       return;
     }
@@ -163,7 +163,7 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
           data: {
             username: formState.username,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         },
       });
 
@@ -173,31 +173,23 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
         throw new Error('No user data returned after sign up');
       }
 
-      // Create user profile
+      // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert([
-          {
-            id: authData.user.id,
-            username: formState.username,
-            preferences: { stayLoggedIn: formState.stayLoggedIn },
-            is_guest: false,
-            verified: false,
-            email_verified: false,
-            turnstile_verified: true
-          },
-        ]);
+        .insert([{
+          id: authData.user.id,
+          username: formState.username,
+          preferences: { stayLoggedIn: formState.stayLoggedIn },
+          is_guest: false,
+          verified: false,
+          email_verified: false,
+          turnstile_verified: true
+        }]);
 
       if (profileError) throw profileError;
 
-      setFormState(prev => ({ ...prev, showTurnstile: false }));
-      toast.success("Sign up successful! Please check your email for verification.");
-      
-      if (options.requireVerification) {
-        toast.info("You'll need to verify your email before accessing all features.");
-      }
-
-      // Navigate to the game page
+      toast.success("Sign up successful!");
+      console.log('Sign up successful, navigating to game');
       navigate('/game', { replace: true });
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -210,6 +202,7 @@ export const useAuthForm = (options: UseAuthFormOptions = {}) => {
 
   const handleMagicLinkLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Sending magic link...', { email: formState.email });
     setFormState(prev => ({ ...prev, loading: true }));
 
     try {

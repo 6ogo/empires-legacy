@@ -2,12 +2,12 @@
 import { Button } from "@/components/ui/button";
 import { TurnstileCaptcha } from "./Turnstile";
 import { useGuestLogin } from "@/hooks/useGuestLogin";
-import { useState } from "react";
 
 export const GuestLoginButton = () => {
   const { isGuestLoading, handleGuestLogin, showTurnstile, setShowTurnstile } = useGuestLogin();
 
   const onTurnstileVerify = async (token: string) => {
+    console.log('Turnstile verified for guest login');
     try {
       await handleGuestLogin(token);
     } catch (error) {

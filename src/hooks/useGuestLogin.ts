@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,6 +10,8 @@ export const useGuestLogin = () => {
   const navigate = useNavigate();
 
   const handleGuestLogin = async (turnstileToken?: string) => {
+    console.log('Handling guest login...', { turnstileToken });
+    
     if (!turnstileToken) {
       setShowTurnstile(true);
       return;
@@ -20,7 +23,7 @@ export const useGuestLogin = () => {
       // First ensure any existing session is cleared
       await supabase.auth.signOut();
 
-      // Get available guest credentials with row locking
+      // Get available guest credentials
       const { data: guestCreds, error: guestCredsError } = await supabase
         .from('guest_credentials')
         .select('email, password')
@@ -33,7 +36,9 @@ export const useGuestLogin = () => {
         throw new Error('No guest accounts available. Please try again later.');
       }
 
-      // Immediately mark the credentials as in use
+      console.log('Found available guest credentials');
+
+      // Mark credentials as in use
       const { error: updateError } = await supabase
         .from('guest_credentials')
         .update({ last_used_at: new Date().toISOString() })
@@ -43,14 +48,14 @@ export const useGuestLogin = () => {
         throw new Error('Failed to secure guest account. Please try again.');
       }
 
-      // Attempt to sign in
+      // Sign in with guest credentials
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: guestCreds.email,
         password: guestCreds.password,
       });
 
       if (signInError || !data.user) {
-        // If sign in fails, release the guest credentials
+        // Release the credentials if sign in fails
         await supabase
           .from('guest_credentials')
           .update({ last_used_at: null })
@@ -69,6 +74,7 @@ export const useGuestLogin = () => {
         .eq('id', data.user.id);
 
       toast.success('Logged in as guest successfully!');
+      console.log('Guest login successful, navigating to game');
       navigate("/game", { replace: true });
     } catch (error: any) {
       console.error('Guest login error:', error);
