@@ -1,3 +1,4 @@
+
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/game/LoadingScreen";
@@ -6,13 +7,11 @@ import { toast } from "sonner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: string[];
   requireEmailVerified?: boolean;
 }
 
 export function ProtectedRoute({ 
-  children, 
-  requiredRoles = [], 
+  children,
   requireEmailVerified = false 
 }: ProtectedRouteProps) {
   const { user, profile, isLoading, error } = useAuth();
@@ -29,11 +28,9 @@ export function ProtectedRoute({
   }
 
   if (!user || !profile) {
-    // Store the attempted URL for redirect after auth
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  // Check email verification if required
   if (requireEmailVerified && !profile.email_verified) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
@@ -46,11 +43,6 @@ export function ProtectedRoute({
         </p>
       </div>
     );
-  }
-
-  // Check role-based access if required
-  if (requiredRoles.length > 0 && profile.role && !requiredRoles.includes(profile.role)) {
-    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

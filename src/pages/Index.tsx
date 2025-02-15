@@ -60,6 +60,24 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
+  // Handler functions
+  const handleBackFromGame = () => {
+    setGameStarted(false);
+    setGameStatus("menu");
+    setGameMode(null);
+    if (joinRoomId) {
+      setJoinRoomId('');
+    }
+  };
+
+  const handleBackToMenu = () => {
+    setGameMode(null);
+    setGameStatus("menu");
+    if (joinRoomId) {
+      setJoinRoomId('');
+    }
+  };
+
   // Redirect to auth if not authenticated
   useEffect(() => {
     if (!user && !authLoading) {
@@ -84,17 +102,14 @@ const Index = () => {
 
   useGameSubscription(gameId, setGameStarted, setGameStatus, handleActionDispatch);
 
-  // Show loading screen while checking auth
   if (authLoading) {
     return <LoadingScreen message="Loading game..." />;
   }
 
-  // Show error screen if there's an initialization error
   if (initializationError) {
     return <ErrorScreen message={initializationError} onRetry={() => navigate('/game')} />;
   }
 
-  // Don't render anything if we're not authenticated
   if (!user) {
     return null;
   }

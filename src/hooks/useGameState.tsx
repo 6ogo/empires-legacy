@@ -1,5 +1,6 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameAction, ValidationResult } from '@/types/game';
+import { GameState, GameAction, ValidationResult, GamePhase } from '@/types/game';
 import { GameStateManager } from '@/lib/game-utils';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -41,7 +42,7 @@ export const useGameState = (
               historyRef.current = [parsedState];
               currentIndexRef.current = 0;
             } else {
-              console.error('Invalid persisted state:', validation.errors);
+              console.error('Invalid persisted state:', validation.message);
               localStorage.removeItem(PERSIST_KEY);
             }
           } else {

@@ -1,5 +1,10 @@
-// src/lib/game-validation.ts
-import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult } from '@/types/game';
+import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase } from '@/types/game';
+
+export interface CombatResult {
+  defenderDestroyed: boolean;
+  attackerDamage: number;
+  defenderDamage: number;
+}
 
 export class GameStateValidator {
   private state: GameState;
@@ -471,7 +476,7 @@ export class GameStateValidator {
     }
   }
 
-  private canEndPhase(phase: string): ValidationResult {
+  private canEndPhase(phase: GamePhase): ValidationResult {
     switch (phase) {
       case 'setup':
         // Check if all players have claimed their starting territory
