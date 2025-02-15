@@ -28,20 +28,47 @@ function RouteHandler() {
   const location = useLocation();
   const { user, loading, profile } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initializationTimeout, setInitializationTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (!isInitialized) {
+        console.error('Initialization timed out');
+        setIsInitialized(true);
+        navigate('/auth', { replace: true });
+      }
+    }, 5000); // 5 seconds timeout
+
+    setInitializationTimeout(timeout);
+
+    return () => {
+      if (initializationTimeout) {
+        clearTimeout(initializationTimeout);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Wait for auth to initialize
+      // Don't proceed if still loading
       if (loading) return;
 
-      // Mark as initialized
+      // Clear timeout since we got a response
+      if (initializationTimeout) {
+        clearTimeout(initializationTimeout);
+      }
+
+      // Mark as initialized since we have a response
       if (!isInitialized) {
         setIsInitialized(true);
       }
 
+      console.log('Auth state:', { user, profile, loading, pathname: location.pathname });
+
       // Handle authentication routing
       if (!user && !loading && location.pathname !== '/auth' && location.pathname !== '/auth/callback') {
-        console.log('No user found, redirecting to auth', { pathname: location.pathname });
+        console.log('No user found, redirecting to auth');
         navigate('/auth', { replace: true });
         return;
       }
@@ -68,11 +95,11 @@ function RouteHandler() {
     };
 
     initializeAuth();
-  }, [loading, user, profile, location, navigate, isInitialized]);
+  }, [loading, user, profile, location, navigate, isInitialized, initializationTimeout]);
 
-  // Show loading screen until auth is initialized
-  if (loading || !isInitialized) {
-    return <LoadingScreen message="Initializing..." />;
+  // Only show loading screen during initial load
+  if (loading && !isInitialized) {
+    return <LoadingScreen message="Checking authentication..." />;
   }
 
   return null;
@@ -81,16 +108,24 @@ function RouteHandler() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
   
   useEffect(() => {
-    if (!loading && (!user || !profile)) {
-      console.log('Protected route - no user or profile, redirecting to auth');
-      navigate('/auth', { replace: true });
-    }
+    const checkAuth = async () => {
+      if (!loading) {
+        if (!user || !profile) {
+          console.log('Protected route - no user or profile, redirecting to auth');
+          navigate('/auth', { replace: true });
+        }
+        setAuthChecked(true);
+      }
+    };
+
+    checkAuth();
   }, [loading, user, profile, navigate]);
 
-  if (loading) {
-    return <LoadingScreen message="Loading..." />;
+  if (loading && !authChecked) {
+    return <LoadingScreen message="Verifying access..." />;
   }
   
   if (!user || !profile) {
@@ -103,16 +138,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
   
   useEffect(() => {
-    if (!loading && user && profile) {
-      console.log('Auth route - user is logged in, redirecting to game');
-      navigate('/game', { replace: true });
-    }
+    const checkAuth = async () => {
+      if (!loading) {
+        if (user && profile) {
+          console.log('Auth route - user is logged in, redirecting to game');
+          navigate('/game', { replace: true });
+        }
+        setAuthChecked(true);
+      }
+    };
+
+    checkAuth();
   }, [loading, user, profile, navigate]);
 
-  if (loading) {
-    return <LoadingScreen message="Loading..." />;
+  if (loading && !authChecked) {
+    return <LoadingScreen message="Checking session..." />;
   }
   
   if (user && profile) {
