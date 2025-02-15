@@ -17,6 +17,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Callback = lazy(() => import("./pages/Auth/Callback"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Achievements = lazy(() => import("./components/game/Achievements"));
+const Landing = lazy(() => import("./pages/Landing"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,7 +39,7 @@ const App = () => {
           <AuthProvider>
             <Suspense fallback={<LoadingScreen message="Loading..." />}>
               <Routes>
-                <Route path="/" element={<Navigate to="/game" replace />} />
+                <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<Callback />} />
                 <Route 
