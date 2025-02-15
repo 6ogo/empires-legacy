@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
 
 export class GameStateValidator {
@@ -100,7 +99,8 @@ export class GameStateValidator {
       'version'
     ];
 
-    return requiredProperties.every(prop => prop in state);
+    const stateObj = state as Record<string, unknown>;
+    return requiredProperties.every(prop => prop in stateObj && stateObj[prop] !== undefined);
   }
 
   private validatePlayer(player: Player): ValidationResult {
@@ -177,6 +177,18 @@ export class GameStateValidator {
     return {
       valid: errors.length === 0,
       message: errors.join(", ")
+    };
+  }
+
+  private validateTurnActions(playerId: string): ValidationResult {
+    const turnUpdates = this.state.updates.filter(update => {
+      if (typeof update.timestamp !== 'number') return false;
+      return update.timestamp > this.state.lastUpdated && update.playerId === playerId;
+    });
+
+    return {
+      valid: turnUpdates.length > 0,
+      message: turnUpdates.length === 0 ? "No actions taken this turn" : ""
     };
   }
 
@@ -494,22 +506,6 @@ export class GameStateValidator {
     return Object.entries(resources).some(
       ([resource, amount]) => amount > thresholds[resource as keyof typeof thresholds]
     );
-  }
-
-  private validateTurnActions(playerId: string): ValidationResult {
-    const turnUpdates = this.state.updates.filter(update => 
-      update.timestamp > this.state.lastUpdated && 
-      update.playerId === playerId
-    );
-
-    if (turnUpdates.length === 0) {
-      return {
-        valid: false,
-        message: "No actions taken this turn"
-      };
-    }
-
-    return { valid: true };
   }
 }
 
