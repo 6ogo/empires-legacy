@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LandingPage from './pages/Landing';
@@ -8,32 +8,52 @@ import AuthPage from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import LoadingScreen from './components/game/LoadingScreen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './contexts/AuthContext';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const AppRoutes = () => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <LoadingScreen message="Checking authentication..." />
-      </div>
-    );
+    return <LoadingScreen message="Loading..." />;
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  const { isLoading } = useAuth();
+
+  // Show loading screen only for protected routes
+  if (isLoading) {
+    return null;
   }
 
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route 
-        path="/game/*" 
-        element={
-          user ? <GamePage /> : <AuthPage />
-        } 
-      />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route
+        path="/game/*"
+        element={
+          <ProtectedRoute>
+            <GamePage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };
