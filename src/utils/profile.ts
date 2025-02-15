@@ -28,18 +28,17 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
       verified: !!data.verified,
       email_verified: !!data.email_verified,
       preferences: data.preferences as { stayLoggedIn: boolean } ?? { stayLoggedIn: false },
-      avatar_url: data.avatar_url,
-      created_at: data.created_at,
-      last_login: data.last_login,
+      avatarUrl: data.avatar_url,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at || data.created_at,
+      lastLoginAt: data.last_login,
       total_gametime: data.total_gametime || 0,
       total_games_played: data.total_games_played || 0,
       total_wins: data.total_wins || 0,
       economic_wins: data.economic_wins || 0,
       domination_wins: data.domination_wins || 0,
       xp: data.xp || 0,
-      level: data.level || 1,
-      last_username_change: data.last_username_change,
-      achievements: Array.isArray(data.achievements) ? data.achievements : [],
+      level: data.level || 1
     };
   } catch (error: any) {
     console.error('Error in fetchProfile:', error);

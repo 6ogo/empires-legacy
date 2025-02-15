@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { TurnstileCaptcha } from "./Turnstile";
 import { useGuestLogin } from "@/hooks/useGuestLogin";
@@ -7,7 +8,7 @@ export const GuestLoginButton = () => {
   const { isGuestLoading, handleGuestLogin } = useGuestLogin();
   const [showTurnstile, setShowTurnstile] = useState(false);
 
-  const onTurnstileSuccess = async (token: string) => {
+  const onTurnstileVerify = async (token: string) => {
     try {
       await handleGuestLogin(token);
     } catch (error) {
@@ -21,7 +22,7 @@ export const GuestLoginButton = () => {
     <>
       {showTurnstile ? (
         <div className="w-full flex flex-col items-center gap-4">
-          <TurnstileCaptcha onSuccess={onTurnstileSuccess} />
+          <TurnstileCaptcha onVerify={onTurnstileVerify} />
           <Button
             type="button"
             variant="outline"

@@ -14,5 +14,3 @@ export const TurnstileCaptcha: React.FC<TurnstileProps> = ({ onVerify }) => {
     />
   );
 };
-
-export { TurnstileCaptcha as Turnstile };

@@ -75,7 +75,7 @@ export const PasswordLoginForm = ({
         </div>
         {showTurnstile && (
           <div className="flex justify-center">
-            <TurnstileCaptcha onSuccess={(token) => onSubmit(createFormEvent(), token)} />
+            <TurnstileCaptcha onVerify={(token) => onSubmit(createFormEvent(), token)} />
           </div>
         )}
       </CardContent>
