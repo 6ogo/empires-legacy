@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,16 +34,7 @@ const isValidGameState = (state: unknown): state is GameState => {
 interface GameUpdatePayload {
   new: {
     game_status: string;
-    state: {
-      players: any[];
-      territories: any[];
-      currentPlayer: PlayerColor;
-      phase: GamePhase;
-      turn: number;
-      updates: any[];
-      hasExpandedThisTurn: boolean;
-      hasRecruitedThisTurn: boolean;
-    };
+    state: Json;
   };
 }
 
@@ -158,10 +148,9 @@ const Index = () => {
             setGameStatus("playing");
             
             try {
-              const rawState = payload.new.state;
-              const stateData = typeof rawState === 'string' 
-                ? JSON.parse(rawState) 
-                : rawState;
+              const stateData = (typeof payload.new.state === 'string' 
+                ? JSON.parse(payload.new.state) 
+                : payload.new.state) as unknown;
 
               if (isValidGameState(stateData)) {
                 setGameState(stateData);
