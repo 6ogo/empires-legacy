@@ -1,6 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/types/auth";
+import { Database } from "@/integrations/supabase/types";
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 export const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
   console.log('Fetching profile for user:', userId);
@@ -21,17 +24,25 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
       return null;
     }
 
-    // Parse preferences with default values if needed
-    const preferences = typeof data.preferences === 'object' && data.preferences !== null
-      ? {
-          stayLoggedIn: Boolean(data.preferences?.stayLoggedIn),
-          theme: data.preferences?.theme as 'light' | 'dark' | undefined,
-          notifications: {
-            email: Boolean(data.preferences?.notifications?.email),
-            push: Boolean(data.preferences?.notifications?.push)
-          }
-        }
-      : { stayLoggedIn: false };
+    // Type assertion for preferences
+    const preferencesData = data.preferences as { 
+      stayLoggedIn?: boolean; 
+      theme?: 'light' | 'dark';
+      notifications?: { 
+        email: boolean; 
+        push: boolean; 
+      };
+    } | null;
+
+    // Create preferences object with default values
+    const preferences = {
+      stayLoggedIn: preferencesData?.stayLoggedIn ?? false,
+      theme: preferencesData?.theme,
+      notifications: {
+        email: preferencesData?.notifications?.email ?? false,
+        push: preferencesData?.notifications?.push ?? false
+      }
+    };
 
     console.log('Profile fetched successfully:', data);
     return {
