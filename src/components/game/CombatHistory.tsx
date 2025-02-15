@@ -1,5 +1,4 @@
-
-import React, { type ReactElement } from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -8,48 +7,127 @@ import { formatDistanceToNow } from "date-fns";
 import { Trophy, Skull, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { GameState, GameUpdate } from "@/types/game";
 
 interface CombatHistoryProps {
+  gameState: GameState;
   onClose: () => void;
 }
 
-const CombatHistory = ({ onClose }: CombatHistoryProps): ReactElement => {
-  const { user } = useAuth();
+interface CombatHistoryEntry {
+  id: string;
+  action: string;
+  territory_from?: string;
+  territory_to?: string;
+  attacker: string;
+  defender: string;
+  result: 'victory' | 'defeat' | 'ongoing';
+  damage_dealt: number;
+  units_lost: number;
+  timestamp: string;
+}
 
-  const { data: games, isLoading } = useQuery({
-    queryKey: ['combatHistory'],
+const CombatHistory = ({ gameState, onClose }: CombatHistoryProps) => {
+  const { user } = useAuth();
+  
+  // Filter combat-related updates from gameState
+  const combatUpdates = gameState.updates.filter(
+    update => update.type === 'combat'
+  ).sort((a, b) => b.timestamp - a.timestamp);
+
+  // Query for persistent combat history from database
+  const { data: historicalCombats, isLoading } = useQuery({
+    queryKey: ['combatHistory', user?.id],
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from('games')
+        .from('combat_history')
         .select('*')
-        .contains('players_info', [{ player_id: user.id }])
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .or(`attacker.eq.${user.id},defender.eq.${user.id}`)
+        .order('timestamp', { ascending: false })
+        .limit(20);
 
       if (error) {
         console.error('Error fetching combat history:', error);
         throw error;
       }
-      return data;
+      return data as CombatHistoryEntry[];
     },
     enabled: !!user,
     retry: 1,
   });
-
-  const getGameResult = (game: any) => {
-    if (!user) return null;
-
-    if (!game.winner_id) return "In Progress";
-    return game.winner_id === user.id ? "Victory" : "Defeat";
-  };
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
+
+  const getCombatResult = (combat: CombatHistoryEntry) => {
+    if (!user) return null;
+    if (combat.result === 'ongoing') return "In Progress";
+    return combat.attacker === user.id ? 
+      (combat.result === 'victory' ? "Victory" : "Defeat") : 
+      (combat.result === 'victory' ? "Defeat" : "Victory");
+  };
+
+  const renderCombatUpdate = (update: GameUpdate, index: number) => (
+    <div 
+      key={`current-${index}`} 
+      className="bg-gray-800 p-4 rounded-lg border border-gray-700"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-gray-400">
+          {formatDistanceToNow(new Date(update.timestamp), { addSuffix: true })}
+        </span>
+        <div className="flex items-center text-yellow-500">
+          <Clock className="w-4 h-4 mr-1" />
+          <span>In Progress</span>
+        </div>
+      </div>
+      <div className="text-sm text-gray-300">
+        {update.message}
+      </div>
+    </div>
+  );
+
+  const renderHistoricalCombat = (combat: CombatHistoryEntry) => (
+    <div 
+      key={combat.id} 
+      className="bg-gray-800 p-4 rounded-lg border border-gray-700"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-gray-400">
+          {formatDistanceToNow(new Date(combat.timestamp), { addSuffix: true })}
+        </span>
+        {getCombatResult(combat) === "In Progress" ? (
+          <div className="flex items-center text-yellow-500">
+            <Clock className="w-4 h-4 mr-1" />
+            <span>In Progress</span>
+          </div>
+        ) : getCombatResult(combat) === "Victory" ? (
+          <div className="flex items-center text-green-500">
+            <Trophy className="w-4 h-4 mr-1" />
+            <span>Victory</span>
+          </div>
+        ) : (
+          <div className="flex items-center text-red-500">
+            <Skull className="w-4 h-4 mr-1" />
+            <span>Defeat</span>
+          </div>
+        )}
+      </div>
+      <div className="text-sm text-gray-300">
+        <div>Action: {combat.action}</div>
+        {combat.territory_from && combat.territory_to && (
+          <div>Location: {combat.territory_from} → {combat.territory_to}</div>
+        )}
+        <div>Damage Dealt: {combat.damage_dealt}</div>
+        <div>Units Lost: {combat.units_lost}</div>
+      </div>
+    </div>
+  );
 
   return (
     <div 
@@ -72,48 +150,17 @@ const CombatHistory = ({ onClose }: CombatHistoryProps): ReactElement => {
         <ScrollArea className="h-[400px] rounded-md border p-4">
           {isLoading ? (
             <div className="text-center text-white">Loading combat history...</div>
-          ) : !games || games.length === 0 ? (
-            <div className="text-center text-white">No combat history yet</div>
           ) : (
             <div className="space-y-4">
-              {games.map((game) => (
-                <div 
-                  key={game.id} 
-                  className="bg-gray-800 p-4 rounded-lg border border-gray-700"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">
-                      {formatDistanceToNow(new Date(game.created_at), { addSuffix: true })}
-                    </span>
-                    {getGameResult(game) === "In Progress" ? (
-                      <div className="flex items-center text-yellow-500">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>In Progress</span>
-                      </div>
-                    ) : getGameResult(game) === "Victory" ? (
-                      <div className="flex items-center text-green-500">
-                        <Trophy className="w-4 h-4 mr-1" />
-                        <span>Victory</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center text-red-500">
-                        <Skull className="w-4 h-4 mr-1" />
-                        <span>Defeat</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-300">
-                    Players: {game.num_players}
-                    {game.game_summary && (
-                      <div className="mt-2 text-xs text-gray-400">
-                        {typeof game.game_summary === 'string' 
-                          ? game.game_summary 
-                          : JSON.stringify(game.game_summary)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {/* Current game combat updates */}
+              {combatUpdates.map((update, index) => renderCombatUpdate(update, index))}
+              
+              {/* Historical combat records */}
+              {historicalCombats?.map(combat => renderHistoricalCombat(combat))}
+              
+              {combatUpdates.length === 0 && (!historicalCombats || historicalCombats.length === 0) && (
+                <div className="text-center text-white">No combat history yet</div>
+              )}
             </div>
           )}
         </ScrollArea>
