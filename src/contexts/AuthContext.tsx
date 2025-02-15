@@ -42,19 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast.error(error.message);
   }, []);
 
-  const getPersistentSession = useCallback(() => {
-    const stored = localStorage.getItem(PERSIST_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        localStorage.removeItem(PERSIST_KEY);
-      }
-    }
-    return null;
-  }, []);
-
-  const refreshSession = useCallback(async () => {
+  const initialize = useCallback(async () => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
@@ -62,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setUser(session.user);
         setSession(session);
-        localStorage.setItem(PERSIST_KEY, JSON.stringify(session));
         
         const userProfile = await fetchProfile(session.user.id);
         if (userProfile) {
@@ -71,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       handleError(error as Error);
+    } finally {
+      setLoading(false);
     }
   }, [handleError]);
 
@@ -89,86 +78,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    let mounted = true;
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
 
-    const initializeAuth = async () => {
-      try {
-        // First check for persistent session
-        const persistedSession = getPersistentSession();
-        if (persistedSession?.user) {
-          setUser(persistedSession.user);
-          setSession(persistedSession);
-          const userProfile = await fetchProfile(persistedSession.user.id);
-          if (mounted && userProfile) {
-            setProfile(userProfile);
-          }
-        }
-
-        // Then get current session from Supabase
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (mounted && session?.user) {
-          setUser(session.user);
-          setSession(session);
-          localStorage.setItem(PERSIST_KEY, JSON.stringify(session));
-          
-          const userProfile = await fetchProfile(session.user.id);
-          if (mounted && userProfile) {
-            setProfile(userProfile);
-          }
-        }
-      } catch (error) {
-        if (mounted) {
-          handleError(error as Error);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
+      if (session?.user) {
+        setUser(session.user);
+        setSession(session);
+        
+        const userProfile = await fetchProfile(session.user.id);
+        if (userProfile) {
+          setProfile(userProfile);
         }
       }
-    };
+    } catch (error) {
+      handleError(error as Error);
+    }
+  }, [handleError]);
 
-    initializeAuth();
+  useEffect(() => {
+    initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
 
-      if (!mounted) return;
-
-      try {
-        if (session?.user) {
-          setUser(session.user);
-          setSession(session);
-          localStorage.setItem(PERSIST_KEY, JSON.stringify(session));
-          
-          const userProfile = await fetchProfile(session.user.id);
-          if (mounted && userProfile) {
-            setProfile(userProfile);
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-          localStorage.removeItem(PERSIST_KEY);
+      if (session?.user) {
+        setUser(session.user);
+        setSession(session);
+        
+        const userProfile = await fetchProfile(session.user.id);
+        if (userProfile) {
+          setProfile(userProfile);
         }
-      } catch (error) {
-        if (mounted) {
-          handleError(error as Error);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+      } else {
+        setUser(null);
+        setProfile(null);
+        setSession(null);
       }
+      setLoading(false);
     });
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate, handleError, getPersistentSession]);
+  }, [initialize]);
 
   const value = {
     user,
