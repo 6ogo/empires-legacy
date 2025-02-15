@@ -13,6 +13,7 @@ export interface UserProfile {
   level?: number;
   verified?: boolean;
   email_verified?: boolean;
+  preferences?: { stayLoggedIn: boolean };
   total_gametime?: number;
   total_games_played?: number;
   total_wins?: number;

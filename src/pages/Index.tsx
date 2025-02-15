@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +52,25 @@ const Index = () => {
   } = useOnlineGame();
 
   useGameSubscription(gameId, setGameStarted, setGameStatus, dispatchAction);
+
+  const handleDispatch = (action: GameAction): boolean => {
+    const fullAction: GameAction = {
+      ...action,
+      playerId: user?.id || '',
+      timestamp: Date.now()
+    };
+    
+    return true;
+  };
+
+  const handleStateUpdate = (newState: GameState) => {
+    dispatchAction({
+      type: 'SET_STATE',
+      payload: { state: newState },
+      playerId: user?.id || '',
+      timestamp: Date.now()
+    });
+  };
 
   // Redirect to landing page if not authenticated
   useEffect(() => {

@@ -2,12 +2,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSession } from "./useSession";
-import type { UserProfile } from "@/types/auth";
+import type { UserProfile, AuthContextType } from "@/types/auth";
 
-export type { UserProfile };
+export type { UserProfile, AuthContextType };
 
 export const useAuth = () => {
-  const { user, profile, loading } = useSession();
+  const { user, profile, loading: isLoading } = useSession();
 
   const signOut = async () => {
     try {
@@ -25,7 +25,7 @@ export const useAuth = () => {
   return {
     user,
     profile,
-    loading,
+    isLoading,
     signOut,
   };
 };

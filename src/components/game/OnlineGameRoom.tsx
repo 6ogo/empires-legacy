@@ -45,8 +45,6 @@ const OnlineGameRoom: React.FC<OnlineGameRoomProps> = ({ onRoomCreated, onRoomJo
       const { data: game, error } = await supabase
         .from('games')
         .insert({
-          room_id: roomId,
-          state: initialState,
           current_player: userId,
           max_players: parseInt(numPlayers),
           num_players: 1,
@@ -56,7 +54,9 @@ const OnlineGameRoom: React.FC<OnlineGameRoomProps> = ({ onRoomCreated, onRoomJo
           players_info: [{
             id: userId,
             ready: false
-          }]
+          }],
+          room_id: roomId,
+          state: JSON.stringify(initialState) // Convert GameState to JSON string
         })
         .select()
         .single();

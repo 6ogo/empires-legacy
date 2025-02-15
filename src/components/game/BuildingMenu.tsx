@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Resources, Territory } from "@/types/game";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,7 +12,7 @@ import {
   Mountain,
   GalleryThumbnails,
   Castle,
-  ArrowsExpand
+  ArrowsUpDown
 } from "lucide-react";
 
 interface BuildingMenuProps {
@@ -56,7 +55,7 @@ const buildings = [
   {
     id: "expand",
     name: "Expand Territory",
-    icon: ArrowsExpand,
+    icon: ArrowsUpDown,
     cost: { wood: 25, stone: 25 },
     description: "Buy adjacent territory",
   },

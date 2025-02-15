@@ -14,7 +14,7 @@ export class TurnManager {
     this.turnActions = [];
   }
 
-  canPerformAction(action: GameAction): boolean {
+  canPerformAction(action: GameAction): ValidationResult {
     return this.validatePhaseRequirements(action);
   }
 

@@ -14,12 +14,16 @@ interface GameBoardProps {
   gameState: GameState;
   dispatchAction: (action: any) => boolean;
   onBack: () => void;
+  onEndTurn: () => void;
+  onEndPhase: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
   gameState,
   dispatchAction,
   onBack,
+  onEndTurn,
+  onEndPhase,
 }) => {
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
   const [showMenus, setShowMenus] = useState(false);
@@ -96,6 +100,14 @@ const GameBoard: React.FC<GameBoardProps> = ({
     }
   }, [selectedTerritory, gameState.currentPlayer, recruitUnit]);
 
+  const handleEndTurn = () => {
+    onEndTurn();
+  };
+
+  const handleEndPhase = () => {
+    onEndPhase();
+  };
+
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
       <Button
@@ -138,8 +150,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
         <GameControls
           gameState={gameState}
-          onEndTurn={endTurn}
-          onEndPhase={endPhase}
+          onEndTurn={handleEndTurn}
+          onEndPhase={handleEndPhase}
         />
       </div>
 
