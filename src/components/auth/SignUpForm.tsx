@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Turnstile } from "@/components/auth/Turnstile";
+import { TurnstileCaptcha as Turnstile } from "@/components/auth/Turnstile";
 
 interface SignUpFormProps {
   email: string;

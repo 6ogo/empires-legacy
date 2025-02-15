@@ -2,15 +2,17 @@
 import Turnstile from 'react-turnstile';
 
 interface TurnstileProps {
-  onSuccess: (token: string) => void;
+  onVerify: (token: string) => void;
 }
 
-export const TurnstileCaptcha = ({ onSuccess }: TurnstileProps) => {
+export const TurnstileCaptcha: React.FC<TurnstileProps> = ({ onVerify }) => {
   return (
     <Turnstile
       sitekey="0x4AAAAAAA8rGkMocyc8drQ-"
-      onVerify={onSuccess}
+      onVerify={onVerify}
       className="mx-auto"
     />
   );
 };
+
+export { TurnstileCaptcha as Turnstile };

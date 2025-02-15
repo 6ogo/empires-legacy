@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { GameState, GameAction } from '@/types/game';
 import { GameStateManager } from '@/lib/game-utils';
@@ -25,8 +26,14 @@ export const useGameState = (initialState: GameState) => {
     }
   }, [gameStateManager]);
 
+  const updateGameState = useCallback((newState: GameState) => {
+    setGameState(newState);
+    gameStateManager.setState(newState);
+  }, [gameStateManager]);
+
   return {
     gameState,
-    dispatchAction
+    dispatchAction,
+    updateGameState
   };
 };

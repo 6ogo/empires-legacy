@@ -1,3 +1,4 @@
+
 import React from "react";
 import { GameState } from "@/types/game";
 import GameBoard from "./GameBoard";
@@ -17,6 +18,29 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onShowCombatHistory,
   onBack,
 }) => {
+  const handleEndTurn = () => {
+    dispatchAction({
+      type: 'END_TURN',
+      playerId: gameState.currentPlayer,
+      timestamp: Date.now(),
+      payload: {}
+    });
+  };
+
+  const handleEndPhase = () => {
+    dispatchAction({
+      type: 'END_PHASE',
+      playerId: gameState.currentPlayer,
+      timestamp: Date.now(),
+      payload: {}
+    });
+  };
+
+  const handleGiveUp = () => {
+    // Implementation for give up functionality
+    console.log('Give up clicked');
+  };
+
   return (
     <div className="min-h-screen bg-[#141B2C] relative">
       <div className="absolute top-4 left-4 z-10 flex gap-2">
@@ -42,7 +66,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
           <GameBoard
             gameState={gameState}
             dispatchAction={dispatchAction}
+            onShowCombatHistory={onShowCombatHistory}
             onBack={onBack}
+            onEndTurn={handleEndTurn}
+            onEndPhase={handleEndPhase}
+            onGiveUp={handleGiveUp}
           />
         </div>
       </div>

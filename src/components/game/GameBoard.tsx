@@ -1,6 +1,6 @@
 
 import React, { useCallback } from "react";
-import { GameState } from "@/types/game";
+import { GameState, MilitaryUnit } from "@/types/game";
 import HexGrid from "./HexGrid";
 import GameControls from "./GameControls";
 import { useGameActions } from "@/hooks/useGameActions";
@@ -8,6 +8,7 @@ import { useTerritorySelection } from "@/hooks/useTerritorySelection";
 import GameTopBar from "./GameTopBar";
 import GameMenus from "./GameMenus";
 import { toast } from "sonner";
+import { militaryUnits } from "@/data/military-units";
 
 interface GameBoardProps {
   gameState: GameState;
@@ -59,6 +60,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
     }
   }, [selectedTerritory, gameState.currentPlayer, buildStructure, setSelectedTerritory, setShowMenus]);
 
+  const handleRecruit = useCallback((unitType: string) => {
+    if (!selectedTerritory) return;
+    const unit = militaryUnits[unitType] as MilitaryUnit;
+    recruitUnit(selectedTerritory.id, unit, gameState.currentPlayer);
+  }, [selectedTerritory, gameState.currentPlayer, recruitUnit]);
+
   const defaultResources = {
     gold: 0,
     wood: 0,
@@ -97,7 +104,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         showMenus={showMenus}
         selectedTerritory={selectedTerritory}
         onBuild={handleBuild}
-        onRecruit={(unitType) => recruitUnit(selectedTerritory!.id, unitType, gameState.currentPlayer)}
+        onRecruit={handleRecruit}
         resources={currentPlayer?.resources || defaultResources}
       />
     </div>
