@@ -10,6 +10,7 @@ export const useSession = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -26,25 +27,38 @@ export const useSession = () => {
 
         if (!mounted) return;
 
-        console.log('Session state:', session ? 'Valid session' : 'No session');
+        console.log('Session state:', session ? 'Valid session found' : 'No session');
 
         if (session?.user) {
           console.log('Setting user from session:', session.user.email);
           setUser(session.user);
           
-          const profile = await fetchProfile(session.user.id);
-          if (mounted) {
-            if (profile) {
-              console.log('Setting profile for user');
-              setProfile(profile);
-            } else {
-              console.log('No profile found for user');
+          try {
+            const profile = await fetchProfile(session.user.id);
+            if (mounted) {
+              if (profile) {
+                console.log('Profile found and set for user');
+                setProfile(profile);
+              } else {
+                console.log('No profile found for user, clearing auth state');
+                setUser(null);
+                setProfile(null);
+                // Show error to user
+                toast.error('User profile not found. Please try logging in again.');
+              }
+            }
+          } catch (profileError) {
+            console.error('Error fetching profile:', profileError);
+            if (mounted) {
               setUser(null);
+              setProfile(null);
+              setError(profileError as Error);
+              toast.error('Error loading user profile. Please try again.');
             }
           }
         } else {
           if (mounted) {
-            console.log('No session found, clearing user and profile');
+            console.log('No active session found');
             setUser(null);
             setProfile(null);
           }
@@ -54,7 +68,8 @@ export const useSession = () => {
         if (mounted) {
           setUser(null);
           setProfile(null);
-          toast.error('Authentication error. Please try again.');
+          setError(error as Error);
+          toast.error('Authentication error. Please try logging in again.');
         }
       } finally {
         if (mounted) {
@@ -67,29 +82,40 @@ export const useSession = () => {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+      console.log('Auth state changed:', event, session?.user?.email);
 
       if (!mounted) return;
 
       try {
         if (session?.user) {
-          console.log('Auth state change: User found');
+          console.log('Auth state change: Setting user');
           setUser(session.user);
-          const profile = await fetchProfile(session.user.id);
           
-          if (mounted) {
-            if (profile) {
-              console.log('Auth state change: Setting profile');
-              setProfile(profile);
-            } else {
-              console.log('Auth state change: No profile found');
+          try {
+            const profile = await fetchProfile(session.user.id);
+            if (mounted) {
+              if (profile) {
+                console.log('Auth state change: Profile found and set');
+                setProfile(profile);
+              } else {
+                console.log('Auth state change: No profile found');
+                setUser(null);
+                setProfile(null);
+                toast.error('User profile not found. Please try logging in again.');
+              }
+            }
+          } catch (profileError) {
+            console.error('Error fetching profile:', profileError);
+            if (mounted) {
               setUser(null);
               setProfile(null);
+              setError(profileError as Error);
+              toast.error('Error loading user profile. Please try again.');
             }
           }
         } else {
           if (mounted) {
-            console.log('Auth state change: No user');
+            console.log('Auth state change: Clearing user and profile');
             setUser(null);
             setProfile(null);
           }
@@ -99,10 +125,11 @@ export const useSession = () => {
         if (mounted) {
           setUser(null);
           setProfile(null);
+          setError(error as Error);
+          toast.error('Authentication error occurred. Please try again.');
         }
       } finally {
         if (mounted) {
-          console.log('Auth state change: Setting loading to false');
           setLoading(false);
         }
       }
@@ -115,5 +142,5 @@ export const useSession = () => {
     };
   }, []);
 
-  return { user, profile, loading };
+  return { user, profile, loading, error };
 };

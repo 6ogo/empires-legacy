@@ -6,13 +6,18 @@ import Index from "./Index";
 import LoadingScreen from "@/components/game/LoadingScreen";
 
 const GamePage = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading, error } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen message="Loading..." />;
+    return <LoadingScreen message="Loading game..." />;
   }
 
-  if (!user) {
+  if (error) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!user || !profile) {
+    console.log('No user or profile, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 

@@ -5,14 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { useAuthForm } from "@/hooks/useAuthForm";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const {
     email,
     setEmail,
@@ -20,7 +21,7 @@ const Auth = () => {
     setPassword,
     username,
     setUsername,
-    loading,
+    loading: authFormLoading,
     stayLoggedIn,
     setStayLoggedIn,
     handleSignIn,
@@ -30,10 +31,19 @@ const Auth = () => {
   } = useAuthForm();
 
   useEffect(() => {
-    if (user && profile) {
-      navigate('/game', { replace: true });
-    }
-  }, [user, profile, navigate]);
+    console.log('Auth page state:', { user, profile, isLoading });
+  }, [user, profile, isLoading]);
+
+  // Show loading screen while checking auth status
+  if (isLoading) {
+    return <LoadingScreen message="Checking authentication..." />;
+  }
+
+  // Redirect to game if already authenticated
+  if (user && profile) {
+    console.log('User authenticated, redirecting to game');
+    return <Navigate to="/game" replace />;
+  }
 
   return (
     <div 
@@ -79,7 +89,7 @@ const Auth = () => {
               setPassword={setPassword}
               stayLoggedIn={stayLoggedIn}
               setStayLoggedIn={setStayLoggedIn}
-              loading={loading}
+              loading={authFormLoading}
               onSubmit={handleSignIn}
               onMagicLinkLogin={handleMagicLinkLogin}
               showTurnstile={showTurnstile}
@@ -95,7 +105,7 @@ const Auth = () => {
               setUsername={setUsername}
               stayLoggedIn={stayLoggedIn}
               setStayLoggedIn={setStayLoggedIn}
-              loading={loading}
+              loading={authFormLoading}
               onSubmit={handleSignUp}
               showTurnstile={showTurnstile}
             />
