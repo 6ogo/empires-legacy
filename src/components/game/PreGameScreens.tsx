@@ -18,11 +18,16 @@ const PreGameScreens: React.FC<PreGameScreensProps> = ({
   onBackToMenu,
   children,
 }) => {
+  const handleBackClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onBackToMenu();
+  };
+
   if (showLeaderboard) {
     return (
       <div className="p-4">
         <Button
-          onClick={onBackToMenu}
+          onClick={handleBackClick}
           variant="outline"
           className="mb-4 hover:bg-gray-800 transition-colors"
         >
@@ -38,7 +43,7 @@ const PreGameScreens: React.FC<PreGameScreensProps> = ({
     return (
       <div className="container mx-auto p-4">
         <Button
-          onClick={onBackToMenu}
+          onClick={handleBackClick}
           variant="outline"
           className="mb-4 hover:bg-gray-800 transition-colors"
         >
