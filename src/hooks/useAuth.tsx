@@ -31,7 +31,6 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -53,9 +52,7 @@ export const useAuth = () => {
         username: data.username,
         verified: !!data.verified,
         email_verified: !!data.email_verified,
-        preferences: typeof data.preferences === 'string' 
-          ? JSON.parse(data.preferences)
-          : (data.preferences as { stayLoggedIn: boolean }) ?? { stayLoggedIn: false },
+        preferences: data.preferences as { stayLoggedIn: boolean } ?? { stayLoggedIn: false },
         avatar_url: data.avatar_url,
         created_at: data.created_at,
         last_login: data.last_login,
@@ -94,8 +91,6 @@ export const useAuth = () => {
     let mounted = true;
 
     const initializeAuth = async () => {
-      if (initialized) return;
-      
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -114,7 +109,6 @@ export const useAuth = () => {
       } finally {
         if (mounted) {
           setLoading(false);
-          setInitialized(true);
         }
       }
     };
@@ -151,11 +145,10 @@ export const useAuth = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [initialized]);
+  }, []);
 
   const signOut = async () => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -166,8 +159,6 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
-    } finally {
-      setLoading(false);
     }
   };
 
