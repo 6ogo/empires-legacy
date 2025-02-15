@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from "react";
 import { Territory, GameState } from "@/types/game";
 import HexGrid from "./HexGrid";
@@ -6,13 +7,14 @@ import GameControls from "./GameControls";
 import BuildingMenu from "./BuildingMenu";
 import RecruitmentMenu from "./RecruitmentMenu";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, History } from "lucide-react";
 import { useGameActions } from "@/hooks/useGameActions";
 import { toast } from "sonner";
 
 interface GameBoardProps {
   gameState: GameState;
   dispatchAction: (action: any) => boolean;
+  onShowCombatHistory: () => void;
   onBack: () => void;
   onEndTurn: () => void;
   onEndPhase: () => void;
@@ -21,6 +23,7 @@ interface GameBoardProps {
 const GameBoard: React.FC<GameBoardProps> = ({
   gameState,
   dispatchAction,
+  onShowCombatHistory,
   onBack,
   onEndTurn,
   onEndPhase,
@@ -33,8 +36,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
     buildStructure,
     recruitUnit,
     attackTerritory,
-    endTurn,
-    endPhase
   } = useGameActions(dispatchAction);
 
   const currentPlayer = gameState.players.find(
@@ -79,35 +80,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
     }
   }, [selectedTerritory, gameState.currentPlayer, buildStructure]);
 
-  const handleRecruit = useCallback((unitType: string) => {
-    if (!selectedTerritory) {
-      toast.error("No territory selected");
-      return;
-    }
-
-    const unit = {
-      type: unitType,
-      health: 100,
-      damage: 50,
-      experience: 0,
-      hasMoved: false,
-      cost: { gold: 100 }
-    };
-
-    if (recruitUnit(selectedTerritory.id, unit, gameState.currentPlayer)) {
-      setSelectedTerritory(null);
-      setShowMenus(false);
-    }
-  }, [selectedTerritory, gameState.currentPlayer, recruitUnit]);
-
-  const handleEndTurn = () => {
-    onEndTurn();
-  };
-
-  const handleEndPhase = () => {
-    onEndPhase();
-  };
-
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
       <Button
@@ -150,8 +122,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
         <GameControls
           gameState={gameState}
-          onEndTurn={handleEndTurn}
-          onEndPhase={handleEndPhase}
+          onEndTurn={onEndTurn}
+          onEndPhase={onEndPhase}
         />
       </div>
 
@@ -168,7 +140,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
             }}
           />
           <RecruitmentMenu 
-            onRecruit={handleRecruit}
+            onRecruit={(unitType) => recruitUnit(selectedTerritory.id, unitType, gameState.currentPlayer)}
             resources={currentPlayer?.resources || {
               gold: 0,
               wood: 0,

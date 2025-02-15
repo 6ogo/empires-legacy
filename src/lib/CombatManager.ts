@@ -1,4 +1,5 @@
-import { GameState, Territory, MilitaryUnit } from '@/types/game';
+
+import { GameState, MilitaryUnit } from '@/types/game';
 
 export class CombatManager {
   private state: GameState;
@@ -8,100 +9,58 @@ export class CombatManager {
   }
 
   calculateAttackDamage(attacker: MilitaryUnit, defender: MilitaryUnit, terrain: string): number {
-    const baseDamage = attacker.damage;
-    const terrainModifier = this.getTerrainModifier(terrain);
-    const experienceModifier = 1 + (attacker.experience * 0.1);
-    
-    return Math.floor(baseDamage * terrainModifier * experienceModifier);
+    // Base damage calculation
+    let damage = attacker.damage;
+
+    // Apply terrain modifiers
+    switch (terrain) {
+      case 'mountain':
+        damage *= 0.8; // 20% reduction in mountains
+        break;
+      case 'forest':
+        damage *= 0.9; // 10% reduction in forests
+        break;
+      default:
+        break;
+    }
+
+    return Math.floor(damage);
   }
 
   calculateDefenseDamage(defender: MilitaryUnit, attacker: MilitaryUnit): number {
-    const baseDamage = defender.damage * 0.5;
-    const experienceModifier = 1 + (defender.experience * 0.1);
-    
-    return Math.floor(baseDamage * experienceModifier);
+    // Counter-attack damage is 50% of normal attack
+    return Math.floor(defender.damage * 0.5);
   }
 
-  private getTerrainModifier(terrain: string): number {
-    switch (terrain) {
-      case 'mountains':
-        return 0.7;
-      case 'forest':
-        return 0.8;
-      case 'hills':
-        return 0.9;
-      case 'plains':
-        return 1.0;
-      case 'river':
-        return 1.2;
-      default:
-        return 1.0;
-    }
-  }
-
-  resolveCombat(attackingTerritory: Territory, defendingTerritory: Territory): {
-    attackerSurvived: boolean;
-    defenderSurvived: boolean;
+  resolveCombat(attackerId: string, defenderId: string): {
     attackerDamage: number;
     defenderDamage: number;
+    attackerDestroyed: boolean;
+    defenderDestroyed: boolean;
   } {
-    if (!attackingTerritory.militaryUnit || !defendingTerritory.militaryUnit) {
-      throw new Error('Both territories must have military units to resolve combat');
+    const attackerTerritory = this.state.territories.find(t => t.id === attackerId);
+    const defenderTerritory = this.state.territories.find(t => t.id === defenderId);
+
+    if (!attackerTerritory?.militaryUnit || !defenderTerritory?.militaryUnit) {
+      throw new Error('Invalid combat: missing units');
     }
 
-    const attacker = attackingTerritory.militaryUnit;
-    const defender = defendingTerritory.militaryUnit;
+    const attackDamage = this.calculateAttackDamage(
+      attackerTerritory.militaryUnit,
+      defenderTerritory.militaryUnit,
+      defenderTerritory.terrain
+    );
 
-    const attackDamage = this.calculateAttackDamage(attacker, defender, defendingTerritory.terrain);
-    const defenseDamage = this.calculateDefenseDamage(defender, attacker);
-
-    const attackerSurvived = attacker.health > defenseDamage;
-    const defenderSurvived = defender.health > attackDamage;
-
-    if (attackerSurvived) {
-      attacker.health -= defenseDamage;
-      attacker.experience += 1;
-    }
-
-    if (defenderSurvived) {
-      defender.health -= attackDamage;
-      defender.experience += 1;
-    }
+    const defenseDamage = this.calculateDefenseDamage(
+      defenderTerritory.militaryUnit,
+      attackerTerritory.militaryUnit
+    );
 
     return {
-      attackerSurvived,
-      defenderSurvived,
-      attackerDamage: attackDamage,
-      defenderDamage: defenseDamage
+      attackerDamage: defenseDamage,
+      defenderDamage: attackDamage,
+      attackerDestroyed: defenseDamage >= attackerTerritory.militaryUnit.health,
+      defenderDestroyed: attackDamage >= defenderTerritory.militaryUnit.health
     };
-  }
-
-  canAttack(attackingTerritory: Territory, defendingTerritory: Territory): boolean {
-    if (!attackingTerritory.militaryUnit || !defendingTerritory.militaryUnit) {
-      return false;
-    }
-
-    if (attackingTerritory.militaryUnit.hasMoved) {
-      return false;
-    }
-
-    if (attackingTerritory.owner === defendingTerritory.owner) {
-      return false;
-    }
-
-    const distance = this.calculateDistance(
-      attackingTerritory.coordinates,
-      defendingTerritory.coordinates
-    );
-
-    return distance === 1;
-  }
-
-  private calculateDistance(coord1: { q: number; r: number }, coord2: { q: number; r: number }): number {
-    return Math.max(
-      Math.abs(coord1.q - coord2.q),
-      Math.abs(coord1.r - coord2.r),
-      Math.abs(-coord1.q - coord1.r - (-coord2.q - coord2.r))
-    );
   }
 }

@@ -1,73 +1,170 @@
-
-import { GameState, GameAction, GamePhase, ValidationResult } from '@/types/game';
+import { GameState, GameAction, ValidationResult } from '@/types/game';
 
 export class TurnManager {
   private state: GameState;
-  private maxTurns: number;
-  private actionsPerTurn: number;
-  private turnActions: GameAction[];
+  private actionHistory: GameAction[];
 
-  constructor(state: GameState, maxTurns: number = 100, actionsPerTurn: number = 3) {
+  constructor(state: GameState) {
     this.state = state;
-    this.maxTurns = maxTurns;
-    this.actionsPerTurn = actionsPerTurn;
-    this.turnActions = [];
+    this.actionHistory = [];
   }
 
   canPerformAction(action: GameAction): ValidationResult {
+    const currentPhase = this.state.phase;
+    const actionType = action.type;
+
+    // Phase-specific validations
+    switch (currentPhase) {
+      case 'setup':
+        if (actionType !== 'CLAIM_TERRITORY') {
+          return {
+            valid: false,
+            message: 'Only territory claiming is allowed during setup'
+          };
+        }
+        break;
+
+      case 'building':
+        if (!['BUILD', 'END_PHASE'].includes(actionType)) {
+          return {
+            valid: false,
+            message: 'Only building actions are allowed during building phase'
+          };
+        }
+        break;
+
+      case 'recruitment':
+        if (!['RECRUIT', 'END_PHASE'].includes(actionType)) {
+          return {
+            valid: false,
+            message: 'Only recruitment actions are allowed during recruitment phase'
+          };
+        }
+        break;
+
+      case 'combat':
+        if (!['ATTACK', 'END_PHASE', 'END_TURN'].includes(actionType)) {
+          return {
+            valid: false,
+            message: 'Only combat actions are allowed during combat phase'
+          };
+        }
+        break;
+
+      default:
+        return {
+          valid: false,
+          message: 'Invalid game phase'
+        };
+    }
+
     return this.validatePhaseRequirements(action);
   }
 
-  trackAction(action: GameAction): void {
-    this.turnActions.push(action);
-  }
-
-  clearTurnTracking(): void {
-    this.turnActions = [];
-  }
-
-  getActionHistory(): GameAction[] {
-    return [...this.turnActions];
-  }
-
-  validateTurnTransition(): ValidationResult {
-    const hasRequiredActions = this.turnActions.length >= 1;
-    return {
-      valid: hasRequiredActions,
-      message: hasRequiredActions ? 'Turn can end' : 'Must perform at least one action before ending turn'
-    };
-  }
-
   validatePhaseRequirements(action: GameAction): ValidationResult {
-    const { phase } = this.state;
-    const { type } = action;
+    const currentPhase = this.state.phase;
 
-    let result: ValidationResult = { valid: false, message: 'Invalid action for current phase' };
-
-    switch (phase) {
+    switch (currentPhase) {
       case 'setup':
-        result.valid = type === 'CLAIM_TERRITORY' || type === 'END_PHASE' || type === 'SET_STATE';
+        // Validate one territory claim per player
+        const playerClaims = this.actionHistory.filter(
+          a => a.type === 'CLAIM_TERRITORY' && a.playerId === action.playerId
+        );
+        if (playerClaims.length >= 1) {
+          return {
+            valid: false,
+            message: 'You can only claim one territory during setup'
+          };
+        }
         break;
+
       case 'building':
-        result.valid = type === 'BUILD' || type === 'END_PHASE' || type === 'SET_STATE';
+        // Validate building limits
+        const buildActions = this.actionHistory.filter(
+          a => a.type === 'BUILD' && a.playerId === action.playerId
+        );
+        if (buildActions.length >= 3) {
+          return {
+            valid: false,
+            message: 'Maximum building actions reached for this turn'
+          };
+        }
         break;
+
       case 'recruitment':
-        result.valid = type === 'RECRUIT' || type === 'END_PHASE' || type === 'SET_STATE';
+        // Validate recruitment limits
+        const recruitActions = this.actionHistory.filter(
+          a => a.type === 'RECRUIT' && a.playerId === action.playerId
+        );
+        if (recruitActions.length >= 2) {
+          return {
+            valid: false,
+            message: 'Maximum recruitment actions reached for this turn'
+          };
+        }
         break;
+
       case 'combat':
-        result.valid = type === 'ATTACK' || type === 'END_PHASE' || type === 'SET_STATE';
-        break;
-      case 'end':
-        result.valid = type === 'SET_STATE';
+        // Validate attack limits
+        const attackActions = this.actionHistory.filter(
+          a => a.type === 'ATTACK' && a.playerId === action.playerId
+        );
+        if (attackActions.length >= 3) {
+          return {
+            valid: false,
+            message: 'Maximum attack actions reached for this turn'
+          };
+        }
         break;
     }
 
-    return result;
+    return {
+      valid: true,
+      message: ''
+    };
   }
 
-  getNextPhase(): GamePhase {
-    const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
-    const currentIndex = phases.indexOf(this.state.phase);
-    return currentIndex < phases.length - 1 ? phases[currentIndex + 1] : 'end';
+  validateTurnTransition(): ValidationResult {
+    const currentPhase = this.state.phase;
+    
+    // Phase-specific requirements for ending turn
+    switch (currentPhase) {
+      case 'setup':
+        const hasClaimedTerritory = this.actionHistory.some(a => a.type === 'CLAIM_TERRITORY');
+        if (!hasClaimedTerritory) {
+          return {
+            valid: false,
+            message: 'Must claim a territory before ending turn'
+          };
+        }
+        break;
+
+      case 'combat':
+        // No specific requirements for ending combat phase
+        break;
+
+      default:
+        return {
+          valid: false,
+          message: 'Can only end turn during setup or combat phases'
+        };
+    }
+
+    return {
+      valid: true,
+      message: ''
+    };
+  }
+
+  trackAction(action: GameAction) {
+    this.actionHistory.push(action);
+  }
+
+  clearTurnTracking() {
+    this.actionHistory = [];
+  }
+
+  getActionHistory(): GameAction[] {
+    return [...this.actionHistory];
   }
 }

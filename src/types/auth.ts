@@ -1,3 +1,4 @@
+
 import { Database } from '@/integrations/supabase/types';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -36,6 +37,4 @@ export interface AuthContextType {
   profile: UserProfile | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
-  refreshSession: () => Promise<void>;
 }
