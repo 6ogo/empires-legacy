@@ -1,6 +1,6 @@
-// src/App.tsx
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LandingPage from './pages/Landing';
@@ -13,9 +13,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const queryClient = new QueryClient();
 
 const App = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <LoadingScreen message="Checking authentication..." />
@@ -32,11 +32,7 @@ const App = () => {
             <Route 
               path="/game/*" 
               element={
-                user && profile ? (
-                  <GamePage />
-                ) : (
-                  <AuthPage />
-                )
+                user ? <GamePage /> : <AuthPage />
               } 
             />
             <Route path="/auth" element={<AuthPage />} />

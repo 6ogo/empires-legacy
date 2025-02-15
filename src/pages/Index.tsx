@@ -1,7 +1,7 @@
-// src/pages/Index.tsx
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { useOnlineGame } from "@/hooks/useOnlineGame";
@@ -12,12 +12,17 @@ import GameWrapper from "@/components/game/GameWrapper";
 import GameContainer from "@/components/game/GameContainer";
 import { isValidGameState } from "@/lib/game-validation";
 import { toast } from "sonner";
-import Landing from "./Landing";
+import { GameMode, GameState } from "@/types/game";
+
+interface GameContainerProps {
+  gameMode: GameMode;
+  onBack: () => void;
+}
 
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading: authLoading, profile } = useAuth();
+  const { user, isLoading } = useAuth();
   const [initializationError, setInitializationError] = useState<string | null>(null);
   
   const {
@@ -33,7 +38,7 @@ const Index = () => {
     onJoinGame,
   } = useGameInit();
 
-  const { gameState, setGameState } = useGameState(gameMode);
+  const { gameState, dispatchAction } = useGameState(gameMode);
 
   const {
     gameId,
@@ -47,13 +52,19 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
-  useGameSubscription(gameId, setGameStarted, setGameStatus, setGameState);
+  useGameSubscription(gameId, setGameStarted, setGameStatus, dispatchAction);
+
+  // Redirect to landing page if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/', { replace: true });
+    }
+  }, [isLoading, user, navigate]);
 
   const handleBackFromGame = () => {
     setGameStarted(false);
     setGameStatus("menu");
     setGameMode(null);
-    setGameState(null);
     if (joinRoomId) {
       setJoinRoomId('');
     }
@@ -72,100 +83,73 @@ const Index = () => {
     setGameStarted(false);
     setGameStatus("menu");
     setGameMode(null);
-    setGameState(null);
     setShowLeaderboard(false);
     if (joinRoomId) {
       setJoinRoomId('');
     }
   };
 
-  // Only initialize game status when we're on the /game route
-  useEffect(() => {
-    if (!authLoading && location.pathname === '/game') {
-      if (user && profile) {
-        setGameStatus("menu");
-      }
-    }
-  }, [authLoading, user, profile, location.pathname, setGameStatus]);
-
-  // Show loading screen only during auth check on /game route
-  if (authLoading && location.pathname === '/game') {
-    return <LoadingScreen message="Checking authentication..." />;
+  if (isLoading) {
+    return <LoadingScreen message="Loading game..." />;
   }
 
-  // Show landing page for root route when not authenticated
-  if (location.pathname === '/' && !user) {
-    return <Landing />;
-  }
-
-  // Redirect to landing if trying to access /game without auth
-  if (location.pathname === '/game' && !user && !authLoading) {
-    navigate('/', { replace: true });
-    return null;
-  }
-
-  // Handle initialization error
   if (initializationError) {
     return <ErrorScreen message={initializationError} onRetry={handleBackToMainMenu} />;
   }
 
-  // Show game UI for authenticated users on /game route
-  if (location.pathname === '/game' && user && profile) {
-    if (!gameStarted) {
-      return (
-        <GameWrapper
-          showLeaderboard={showLeaderboard}
-          gameStatus={gameStatus}
-          gameMode={gameMode}
-          onBackToMenu={handleBackToMenu}
-          onSelectMode={(mode) => {
-            setGameMode(mode);
-            setGameStatus("mode_select");
-          }}
-          onCreateGame={async (numPlayers, boardSize) => {
-            try {
-              await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, setGameState);
-            } catch (error) {
-              console.error('Error creating game:', error);
-            }
-          }}
-          onJoinGame={async () => {
-            try {
-              const result = await handleJoinGame();
-              if (result && 'state' in result) {
-                const stateToValidate = result.state as unknown;
-                if (isValidGameState(stateToValidate)) {
-                  setGameState(stateToValidate);
-                  if (result.game_status === 'playing') {
-                    setGameStarted(true);
-                    setGameStatus('playing');
-                  }
-                } else {
-                  console.error('Invalid game state received:', result.state);
-                  toast.error('Invalid game state received');
+  if (!gameStarted) {
+    return (
+      <GameWrapper
+        showLeaderboard={showLeaderboard}
+        gameStatus={gameStatus}
+        gameMode={gameMode}
+        onBackToMenu={handleBackToMenu}
+        onSelectMode={(mode) => {
+          setGameMode(mode);
+          setGameStatus("mode_select");
+        }}
+        onCreateGame={async (numPlayers, boardSize) => {
+          try {
+            await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, dispatchAction);
+          } catch (error) {
+            console.error('Error creating game:', error);
+          }
+        }}
+        onJoinGame={async () => {
+          try {
+            const result = await handleJoinGame();
+            if (result && 'state' in result) {
+              const stateToValidate = result.state as unknown;
+              if (isValidGameState(stateToValidate)) {
+                dispatchAction({ 
+                  type: 'SET_STATE', 
+                  payload: { state: stateToValidate as GameState }
+                });
+                if (result.game_status === 'playing') {
+                  setGameStarted(true);
+                  setGameStatus('playing');
                 }
+              } else {
+                console.error('Invalid game state received:', result.state);
+                toast.error('Invalid game state received');
               }
-            } catch (error) {
-              console.error('Error joining game:', error);
             }
-          }}
-          joinRoomId={joinRoomId}
-          onJoinRoomIdChange={setJoinRoomId}
-          isHost={isHost}
-          onStartAnyway={handleStartAnyway}
-          onShowLeaderboard={() => setShowLeaderboard(true)}
-          onShowStats={() => setGameStatus("stats")}
-          connectedPlayers={connectedPlayers}
-        />
-      );
-    }
-
-    return <GameContainer gameMode={gameMode} onBack={handleBackToMainMenu} />;
+          } catch (error) {
+            console.error('Error joining game:', error);
+          }
+        }}
+        joinRoomId={joinRoomId}
+        onJoinRoomIdChange={setJoinRoomId}
+        isHost={isHost}
+        onStartAnyway={handleStartAnyway}
+        onShowLeaderboard={() => setShowLeaderboard(true)}
+        onShowStats={() => setGameStatus("stats")}
+        connectedPlayers={connectedPlayers}
+      />
+    );
   }
 
-  // Redirect to landing for any other case
-  navigate('/', { replace: true });
-  return null;
+  return <GameContainer gameMode={gameMode as GameMode} onBack={handleBackToMainMenu} />;
 };
 
 export default Index;

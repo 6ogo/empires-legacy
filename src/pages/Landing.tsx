@@ -20,7 +20,7 @@ const Landing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // If user is already authenticated, redirect to game
+  // Only redirect if user is already authenticated
   useEffect(() => {
     if (user) {
       navigate('/game');
@@ -28,11 +28,7 @@ const Landing = () => {
   }, [user, navigate]);
 
   const handlePlayNowClick = () => {
-    if (user) {
-      navigate('/game');
-    } else {
-      navigate('/auth');
-    }
+    navigate('/auth');
   };
 
   return (
