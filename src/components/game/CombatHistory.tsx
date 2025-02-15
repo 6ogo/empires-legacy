@@ -77,3 +77,46 @@ const CombatHistory: React.FC<CombatHistoryProps> = ({ onClose }) => {
                 <div 
                   key={game.id} 
                   className="bg-gray-800 p-4 rounded-lg border border-gray-700"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-400">
+                      {formatDistanceToNow(new Date(game.created_at), { addSuffix: true })}
+                    </span>
+                    {getGameResult(game) === "In Progress" ? (
+                      <div className="flex items-center text-yellow-500">
+                        <Clock className="w-4 h-4 mr-1" />
+                        <span>In Progress</span>
+                      </div>
+                    ) : getGameResult(game) === "Victory" ? (
+                      <div className="flex items-center text-green-500">
+                        <Trophy className="w-4 h-4 mr-1" />
+                        <span>Victory</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-red-500">
+                        <Skull className="w-4 h-4 mr-1" />
+                        <span>Defeat</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-300">
+                    Players: {game.num_players}
+                    {game.game_summary && (
+                      <div className="mt-2 text-xs text-gray-400">
+                        {typeof game.game_summary === 'string' 
+                          ? game.game_summary 
+                          : JSON.stringify(game.game_summary)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+    </div>
+  );
+};
+
+export default CombatHistory;
