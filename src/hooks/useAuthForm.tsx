@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,6 +117,21 @@ export const useAuthForm = () => {
 
       if (!data.user) {
         throw new Error('No user data returned after sign in');
+      }
+
+      // Wait a moment for the auth state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify the profile exists
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profileData) {
+        console.error('Profile fetch error:', profileError);
+        throw new Error('Unable to fetch user profile');
       }
 
       const { error: updateError } = await supabase
