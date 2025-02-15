@@ -11,23 +11,26 @@ const Callback = () => {
   useEffect(() => {
     const handleEmailConfirmation = async () => {
       try {
-        console.log('Starting email confirmation process...'); // Debug log
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Starting callback handler...'); // Debug log
         
-        if (error) {
-          console.error('Session error:', error); // Debug log
-          throw error;
+        // Get the session directly from the URL if present
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError); // Debug log
+          throw sessionError;
         }
 
         if (session?.user) {
-          console.log('Session found, updating profile...', session.user); // Debug log
+          console.log('Session found:', session.user.email); // Debug log
           
           // Update the user's profile to mark email as verified
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
               email_verified: true,
-              verified: true
+              verified: true,
+              last_login: new Date().toISOString()
             })
             .eq('id', session.user.id);
 
@@ -36,22 +39,25 @@ const Callback = () => {
             throw updateError;
           }
 
+          // Set the session explicitly
+          await supabase.auth.setSession(session);
+
           toast.success('Email verified successfully!');
           // Use replace to prevent back navigation to callback
           navigate('/game', { replace: true });
         } else {
-          console.log('No session found, redirecting to auth...'); // Debug log
+          console.log('No session found in callback'); // Debug log
           toast.error('Verification failed. Please try again.');
           navigate('/auth', { replace: true });
         }
       } catch (error: any) {
-        console.error('Error handling email confirmation:', error);
+        console.error('Error in callback handler:', error);
         toast.error(error.message || 'Verification failed');
         navigate('/auth', { replace: true });
       }
     };
 
-    // Add a small delay to ensure Supabase has time to process the callback
+    // Add a small delay to ensure Supabase has time to process the URL
     const timeoutId = setTimeout(() => {
       handleEmailConfirmation();
     }, 500);

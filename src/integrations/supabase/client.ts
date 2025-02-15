@@ -12,7 +12,13 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: window?.localStorage // Explicitly set storage
+    },
+    global: {
+      headers: {
+        'x-application-name': 'empires-legacy'
+      }
     }
   }
 );

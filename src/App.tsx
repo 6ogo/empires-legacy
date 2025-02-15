@@ -20,6 +20,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -30,17 +31,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     if (!loading && (!user || !profile)) {
-      console.log('No auth, redirecting to login');
+      console.log('No auth, redirecting to login', { user, profile }); // Debug log
       navigate('/auth', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  // Show loading only during initial check
-  if (loading) return <LoadingScreen message="Checking authentication..." />;
+  // Only show loading during initial check
+  if (loading) {
+    console.log('Protected route loading...'); // Debug log
+    return <LoadingScreen message="Checking authentication..." />;
+  }
   
   // Don't show loading if we're already redirecting
-  if (!user || !profile) return null;
+  if (!user || !profile) {
+    console.log('No user or profile, rendering null'); // Debug log
+    return null;
+  }
   
+  console.log('Rendering protected content'); // Debug log
   return <>{children}</>;
 }
 
@@ -50,17 +58,24 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     if (!loading && user && profile) {
-      console.log('Already authenticated, redirecting to game');
+      console.log('Already authenticated, redirecting to game'); // Debug log
       navigate('/game', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
   // Never show loading on auth page
-  if (loading || (user && profile)) return null;
+  if (loading || (user && profile)) {
+    console.log('Auth route loading or already authenticated'); // Debug log
+    return null;
+  }
+
+  console.log('Rendering auth content'); // Debug log
   return <>{children}</>;
 }
 
 const App = () => {
+  console.log('App rendering'); // Debug log
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
