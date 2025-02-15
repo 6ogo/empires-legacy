@@ -1,7 +1,6 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "@supabase/supabase-js";
-import { UserProfile } from "@/hooks/useAuth";
+import { UserProfile } from "@/types/auth";
 
 interface AccountInfoProps {
   user: User | null;

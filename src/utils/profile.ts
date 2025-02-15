@@ -24,14 +24,14 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
     console.log('Profile fetched successfully:', data);
     return {
       id: data.id,
-      username: data.username,
+      username: data.username || undefined,
       verified: !!data.verified,
       email_verified: !!data.email_verified,
       preferences: data.preferences as { stayLoggedIn: boolean } ?? { stayLoggedIn: false },
-      avatarUrl: data.avatar_url,
+      avatarUrl: data.avatar_url || undefined,
       createdAt: data.created_at,
-      updatedAt: data.updated_at || data.created_at,
-      lastLoginAt: data.last_login,
+      updatedAt: data.created_at,
+      lastLoginAt: data.last_login || undefined,
       total_gametime: data.total_gametime || 0,
       total_games_played: data.total_games_played || 0,
       total_wins: data.total_wins || 0,

@@ -1,31 +1,27 @@
+import { createContext, useContext } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { UserProfile } from '@/types/auth';
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useSession } from "./useSession";
-import type { UserProfile, AuthContextType } from "@/types/auth";
+export interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  profile: UserProfile | null;
+  isLoading: boolean;
+  signOut: () => Promise<void>;
+}
 
-export type { UserProfile, AuthContextType };
+const AuthContext = createContext<AuthContextType>({
+  session: null,
+  user: null,
+  profile: null,
+  isLoading: true,
+  signOut: async () => {},
+});
 
 export const useAuth = () => {
-  const { user, profile, loading: isLoading } = useSession();
-
-  const signOut = async () => {
-    try {
-      console.log('Signing out...');
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      console.log('Successfully signed out');
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
-    }
-  };
-
-  return {
-    user,
-    profile,
-    isLoading,
-    signOut,
-  };
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

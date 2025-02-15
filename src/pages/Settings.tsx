@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
@@ -15,8 +15,10 @@ const Settings = () => {
   const { user, profile, signOut } = useAuth();
 
   const handleSignOut = async () => {
-    await signOut();
-    toast.success("Signed out successfully");
+    if (signOut) {
+      await signOut();
+      toast.success("Signed out successfully");
+    }
   };
 
   return (

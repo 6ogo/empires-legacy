@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { UserProfile } from "@/hooks/useAuth";
+import { UserProfile } from "@/types/auth";
 import { Json } from "@/integrations/supabase/types";
 import {
   Card,

@@ -15,7 +15,7 @@ import { GameMode, GameState, GameAction } from "@/types/game";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [initializationError, setInitializationError] = useState<string | null>(null);
   
   const {
@@ -111,7 +111,7 @@ const Index = () => {
     }
   };
 
-  if (isLoading) {
+  if (authLoading) {
     return <LoadingScreen message="Loading game..." />;
   }
 

@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, GamePhase, Territory, Player } from '@/types/game';
 import { GameStateValidator } from './game-validation';
 
@@ -6,13 +5,17 @@ export class GameStateManager {
   private state: GameState;
   private validator: GameStateValidator;
 
-  constructor(state: GameState) {
-    this.state = state;
-    this.validator = new GameStateValidator(state);
+  constructor(initialState: GameState) {
+    this.state = initialState;
+    this.validator = new GameStateValidator(initialState);
   }
 
   getState(): GameState {
     return this.state;
+  }
+
+  setState(newState: GameState): void {
+    this.state = newState;
   }
 
   applyAction(action: GameAction): boolean {

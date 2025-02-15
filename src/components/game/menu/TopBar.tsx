@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Settings, Trophy, BarChart2, ArrowLeft, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { UserProfile } from "@/hooks/useAuth";
+import { UserProfile } from "@/types/auth";
 import CombatHistory from "@/components/game/CombatHistory";
 
 interface TopBarProps {
