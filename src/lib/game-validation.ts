@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
 
 export class GameStateValidator {
@@ -102,33 +103,6 @@ export class GameStateValidator {
     return requiredProperties.every(prop => prop in state);
   }
 
-  private validateTerritory(territory: Territory): ValidationResult {
-    const errors: string[] = [];
-
-    if (!territory.coordinates || 
-        typeof territory.coordinates.q !== 'number' || 
-        typeof territory.coordinates.r !== 'number') {
-      errors.push("Invalid coordinates");
-    }
-
-    if (!this.validateResources(territory.resources)) {
-      errors.push("Invalid resources");
-    }
-
-    if (territory.militaryUnit && !this.validateMilitaryUnit(territory.militaryUnit)) {
-      errors.push("Invalid military unit");
-    }
-
-    if (territory.owner && !this.state.players.some(p => p.id === territory.owner)) {
-      errors.push("Invalid owner reference");
-    }
-
-    return {
-      valid: errors.length === 0,
-      message: errors.join(", ")
-    };
-  }
-
   private validatePlayer(player: Player): ValidationResult {
     const errors: string[] = [];
 
@@ -177,6 +151,33 @@ export class GameStateValidator {
       unit.damage > 0 &&
       unit.experience >= 0
     );
+  }
+
+  private validateTerritory(territory: Territory): ValidationResult {
+    const errors: string[] = [];
+
+    if (!territory.coordinates || 
+        typeof territory.coordinates.q !== 'number' || 
+        typeof territory.coordinates.r !== 'number') {
+      errors.push("Invalid coordinates");
+    }
+
+    if (!this.validateResources(territory.resources)) {
+      errors.push("Invalid resources");
+    }
+
+    if (territory.militaryUnit && !this.validateMilitaryUnit(territory.militaryUnit)) {
+      errors.push("Invalid military unit");
+    }
+
+    if (territory.owner && !this.state.players.some(p => p.id === territory.owner)) {
+      errors.push("Invalid owner reference");
+    }
+
+    return {
+      valid: errors.length === 0,
+      message: errors.join(", ")
+    };
   }
 
   private validateClaimTerritory(action: GameAction): ValidationResult {
@@ -493,6 +494,22 @@ export class GameStateValidator {
     return Object.entries(resources).some(
       ([resource, amount]) => amount > thresholds[resource as keyof typeof thresholds]
     );
+  }
+
+  private validateTurnActions(playerId: string): ValidationResult {
+    const turnUpdates = this.state.updates.filter(update => 
+      update.timestamp > this.state.lastUpdated && 
+      update.playerId === playerId
+    );
+
+    if (turnUpdates.length === 0) {
+      return {
+        valid: false,
+        message: "No actions taken this turn"
+      };
+    }
+
+    return { valid: true };
   }
 }
 
