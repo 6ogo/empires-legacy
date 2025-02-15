@@ -4,6 +4,10 @@ export type TerritoryType = "plains" | "mountains" | "forests" | "coast" | "capi
 export type PlayerColor = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
 export type GamePhase = 'setup' | 'building' | 'recruitment' | 'combat' | 'end';
 export type GameStatus = "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
+export type TerrainType = 'plains' | 'hills' | 'mountains' | 'forest' | 'river';
+export type WeatherType = 'clear' | 'rain' | 'fog';
+export type TimeOfDay = 'day' | 'night';
+export type BuildingType = 'fortress' | 'walls' | 'watchtower' | 'barracks' | 'market' | 'farm';
 
 export interface Resources {
   gold: number;
@@ -22,6 +26,8 @@ export interface MilitaryUnit {
   type: string;
   health: number;
   damage: number;
+  experience: number;
+  hasMoved: boolean;
   cost: Partial<Resources>;
 }
 
@@ -32,8 +38,9 @@ export interface Territory {
     r: number;
   };
   owner: string | null;
+  terrain: TerrainType;
   resources: Resources;
-  building?: string | null;
+  building?: BuildingType | null;
   militaryUnit?: MilitaryUnit | null;
   lastUpdated: number;
 }
@@ -59,6 +66,8 @@ export interface GameState {
   players: Player[];
   territories: Territory[];
   updates: GameUpdate[];
+  weather: WeatherType;
+  timeOfDay: TimeOfDay;
   lastUpdated: number;
   version: number;
 }
