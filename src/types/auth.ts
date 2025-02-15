@@ -1,24 +1,22 @@
 
-import { Json } from "@/integrations/supabase/types";
+import { Database } from '@/integrations/supabase/types';
+import { User, Session } from '@supabase/supabase-js';
+
+export type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export interface UserProfile {
   id: string;
-  username: string | null;
-  verified: boolean;
-  email_verified: boolean;
-  preferences: {
-    stayLoggedIn: boolean;
-  };
-  avatar_url: string | null;
-  created_at: string;
-  last_login: string | null;
-  total_gametime: number;
-  total_games_played: number;
-  total_wins: number;
-  economic_wins: number;
-  domination_wins: number;
-  xp: number;
-  level: number;
-  last_username_change: string | null;
-  achievements: Json[];
+  email?: string;
+  username?: string;
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  profile: UserProfile | null;
+  isLoading: boolean;
+  signOut: () => Promise<void>;
 }
