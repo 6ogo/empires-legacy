@@ -1,4 +1,4 @@
-import { GameState, GameAction, GamePhase, Territory, Player, CombatResult } from '@/types/game';
+import { GameState, GameAction, GamePhase, Territory, Player, CombatResult, ValidationResult } from '@/types/game';
 import { GameStateValidator } from './game-validation';
 
 export class GameStateManager {

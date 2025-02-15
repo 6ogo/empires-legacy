@@ -10,6 +10,7 @@ export type TimeOfDay = 'day' | 'night';
 export type BuildingType = 'fortress' | 'walls' | 'watchtower' | 'barracks' | 'market' | 'farm' | 'expand' | 'lumber_mill' | 'mine' | 'road';
 export type GameMode = 'local' | 'online';
 export type ActionType = 'CLAIM_TERRITORY' | 'BUILD' | 'RECRUIT' | 'ATTACK' | 'END_TURN' | 'END_PHASE' | 'SET_STATE';
+export type GameUpdateType = 'territory' | 'resources' | 'combat' | 'building' | 'system';
 
 export interface Resources {
   gold: number;
@@ -21,6 +22,12 @@ export interface Resources {
 export interface ValidationResult {
   valid: boolean;
   message?: string;
+}
+
+export interface CombatResult {
+  defenderDestroyed: boolean;
+  attackerDamage: number;
+  defenderDamage: number;
 }
 
 export interface Units {
@@ -60,9 +67,10 @@ export interface Player {
 }
 
 export interface GameUpdate {
-  type: 'territory' | 'resources' | 'combat' | 'building' | 'system';
+  type: GameUpdateType;
   message: string;
   timestamp: number;
+  playerId?: string;
 }
 
 export interface GameState {

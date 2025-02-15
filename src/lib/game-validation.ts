@@ -1,16 +1,4 @@
-import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate } from '@/types/game';
-
-export interface CombatResult {
-  defenderDestroyed: boolean;
-  attackerDamage: number;
-  defenderDamage: number;
-}
-
-export interface GameActionHistory {
-  type: string;
-  playerId: string;
-  timestamp: number;
-}
+import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
 
 export class GameStateValidator {
   private state: GameState;
@@ -74,14 +62,6 @@ export class GameStateValidator {
       }
     });
 
-    if (!state.players.some(p => p.id === state.currentPlayer)) {
-      errors.push("Current player not found in players list");
-    }
-
-    if (!['setup', 'building', 'recruitment', 'combat', 'end'].includes(state.phase)) {
-      errors.push("Invalid game phase");
-    }
-
     if (typeof state.turn !== 'number' || state.turn < 1) {
       errors.push("Invalid turn number");
     }
@@ -90,6 +70,16 @@ export class GameStateValidator {
       valid: errors.length === 0,
       message: errors.join(", ")
     };
+  }
+
+  private getActionHistory(): Array<{ type: GameUpdateType; playerId: string; timestamp: number }> {
+    return this.state.updates
+      .filter(update => (update.type === 'territory' || update.type === 'combat'))
+      .map(update => ({
+        type: update.type,
+        playerId: update.playerId || '',
+        timestamp: update.timestamp
+      }));
   }
 
   private validateStateStructure(state: unknown): state is GameState {
@@ -503,16 +493,6 @@ export class GameStateValidator {
     return Object.entries(resources).some(
       ([resource, amount]) => amount > thresholds[resource as keyof typeof thresholds]
     );
-  }
-
-  private getActionHistory(): GameActionHistory[] {
-    return this.state.updates
-      .filter(update => update.type === 'territory' || update.type === 'combat')
-      .map(update => ({
-        type: update.type,
-        playerId: update.message.split(' ')[1],
-        timestamp: update.timestamp
-      }));
   }
 }
 
