@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -25,30 +25,55 @@ const queryClient = new QueryClient({
   },
 });
 
+// This wrapper handles the initial auth check and redirection
+function AuthStateHandler({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    if (!loading) {
+      if (!user || !profile) {
+        // If we're not on the auth or callback pages, redirect to auth
+        if (!['/auth', '/auth/callback'].includes(location.pathname)) {
+          console.log('No auth, redirecting to login from:', location.pathname);
+          navigate('/auth', { replace: true });
+        }
+      } else if (location.pathname === '/auth') {
+        // If authenticated and on auth page, redirect to game
+        console.log('Authenticated, redirecting to game');
+        navigate('/game', { replace: true });
+      }
+    }
+  }, [user, profile, loading, navigate, location.pathname]);
+
+  if (loading) {
+    console.log('Initial auth check loading...');
+    return <LoadingScreen message="Checking authentication..." />;
+  }
+
+  return <>{children}</>;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
     if (!loading && (!user || !profile)) {
-      console.log('No auth, redirecting to login', { user, profile }); // Debug log
+      console.log('Protected route: No auth, redirecting to login');
       navigate('/auth', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  // Only show loading during initial check
   if (loading) {
-    console.log('Protected route loading...'); // Debug log
     return <LoadingScreen message="Checking authentication..." />;
   }
   
-  // Don't show loading if we're already redirecting
   if (!user || !profile) {
-    console.log('No user or profile, rendering null'); // Debug log
     return null;
   }
   
-  console.log('Rendering protected content'); // Debug log
   return <>{children}</>;
 }
 
@@ -58,39 +83,36 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     if (!loading && user && profile) {
-      console.log('Already authenticated, redirecting to game'); // Debug log
+      console.log('Auth route: Already authenticated, redirecting to game');
       navigate('/game', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  // Never show loading on auth page
   if (loading || (user && profile)) {
-    console.log('Auth route loading or already authenticated'); // Debug log
     return null;
   }
 
-  console.log('Rendering auth content'); // Debug log
   return <>{children}</>;
 }
 
 const App = () => {
-  console.log('App rendering'); // Debug log
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/game" replace />} />
-            <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/auth/callback" element={<Callback />} />
-            <Route path="/game/*" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthStateHandler>
+            <Routes>
+              <Route path="/" element={<Navigate to="/game" replace />} />
+              <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+              <Route path="/auth/callback" element={<Callback />} />
+              <Route path="/game/*" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthStateHandler>
         </BrowserRouter>
         <SpeedInsights />
       </TooltipProvider>

@@ -82,8 +82,6 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       console.log('Initializing auth...');
-      setLoading(true); // Ensure loading is true at start
-
       try {
         // First, try to get the session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -93,11 +91,7 @@ export const useAuth = () => {
           throw sessionError;
         }
 
-        // Guard against component unmount
-        if (!mounted) {
-          console.log('Component unmounted during auth initialization');
-          return;
-        }
+        if (!mounted) return;
 
         console.log('Session state:', session ? 'Valid session' : 'No session');
 
@@ -112,7 +106,6 @@ export const useAuth = () => {
               setProfile(profile);
             } else {
               console.log('No profile found for user');
-              // If no profile, treat as not authenticated
               setUser(null);
             }
           }
@@ -123,14 +116,12 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('Error in auth initialization:', error);
-        // Clear auth state on error
         if (mounted) {
           setUser(null);
           setProfile(null);
+          toast.error('Authentication error. Please try again.');
         }
-        toast.error('Authentication error. Please try again.');
       } finally {
-        // Always set loading to false if component is still mounted
         if (mounted) {
           console.log('Setting loading to false');
           setLoading(false);
@@ -138,14 +129,10 @@ export const useAuth = () => {
       }
     };
 
-    // Set up auth state change listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
 
-      if (!mounted) {
-        console.log('Component unmounted during auth state change');
-        return;
-      }
+      if (!mounted) return;
 
       try {
         if (session?.user) {
@@ -185,7 +172,6 @@ export const useAuth = () => {
     // Initialize auth after setting up listener
     initializeAuth();
 
-    // Cleanup function
     return () => {
       console.log('Cleaning up auth effect');
       mounted = false;
