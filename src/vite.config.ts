@@ -26,36 +26,59 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
+          // Core dependencies
           'vendor': [
-            '@supabase/supabase-js',
             'react',
             'react-dom',
             'react-router-dom',
-            '@tanstack/react-query',
           ],
-          'ui': [
+          // State management and data fetching
+          'data-layer': [
+            '@tanstack/react-query',
+            '@supabase/supabase-js',
+          ],
+          // UI Components from Radix
+          'ui-core': [
             '@radix-ui/react-slot',
+            '@radix-ui/react-label',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-dialog',
+          ],
+          'ui-overlay': [
             '@radix-ui/react-toast',
             '@radix-ui/react-tooltip',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-label',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-toggle-group',
-            '@radix-ui/react-avatar',
             '@radix-ui/react-popover',
             '@radix-ui/react-dropdown-menu',
           ],
-          'game': [
+          'ui-navigation': [
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-navigation-menu',
+          ],
+          // Auth related components
+          'auth': [
+            './src/components/auth/PasswordLoginForm.tsx',
+            './src/components/auth/SignInForm.tsx',
+            './src/components/auth/SignUpForm.tsx',
+            './src/components/auth/MagicLinkForm.tsx',
+            './src/components/auth/GuestLoginButton.tsx',
+            './src/components/auth/Turnstile.tsx',
+          ],
+          // Game components split by functionality
+          'game-core': [
             './src/components/game/GameBoard.tsx',
             './src/components/game/GameContainer.tsx',
-            './src/components/game/GameControls.tsx',
             './src/components/game/GameScreen.tsx',
-            './src/components/game/GameWrapper.tsx',
-            './src/components/game/HexGrid.tsx',
+          ],
+          'game-ui': [
+            './src/components/game/GameControls.tsx',
+            './src/components/game/GameMenus.tsx',
+            './src/components/game/GameTopBar.tsx',
+            './src/components/game/GameNavigation.tsx',
+          ],
+          'game-features': [
+            './src/components/game/Achievements.tsx',
+            './src/components/game/Stats.tsx',
+            './src/components/game/Leaderboard.tsx',
           ],
         },
         chunkFileNames: 'assets/[name]-[hash].js',
@@ -63,6 +86,6 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kb
   },
 }));
