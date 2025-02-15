@@ -2,7 +2,7 @@
 export type ResourceType = "gold" | "wood" | "stone" | "food";
 export type TerritoryType = "plains" | "mountains" | "forests" | "coast" | "capital";
 export type PlayerColor = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
-export type GamePhase = "build" | "recruit" | "attack";
+export type GamePhase = 'setup' | 'building' | 'recruitment' | 'combat' | 'end';
 export type GameStatus = "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
 
 export interface Resources {
@@ -23,45 +23,49 @@ export interface MilitaryUnit {
   health: number;
   damage: number;
   cost: Partial<Resources>;
-  currentHealth?: number;
-  currentDamage?: number;
-  needsRestoration?: boolean;
 }
 
 export interface Territory {
   id: string;
-  type: TerritoryType;
-  owner: PlayerColor | null;
-  coordinates: { q: number; r: number; s: number };
-  resources: Partial<Resources>;
-  building?: string;
-  buildings?: string[];
-  militaryUnit?: MilitaryUnit;
-  totalResourceYield?: Partial<Resources>;
+  coordinates: {
+    q: number;
+    r: number;
+  };
+  owner: string | null;
+  resources: Resources;
+  building?: string | null;
+  militaryUnit?: MilitaryUnit | null;
+  lastUpdated: number;
 }
 
 export interface Player {
-  id: PlayerColor;
+  id: string;
   resources: Resources;
-  units: Units;
-  territories: Territory[];
-  hasExpandedThisTurn?: boolean;
-  hasRecruitedThisTurn?: boolean;
+  territories: string[];
+  ready: boolean;
 }
 
 export interface GameUpdate {
-  type: "territory_claimed" | "building_constructed" | "unit_recruited" | "territory_expanded" | "attack_performed" | "turn_ended";
+  type: 'territory' | 'resources' | 'combat' | 'building' | 'system';
   message: string;
   timestamp: number;
 }
 
 export interface GameState {
-  players: Player[];
-  territories: Territory[];
-  currentPlayer: PlayerColor;
+  id: string;
   phase: GamePhase;
   turn: number;
+  currentPlayer: string;
+  players: Player[];
+  territories: Territory[];
   updates: GameUpdate[];
-  hasExpandedThisTurn: boolean;
-  hasRecruitedThisTurn: boolean;
+  lastUpdated: number;
+  version: number;
+}
+
+export interface GameAction {
+  type: 'CLAIM_TERRITORY' | 'BUILD' | 'RECRUIT' | 'ATTACK' | 'END_TURN' | 'END_PHASE';
+  payload: any;
+  playerId: string;
+  timestamp: number;
 }
