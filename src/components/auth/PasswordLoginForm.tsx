@@ -57,25 +57,31 @@ export const PasswordLoginForm = ({
   const onTurnstileVerify = (token: string) => {
     console.log('Turnstile verified, submitting form with token');
     setTurnstileToken(token);
-    // Create a synthetic form event instead of using a raw Event
-    const syntheticEvent = {
-      preventDefault: () => {},
-      target: document.createElement('form'),
-      currentTarget: document.createElement('form'),
-      nativeEvent: new Event('submit'),
-      isDefaultPrevented: () => false,
-      isPropagationStopped: () => false,
-      persist: () => {},
+    
+    // Create a real Event object
+    const nativeEvent = new Event('submit', {
       bubbles: true,
-      cancelable: true,
-      defaultPrevented: false,
-      isTrusted: true,
-      stopPropagation: () => {},
-      stopImmediatePropagation: () => {},
-      type: 'submit'
-    } as React.FormEvent<HTMLFormElement>;
+      cancelable: true
+    });
 
-    // Call onSubmit with the proper event type
+    // Create a proper React FormEvent
+    const syntheticEvent: React.FormEvent<HTMLFormElement> = Object.assign(
+      new Event('submit', { bubbles: true, cancelable: true }), {
+        target: document.createElement('form'),
+        currentTarget: document.createElement('form'),
+        nativeEvent,
+        preventDefault: () => {},
+        isDefaultPrevented: () => false,
+        stopPropagation: () => {},
+        isPropagationStopped: () => false,
+        persist: () => {},
+        timeStamp: Date.now(),
+        type: 'submit',
+        eventPhase: 2, // Bubbling phase
+      }
+    ) as unknown as React.FormEvent<HTMLFormElement>;
+
+    // Call onSubmit with the properly typed event
     onSubmit(syntheticEvent, token);
   };
 
