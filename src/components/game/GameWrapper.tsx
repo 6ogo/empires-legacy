@@ -37,12 +37,17 @@ const GameWrapper = ({
   onShowStats,
   connectedPlayers,
 }: GameWrapperProps) => {
+  const handleBackToMenu = () => {
+    console.log("Back to menu clicked");
+    onBackToMenu();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 px-4 py-6 md:px-0 md:py-0">
       <PreGameScreens
         showLeaderboard={showLeaderboard}
         gameStatus={gameStatus}
-        onBackToMenu={onBackToMenu}
+        onBackToMenu={handleBackToMenu}
       >
         <MainMenu
           gameStatus={gameStatus}

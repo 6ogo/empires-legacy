@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2 } from "lucide-react";
+import { Loader2, Trophy, Users } from "lucide-react";
 
 const Stats = () => {
   const { data: stats, isLoading } = useQuery({
@@ -20,10 +20,14 @@ const Stats = () => {
         .from('profiles')
         .select('*')
         .order('total_wins', { ascending: false })
-        .limit(10);
+        .limit(3);
+
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
       if (error) throw error;
-      return profiles;
+      return { profiles, totalPlayers: count };
     },
   });
 
@@ -35,7 +39,7 @@ const Stats = () => {
     );
   }
 
-  if (!stats || stats.length === 0) {
+  if (!stats || !stats.profiles || stats.profiles.length === 0) {
     return (
       <div className="text-center p-8">
         <h2 className="text-2xl font-semibold mb-4">No Statistics Available</h2>
@@ -44,7 +48,7 @@ const Stats = () => {
     );
   }
 
-  const chartData = stats.map(player => ({
+  const chartData = stats.profiles.map(player => ({
     name: player.username || 'Anonymous',
     wins: player.total_wins,
     domination: player.domination_wins,
@@ -53,10 +57,31 @@ const Stats = () => {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Players</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalPlayers}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Top Players</CardTitle>
+            <Trophy className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.profiles.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Game Statistics</CardTitle>
-          <CardDescription>Top players and their achievements</CardDescription>
+          <CardDescription>Top 3 players and their achievements</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[400px] mt-4">
@@ -75,10 +100,13 @@ const Stats = () => {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats?.map((player) => (
-          <Card key={player.id}>
+        {stats.profiles.map((player, index) => (
+          <Card key={player.id} className={index === 0 ? "border-yellow-400" : ""}>
             <CardHeader>
-              <CardTitle className="text-lg">{player.username || 'Anonymous'}</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                {player.username || 'Anonymous'}
+                {index === 0 && <Trophy className="h-4 w-4 text-yellow-400" />}
+              </CardTitle>
               <CardDescription>Player Statistics</CardDescription>
             </CardHeader>
             <CardContent>

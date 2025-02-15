@@ -2,6 +2,8 @@
 import React from "react";
 import Leaderboard from "./Leaderboard";
 import Stats from "./Stats";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 interface PreGameScreensProps {
   showLeaderboard: boolean;
@@ -19,12 +21,14 @@ const PreGameScreens: React.FC<PreGameScreensProps> = ({
   if (showLeaderboard) {
     return (
       <div className="p-4">
-        <button
+        <Button
           onClick={onBackToMenu}
-          className="mb-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+          variant="outline"
+          className="mb-4 hover:bg-gray-800 transition-colors"
         >
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Menu
-        </button>
+        </Button>
         <Leaderboard />
       </div>
     );
@@ -33,12 +37,14 @@ const PreGameScreens: React.FC<PreGameScreensProps> = ({
   if (gameStatus === "stats") {
     return (
       <div className="container mx-auto p-4">
-        <button
+        <Button
           onClick={onBackToMenu}
-          className="mb-4 px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
+          variant="outline"
+          className="mb-4 hover:bg-gray-800 transition-colors"
         >
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Menu
-        </button>
+        </Button>
         <Stats />
       </div>
     );
