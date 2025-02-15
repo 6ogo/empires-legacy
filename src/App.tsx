@@ -32,8 +32,6 @@ function RouteHandler() {
     if (!loading) {
       if (!user && location.pathname !== '/auth' && location.pathname !== '/auth/callback') {
         navigate('/auth', { replace: true });
-      } else if (user && !profile && location.pathname !== '/auth/callback') {
-        navigate('/auth', { replace: true });
       } else if (user && profile && location.pathname === '/auth') {
         navigate('/game', { replace: true });
       }
@@ -48,29 +46,31 @@ function RouteHandler() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (!user || !profile) {
+    if (!loading && (!user || !profile)) {
       navigate('/auth', { replace: true });
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, loading, navigate]);
 
+  if (loading) return <LoadingScreen message="Loading..." />;
   if (!user || !profile) return null;
   return <>{children}</>;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (user && profile) {
+    if (!loading && user && profile) {
       navigate('/game', { replace: true });
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, loading, navigate]);
 
+  if (loading) return <LoadingScreen message="Loading..." />;
   if (user && profile) return null;
   return <>{children}</>;
 }

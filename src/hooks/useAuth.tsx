@@ -108,6 +108,9 @@ export const useAuth = () => {
             setProfile(profile);
             await updateLastLogin(session.user.id);
           }
+        } else {
+          setUser(null);
+          setProfile(null);
         }
       } catch (error) {
         console.error('Error in initializeAuth:', error);
