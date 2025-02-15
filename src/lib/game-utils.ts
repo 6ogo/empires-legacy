@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, GamePhase, Territory, Player } from '@/types/game';
 import { GameStateValidator } from './game-validation';
 
@@ -79,7 +80,7 @@ export class GameStateManager {
     territory.lastUpdated = action.timestamp;
 
     this.addUpdate({
-      type: 'recruitment',
+      type: 'territory',
       message: `Player ${action.playerId} recruited ${action.payload.unit.type} in territory ${territory.id}`,
       timestamp: action.timestamp
     });
@@ -162,9 +163,64 @@ export class GameStateManager {
     return true;
   }
 
-  private addUpdate(update: { type: string; message: string; timestamp: number }) {
+  private addUpdate(update: { type: 'territory' | 'resources' | 'combat' | 'building' | 'system'; message: string; timestamp: number }) {
     this.state.updates.push(update);
     this.state.lastUpdated = update.timestamp;
     this.state.version += 1;
   }
+}
+
+export function createInitialGameState(numPlayers: number, boardSize: number): GameState {
+  // Create initial territories
+  const territories: Territory[] = [];
+  for (let q = -Math.floor(boardSize/2); q <= Math.floor(boardSize/2); q++) {
+    for (let r = -Math.floor(boardSize/2); r <= Math.floor(boardSize/2); r++) {
+      const s = -q - r;
+      if (Math.abs(s) <= Math.floor(boardSize/2)) {
+        territories.push({
+          id: `${q},${r},${s}`,
+          coordinates: { q, r },
+          owner: null,
+          terrain: 'plains',
+          resources: {
+            gold: 10,
+            wood: 10,
+            stone: 10,
+            food: 10
+          },
+          building: null,
+          militaryUnit: null,
+          lastUpdated: Date.now()
+        });
+      }
+    }
+  }
+
+  // Create players
+  const players: Player[] = Array.from({ length: numPlayers }, (_, i) => ({
+    id: `player${i + 1}`,
+    resources: {
+      gold: 100,
+      wood: 100,
+      stone: 100,
+      food: 100
+    },
+    territories: [],
+    ready: false
+  }));
+
+  // Create initial game state
+  return {
+    id: `game_${Date.now()}`,
+    phase: 'setup',
+    turn: 1,
+    currentPlayer: players[0].id,
+    players,
+    territories,
+    updates: [],
+    weather: 'clear',
+    timeOfDay: 'day',
+    lastUpdated: Date.now(),
+    version: 1
+  };
 }
