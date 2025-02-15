@@ -1,157 +1,170 @@
+import { GameState, GameAction, GamePhase, Territory, Player } from '@/types/game';
+import { GameStateValidator } from './game-validation';
 
-import { Territory, Resources, GameState, PlayerColor, MilitaryUnit } from "@/types/game";
-import { Json } from "@/integrations/supabase/types";
+export class GameStateManager {
+  private state: GameState;
+  private validator: GameStateValidator;
 
-export const generateInitialTerritories = (boardSize: number): Territory[] => {
-  const territories: Territory[] = [];
-  const radius = Math.floor(Math.sqrt(boardSize) / 2);
+  constructor(state: GameState) {
+    this.state = state;
+    this.validator = new GameStateValidator(state);
+  }
 
-  for (let q = -radius; q <= radius; q++) {
-    const r1 = Math.max(-radius, -q - radius);
-    const r2 = Math.min(radius, -q + radius);
-    for (let r = r1; r <= r2; r++) {
-      const s = -q - r;
-      if (territories.length < boardSize) {
-        const resources: Partial<Resources> = {};
-        const resourceTypes = ['gold', 'wood', 'stone', 'food'] as const;
-        
-        const numResources = Math.floor(Math.random() * 2) + 2;
-        const selectedResources = [...resourceTypes]
-          .sort(() => Math.random() - 0.5)
-          .slice(0, numResources);
-        
-        selectedResources.forEach(resource => {
-          resources[resource] = Math.floor(Math.random() * 4) + 2;
-        });
+  getState(): GameState {
+    return this.state;
+  }
 
-        territories.push({
-          id: `${q},${r},${s}`,
-          type: "plains",
-          owner: null,
-          coordinates: { q, r, s },
-          resources,
-          totalResourceYield: resources,
-        });
-      }
+  applyAction(action: GameAction): boolean {
+    // Validate the action first
+    if (!this.validator.validateAction(action)) {
+      return false;
+    }
+
+    // Apply the action
+    switch (action.type) {
+      case 'CLAIM_TERRITORY':
+        return this.handleClaimTerritory(action);
+      case 'BUILD':
+        return this.handleBuild(action);
+      case 'RECRUIT':
+        return this.handleRecruit(action);
+      case 'ATTACK':
+        return this.handleAttack(action);
+      case 'END_TURN':
+        return this.handleEndTurn(action);
+      case 'END_PHASE':
+        return this.handleEndPhase(action);
+      default:
+        return false;
     }
   }
 
-  return territories;
-};
+  private handleClaimTerritory(action: GameAction): boolean {
+    const territory = this.state.territories.find(t => t.id === action.payload.territoryId);
+    if (!territory) return false;
 
-export const calculateTotalResourceYield = (territory: Territory): Partial<Resources> => {
-  const baseResources = { ...territory.resources };
-  const totalYield: Partial<Resources> = {
-    gold: 0,
-    wood: 0,
-    stone: 0,
-    food: 0
-  };
+    territory.owner = action.playerId;
+    territory.lastUpdated = action.timestamp;
 
-  // Add base resources
-  Object.entries(baseResources).forEach(([resource, amount]) => {
-    if (amount && amount > 0) {
-      totalYield[resource as keyof Resources] = amount;
-    }
-  });
-
-  // Add building bonuses
-  if (territory.building) {
-    const buildingBonuses: Record<string, Partial<Resources>> = {
-      'lumber_mill': { wood: 20 },
-      'mine': { stone: 20 },
-      'market': { gold: 20 },
-      'farm': { food: 8 }
-    };
-
-    const bonus = buildingBonuses[territory.building];
-    if (bonus) {
-      Object.entries(bonus).forEach(([resource, amount]) => {
-        totalYield[resource as keyof Resources] = 
-          (totalYield[resource as keyof Resources] || 0) + amount;
-      });
-    }
-  }
-
-  // Apply territory type bonuses
-  const territoryTypeBonuses: Record<TerritoryType, Partial<Resources>> = {
-    'plains': {},
-    'mountains': { stone: 2 },
-    'forests': { wood: 2 },
-    'coast': { gold: 2 },
-    'capital': { gold: 5, food: 2 }
-  };
-
-  const typeBonus = territoryTypeBonuses[territory.type];
-  if (typeBonus) {
-    Object.entries(typeBonus).forEach(([resource, amount]) => {
-      totalYield[resource as keyof Resources] = 
-        (totalYield[resource as keyof Resources] || 0) + amount;
+    this.addUpdate({
+      type: 'territory',
+      message: `Player ${action.playerId} claimed territory ${territory.id}`,
+      timestamp: action.timestamp
     });
+
+    return true;
   }
 
-  // Remove any zero values
-  Object.entries(totalYield).forEach(([key, value]) => {
-    if (!value || value <= 0) {
-      delete totalYield[key as keyof Resources];
+  private handleBuild(action: GameAction): boolean {
+    const territory = this.state.territories.find(t => t.id === action.payload.territoryId);
+    if (!territory) return false;
+
+    territory.building = action.payload.buildingType;
+    territory.lastUpdated = action.timestamp;
+
+    this.addUpdate({
+      type: 'building',
+      message: `Player ${action.playerId} built ${action.payload.buildingType} in territory ${territory.id}`,
+      timestamp: action.timestamp
+    });
+
+    return true;
+  }
+
+  private handleRecruit(action: GameAction): boolean {
+    const territory = this.state.territories.find(t => t.id === action.payload.territoryId);
+    if (!territory) return false;
+
+    territory.militaryUnit = action.payload.unit;
+    territory.lastUpdated = action.timestamp;
+
+    this.addUpdate({
+      type: 'recruitment',
+      message: `Player ${action.playerId} recruited ${action.payload.unit.type} in territory ${territory.id}`,
+      timestamp: action.timestamp
+    });
+
+    return true;
+  }
+
+  private handleAttack(action: GameAction): boolean {
+    const attackingTerritory = this.state.territories.find(t => t.id === action.payload.fromTerritoryId);
+    const defendingTerritory = this.state.territories.find(t => t.id === action.payload.toTerritoryId);
+    
+    if (!attackingTerritory || !defendingTerritory) return false;
+
+    // Apply combat results
+    const result = this.resolveCombat(attackingTerritory, defendingTerritory);
+    
+    this.addUpdate({
+      type: 'combat',
+      message: `Combat occurred between territories ${attackingTerritory.id} and ${defendingTerritory.id}`,
+      timestamp: action.timestamp
+    });
+
+    return true;
+  }
+
+  private handleEndTurn(action: GameAction): boolean {
+    // Update current player
+    const currentPlayerIndex = this.state.players.findIndex(p => p.id === this.state.currentPlayer);
+    const nextPlayerIndex = (currentPlayerIndex + 1) % this.state.players.length;
+    
+    this.state.currentPlayer = this.state.players[nextPlayerIndex].id;
+    this.state.turn += 1;
+    
+    this.addUpdate({
+      type: 'system',
+      message: `Turn ended. Player ${this.state.currentPlayer}'s turn begins`,
+      timestamp: action.timestamp
+    });
+
+    return true;
+  }
+
+  private handleEndPhase(action: GameAction): boolean {
+    const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
+    const currentPhaseIndex = phases.indexOf(this.state.phase);
+    
+    if (currentPhaseIndex === phases.length - 1) {
+      // Game is over
+      this.state.phase = 'end';
+    } else {
+      this.state.phase = phases[currentPhaseIndex + 1];
     }
-  });
+    
+    this.addUpdate({
+      type: 'system',
+      message: `Phase changed to ${this.state.phase}`,
+      timestamp: action.timestamp
+    });
 
-  return totalYield;
-};
-export const createInitialGameState = (numPlayers: number, boardSize: number): GameState => {
-  const scaledBoardSize = Math.max(boardSize, numPlayers * 12);
+    return true;
+  }
 
-  return {
-    players: Array.from({ length: numPlayers }, (_, i) => ({
-      id: `player${i + 1}` as PlayerColor,
-      resources: {
-        gold: 100,
-        wood: 50,
-        stone: 50,
-        food: 50
-      },
-      units: {
-        infantry: 0,
-        cavalry: 0,
-        artillery: 0
-      },
-      territories: [],
-      hasExpandedThisTurn: false,
-      hasRecruitedThisTurn: false,
-    })),
-    territories: generateInitialTerritories(scaledBoardSize),
-    currentPlayer: "player1",
-    phase: "build",
-    turn: 1,
-    updates: [],
-    hasExpandedThisTurn: false,
-    hasRecruitedThisTurn: false,
-  };
-};
+  private resolveCombat(attackingTerritory: Territory, defendingTerritory: Territory): boolean {
+    if (!attackingTerritory.militaryUnit || !defendingTerritory.militaryUnit) return false;
 
-export const isAdjacent = (t1: Territory, t2: Territory): boolean => {
-  const dx = Math.abs(t1.coordinates.q - t2.coordinates.q);
-  const dy = Math.abs(t1.coordinates.r - t2.coordinates.r);
-  const ds = Math.abs((t1.coordinates.q + t1.coordinates.r) - (t2.coordinates.q + t2.coordinates.r));
-  return (dx <= 1 && dy <= 1 && ds <= 1) && !(dx === 0 && dy === 0);
-};
+    const attackDamage = attackingTerritory.militaryUnit.damage;
+    const defenderHealth = defendingTerritory.militaryUnit.health;
 
-export const hasAdjacentOpponentTerritory = (territory: Territory, territories: Territory[]): boolean => {
-  return territories.some(t => 
-    t.owner && 
-    t.owner !== territory.owner && 
-    isAdjacent(t, territory)
-  );
-};
+    // Apply damage
+    defendingTerritory.militaryUnit.health -= attackDamage;
 
-export const calculateRestoreCost = (unit: MilitaryUnit): Partial<Resources> => {
-  const baseCost = unit.cost;
-  const restorationCost: Partial<Resources> = {};
+    // Check if defender is defeated
+    if (defendingTerritory.militaryUnit.health <= 0) {
+      // Capture territory
+      defendingTerritory.owner = attackingTerritory.owner;
+      defendingTerritory.militaryUnit = null;
+      defendingTerritory.building = null;
+    }
 
-  Object.entries(baseCost).forEach(([resource, amount]) => {
-    restorationCost[resource as keyof Resources] = Math.floor((amount as number) * 0.5);
-  });
+    return true;
+  }
 
-  return restorationCost;
-};
+  private addUpdate(update: { type: string; message: string; timestamp: number }) {
+    this.state.updates.push(update);
+    this.state.lastUpdated = update.timestamp;
+    this.state.version += 1;
+  }
+}
