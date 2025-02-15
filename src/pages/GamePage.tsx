@@ -1,49 +1,22 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import GameScreen from '@/components/game/GameScreen';
-import CombatHistory from '@/components/game/CombatHistory';
-import { useGameState } from '@/hooks/useGameState';
-import { createInitialGameState } from '@/lib/game-utils';
-import { useAuth } from '@/hooks/useAuth';
+
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import Index from "./Index";
+import LoadingScreen from "@/components/game/LoadingScreen";
 
 const GamePage = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { gameState, dispatchAction } = useGameState(createInitialGameState(2, 24));
-  const [showCombatHistory, setShowCombatHistory] = useState(false);
-  
-  const handleBack = () => {
-    navigate('/');
-  };
+  const { user, isLoading } = useAuth();
 
-  const handleShowCombatHistory = () => {
-    setShowCombatHistory(true);
-  };
-
-  const handleCloseCombatHistory = () => {
-    setShowCombatHistory(false);
-  };
-
-  if (!user) {
-    return null;
+  if (isLoading) {
+    return <LoadingScreen message="Loading..." />;
   }
 
-  return (
-    <>
-      <GameScreen
-        gameState={gameState}
-        dispatchAction={dispatchAction}
-        onShowCombatHistory={handleShowCombatHistory}
-        onBack={handleBack}
-      />
-      {showCombatHistory && (
-        <CombatHistory
-          gameState={gameState}
-          onClose={handleCloseCombatHistory}
-        />
-      )}
-    </>
-  );
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <Index />;
 };
 
 export default GamePage;

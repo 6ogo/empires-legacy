@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -13,7 +12,8 @@ import {
   Crown,
   Sword,
   ChevronRight,
-  LogIn
+  LogIn,
+  Gamepad
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -36,13 +36,23 @@ const Landing = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Navigation */}
       <nav className="fixed top-0 right-0 z-50 p-4">
-        <Link
-          to="/auth"
-          className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 border border-gray-700 hover:border-yellow-400 transition-all"
-        >
-          <LogIn className="w-4 h-4" />
-          Login
-        </Link>
+        {user ? (
+          <Link
+            to="/game"
+            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-all"
+          >
+            <Gamepad className="w-4 h-4" />
+            Play Now
+          </Link>
+        ) : (
+          <Link
+            to="/auth"
+            className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 border border-gray-700 hover:border-yellow-400 transition-all"
+          >
+            <LogIn className="w-4 h-4" />
+            Login
+          </Link>
+        )}
       </nav>
 
       {/* Hero Section */}
