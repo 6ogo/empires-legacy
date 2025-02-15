@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -9,10 +8,11 @@ import AuthPage from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import LoadingScreen from './components/game/LoadingScreen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './contexts/AuthContext';
 
 const queryClient = new QueryClient();
 
-const App = () => {
+const AppRoutes = () => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -24,22 +24,30 @@ const App = () => {
   }
 
   return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route 
+        path="/game/*" 
+        element={
+          user ? <GamePage /> : <AuthPage />
+        } 
+      />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+    </Routes>
+  );
+};
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Router>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route 
-              path="/game/*" 
-              element={
-                user ? <GamePage /> : <AuthPage />
-              } 
-            />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-          </Routes>
+          <AuthProvider>
+            <AppRoutes />
+            <Toaster />
+          </AuthProvider>
         </Router>
-        <Toaster />
       </ThemeProvider>
     </QueryClientProvider>
   );
