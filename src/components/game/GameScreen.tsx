@@ -1,37 +1,21 @@
-
 import React from "react";
-import { Territory, GameState } from "@/types/game";
+import { GameState } from "@/types/game";
 import GameBoard from "./GameBoard";
-import GameControls from "./GameControls";
-import ResourceDisplay from "./ResourceDisplay";
-import GameUpdatesPanel from "./GameUpdatesPanel";
 import { Button } from "@/components/ui/button";
 import { History } from "lucide-react";
 
 interface GameScreenProps {
   gameState: GameState;
-  selectedTerritory: Territory | null;
-  onTerritoryClick: (territory: Territory) => void;
-  onEndTurn: () => void;
-  onEndPhase: () => void;
-  onBuild: (buildingType: string) => void;
-  onRecruit: (unitType: string) => void;
-  onGiveUp: () => void;
-  onBack: () => void;
+  dispatchAction: (action: any) => boolean;
   onShowCombatHistory: () => void;
+  onBack: () => void;
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({
   gameState,
-  selectedTerritory,
-  onTerritoryClick,
-  onEndTurn,
-  onEndPhase,
-  onBuild,
-  onRecruit,
-  onGiveUp,
-  onBack,
+  dispatchAction,
   onShowCombatHistory,
+  onBack,
 }) => {
   return (
     <div className="min-h-screen bg-[#141B2C] relative">
@@ -57,33 +41,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
         <div className="flex-grow relative">
           <GameBoard
             gameState={gameState}
-            selectedTerritory={selectedTerritory}
-            onTerritoryClick={onTerritoryClick}
-            onEndTurn={onEndTurn}
-            onEndPhase={onEndPhase}
-            onBuild={onBuild}
-            onRecruit={onRecruit}
-            onGiveUp={onGiveUp}
+            dispatchAction={dispatchAction}
             onBack={onBack}
           />
-        </div>
-        
-        <div className="w-full md:w-80 bg-gray-900/50 backdrop-blur-sm p-4 space-y-4">
-          <ResourceDisplay
-            resources={gameState.players.find(p => p.id === gameState.currentPlayer)?.resources || {
-              gold: 0,
-              wood: 0,
-              stone: 0,
-              food: 0,
-            }}
-          />
-          <GameControls
-            gameState={gameState}
-            onEndTurn={onEndTurn}
-            onEndPhase={onEndPhase}
-            onGiveUp={onGiveUp}
-          />
-          <GameUpdatesPanel updates={gameState.updates} />
         </div>
       </div>
     </div>
