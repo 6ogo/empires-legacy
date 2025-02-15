@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -7,12 +6,16 @@ import { toast } from 'sonner';
 import { UserProfile } from '@/types/auth';
 import { fetchProfile } from '@/utils/profile';
 
+const PERSIST_KEY = 'auth:session';
+
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   session: Session | null;
   isLoading: boolean;
+  error: Error | null;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,7 +23,9 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   session: null,
   isLoading: true,
+  error: null,
   signOut: async () => {},
+  refreshSession: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -28,22 +33,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const navigate = useNavigate();
+
+  const handleError = useCallback((error: Error) => {
+    console.error('Auth error:', error);
+    setError(error);
+    toast.error(error.message);
+  }, []);
+
+  const getPersistentSession = useCallback(() => {
+    const stored = localStorage.getItem(PERSIST_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        localStorage.removeItem(PERSIST_KEY);
+      }
+    }
+    return null;
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      if (session?.user) {
+        setUser(session.user);
+        setSession(session);
+        localStorage.setItem(PERSIST_KEY, JSON.stringify(session));
+        
+        const userProfile = await fetchProfile(session.user.id);
+        if (userProfile) {
+          setProfile(userProfile);
+        }
+      }
+    } catch (error) {
+      handleError(error as Error);
+    }
+  }, [handleError]);
 
   const signOut = async () => {
     try {
-      console.log('Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
       setUser(null);
       setProfile(null);
       setSession(null);
+      localStorage.removeItem(PERSIST_KEY);
       navigate('/');
-      console.log('Successfully signed out');
     } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
+      handleError(error);
     }
   };
 
@@ -52,14 +94,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) throw sessionError;
-        if (!mounted) return;
+        // First check for persistent session
+        const persistedSession = getPersistentSession();
+        if (persistedSession?.user) {
+          setUser(persistedSession.user);
+          setSession(persistedSession);
+          const userProfile = await fetchProfile(persistedSession.user.id);
+          if (mounted && userProfile) {
+            setProfile(userProfile);
+          }
+        }
 
-        if (session?.user) {
+        // Then get current session from Supabase
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (mounted && session?.user) {
           setUser(session.user);
           setSession(session);
+          localStorage.setItem(PERSIST_KEY, JSON.stringify(session));
           
           const userProfile = await fetchProfile(session.user.id);
           if (mounted && userProfile) {
@@ -67,12 +120,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Error in auth initialization:', error);
         if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-          toast.error('Authentication error. Please try again.');
+          handleError(error as Error);
         }
       } finally {
         if (mounted) {
@@ -84,12 +133,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
+
       if (!mounted) return;
 
       try {
         if (session?.user) {
           setUser(session.user);
           setSession(session);
+          localStorage.setItem(PERSIST_KEY, JSON.stringify(session));
           
           const userProfile = await fetchProfile(session.user.id);
           if (mounted && userProfile) {
@@ -99,13 +151,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setProfile(null);
           setSession(null);
+          localStorage.removeItem(PERSIST_KEY);
         }
       } catch (error) {
-        console.error('Error handling auth state change:', error);
         if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setSession(null);
+          handleError(error as Error);
         }
       } finally {
         if (mounted) {
@@ -118,10 +168,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, handleError, getPersistentSession]);
+
+  const value = {
+    user,
+    profile,
+    session,
+    isLoading: loading,
+    error,
+    signOut,
+    refreshSession,
+  };
 
   return (
-    <AuthContext.Provider value={{ user, profile, session, isLoading: loading, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
