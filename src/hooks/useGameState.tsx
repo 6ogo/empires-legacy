@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameAction, ValidationResult } from '@/types/game';
 import { GameStateManager } from '@/lib/game-utils';
 import { toast } from 'sonner';
-import { produce } from 'immer';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -85,106 +84,104 @@ export const useGameState = (
   }, []);
 
   const computeNewState = useCallback((action: GameAction, currentState: GameState): GameState => {
-    return produce(currentState, draft => {
-      switch (action.type) {
-        case 'CLAIM_TERRITORY': {
-          const territory = draft.territories.find(t => t.id === action.payload.territoryId);
-          if (territory) {
-            territory.owner = action.playerId;
-            territory.lastUpdated = action.timestamp;
-          }
-          break;
-        }
-        case 'BUILD': {
-          const territory = draft.territories.find(t => t.id === action.payload.territoryId);
-          if (territory) {
-            territory.building = action.payload.buildingType;
-            territory.lastUpdated = action.timestamp;
-          }
-          break;
-        }
-        case 'RECRUIT': {
-          const territory = draft.territories.find(t => t.id === action.payload.territoryId);
-          if (territory) {
-            territory.militaryUnit = action.payload.unit;
-            territory.lastUpdated = action.timestamp;
-          }
-          break;
-        }
-        case 'ATTACK': {
-          const fromTerritory = draft.territories.find(t => t.id === action.payload.fromTerritoryId);
-          const toTerritory = draft.territories.find(t => t.id === action.payload.toTerritoryId);
-          
-          if (fromTerritory && toTerritory) {
-            // Apply combat results
-            const combatResult = gameStateManagerRef.current.resolveCombat(fromTerritory, toTerritory);
-            
-            // Update territories based on combat result
-            if (combatResult.defenderDestroyed) {
-              toTerritory.owner = fromTerritory.owner;
-              toTerritory.militaryUnit = null;
-            }
-            
-            // Update unit health
-            if (fromTerritory.militaryUnit) {
-              fromTerritory.militaryUnit.health -= combatResult.attackerDamage;
-            }
-            if (toTerritory.militaryUnit) {
-              toTerritory.militaryUnit.health -= combatResult.defenderDamage;
-            }
-            
-            // Remove destroyed units
-            if (fromTerritory.militaryUnit?.health <= 0) {
-              fromTerritory.militaryUnit = null;
-            }
-            if (toTerritory.militaryUnit?.health <= 0) {
-              toTerritory.militaryUnit = null;
-            }
+    const newState = { ...currentState };
 
-            fromTerritory.lastUpdated = action.timestamp;
-            toTerritory.lastUpdated = action.timestamp;
-          }
-          break;
+    switch (action.type) {
+      case 'CLAIM_TERRITORY': {
+        const territory = newState.territories.find(t => t.id === action.payload.territoryId);
+        if (territory) {
+          territory.owner = action.playerId;
+          territory.lastUpdated = action.timestamp;
         }
-        case 'END_TURN': {
-          // Update current player
-          const currentPlayerIndex = draft.players.findIndex(p => p.id === draft.currentPlayer);
-          const nextPlayerIndex = (currentPlayerIndex + 1) % draft.players.length;
-          
-          draft.currentPlayer = draft.players[nextPlayerIndex].id;
-          draft.turn += 1;
-          
-          // Reset unit movement flags
-          draft.territories.forEach(territory => {
-            if (territory.militaryUnit) {
-              territory.militaryUnit.hasMoved = false;
-            }
-          });
-          
-          break;
-        }
-        case 'END_PHASE': {
-          const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
-          const currentPhaseIndex = phases.indexOf(draft.phase);
-          
-          if (currentPhaseIndex === phases.length - 1) {
-            // Game is over
-            draft.phase = 'end';
-          } else {
-            draft.phase = phases[currentPhaseIndex + 1];
-          }
-          break;
-        }
-        case 'SET_STATE': {
-          // Complete state replacement
-          return action.payload.state;
-        }
+        break;
       }
+      case 'BUILD': {
+        const territory = newState.territories.find(t => t.id === action.payload.territoryId);
+        if (territory) {
+          territory.building = action.payload.buildingType;
+          territory.lastUpdated = action.timestamp;
+        }
+        break;
+      }
+      case 'RECRUIT': {
+        const territory = newState.territories.find(t => t.id === action.payload.territoryId);
+        if (territory) {
+          territory.militaryUnit = action.payload.unit;
+          territory.lastUpdated = action.timestamp;
+        }
+        break;
+      }
+      case 'ATTACK': {
+        const fromTerritory = newState.territories.find(t => t.id === action.payload.fromTerritoryId);
+        const toTerritory = newState.territories.find(t => t.id === action.payload.toTerritoryId);
+        
+        if (fromTerritory && toTerritory) {
+          // Apply combat results
+          const combatResult = gameStateManagerRef.current.resolveCombat(fromTerritory, toTerritory);
+          
+          // Update territories based on combat result
+          if (combatResult.defenderDestroyed) {
+            toTerritory.owner = fromTerritory.owner;
+            toTerritory.militaryUnit = null;
+          }
+          
+          // Update unit health
+          if (fromTerritory.militaryUnit) {
+            fromTerritory.militaryUnit.health -= combatResult.attackerDamage;
+          }
+          if (toTerritory.militaryUnit) {
+            toTerritory.militaryUnit.health -= combatResult.defenderDamage;
+          }
+          
+          // Remove destroyed units
+          if (fromTerritory.militaryUnit?.health <= 0) {
+            fromTerritory.militaryUnit = null;
+          }
+          if (toTerritory.militaryUnit?.health <= 0) {
+            toTerritory.militaryUnit = null;
+          }
 
-      // Update version and timestamp
-      draft.version += 1;
-      draft.lastUpdated = action.timestamp;
-    });
+          fromTerritory.lastUpdated = action.timestamp;
+          toTerritory.lastUpdated = action.timestamp;
+        }
+        break;
+      }
+      case 'END_TURN': {
+        const currentPlayerIndex = newState.players.findIndex(p => p.id === newState.currentPlayer);
+        const nextPlayerIndex = (currentPlayerIndex + 1) % newState.players.length;
+        
+        newState.currentPlayer = newState.players[nextPlayerIndex].id;
+        newState.turn += 1;
+        
+        // Reset unit movement flags
+        newState.territories.forEach(territory => {
+          if (territory.militaryUnit) {
+            territory.militaryUnit.hasMoved = false;
+          }
+        });
+        break;
+      }
+      case 'END_PHASE': {
+        const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
+        const currentPhaseIndex = phases.indexOf(newState.phase);
+        
+        if (currentPhaseIndex === phases.length - 1) {
+          newState.phase = 'end';
+        } else {
+          newState.phase = phases[currentPhaseIndex + 1];
+        }
+        break;
+      }
+      case 'SET_STATE': {
+        return action.payload.state;
+      }
+    }
+
+    // Update version and timestamp
+    newState.version += 1;
+    newState.lastUpdated = action.timestamp;
+
+    return newState;
   }, []);
 
   const dispatchAction = useCallback(async (action: GameAction) => {
