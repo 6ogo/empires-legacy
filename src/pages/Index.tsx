@@ -9,15 +9,17 @@ import { useAuth } from "@/hooks/useAuth";
 import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
 import GameContainer from "@/components/game/GameContainer";
-import { GameState } from "@/types/game";
+import { GameState, GamePhase, PlayerColor } from "@/types/game";
 import { Loader } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Json } from "@/integrations/supabase/types";
 
 // Helper function to validate GameState shape
 const isValidGameState = (state: unknown): state is GameState => {
-  const gameState = state as GameState;
-  return (
+  if (!state || typeof state !== 'object') return false;
+  
+  const gameState = state as Partial<GameState>;
+  return !!(
     gameState &&
     Array.isArray(gameState.players) &&
     Array.isArray(gameState.territories) &&
@@ -29,6 +31,22 @@ const isValidGameState = (state: unknown): state is GameState => {
     typeof gameState.hasRecruitedThisTurn === 'boolean'
   );
 };
+
+interface GameUpdatePayload {
+  new: {
+    game_status: string;
+    state: {
+      players: any[];
+      territories: any[];
+      currentPlayer: PlayerColor;
+      phase: GamePhase;
+      turn: number;
+      updates: any[];
+      hasExpandedThisTurn: boolean;
+      hasRecruitedThisTurn: boolean;
+    };
+  };
+}
 
 const Index = () => {
   const navigate = useNavigate();
@@ -134,15 +152,16 @@ const Index = () => {
           schema: 'public',
           table: 'games',
           filter: `id=eq.${gameId}`,
-        }, (payload: { new: { game_status: string; state: Json } }) => {
+        }, (payload: GameUpdatePayload) => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus("playing");
             
             try {
-              const stateData = typeof payload.new.state === 'string' 
-                ? JSON.parse(payload.new.state) 
-                : payload.new.state;
+              const rawState = payload.new.state;
+              const stateData = typeof rawState === 'string' 
+                ? JSON.parse(rawState) 
+                : rawState;
 
               if (isValidGameState(stateData)) {
                 setGameState(stateData);
