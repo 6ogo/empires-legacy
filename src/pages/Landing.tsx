@@ -11,12 +11,24 @@ import {
   Castle,
   Crown,
   Sword,
-  ChevronRight
+  ChevronRight,
+  LogIn
 } from "lucide-react";
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 right-0 z-50 p-4">
+        <Link
+          to="/auth"
+          className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 border border-gray-700 hover:border-yellow-400 transition-all"
+        >
+          <LogIn className="w-4 h-4" />
+          Login
+        </Link>
+      </nav>
+
       {/* Hero Section */}
       <div 
         className="relative min-h-screen flex items-center justify-center"

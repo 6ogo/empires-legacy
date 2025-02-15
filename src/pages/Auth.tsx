@@ -7,6 +7,8 @@ import { SignUpForm } from "@/components/auth/SignUpForm";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChevronLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -34,15 +36,40 @@ const Auth = () => {
   }, [user, profile, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-black/20 backdrop-blur-sm border border-zinc-800">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4"
+      style={{
+        backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <Link 
+        to="/" 
+        className="fixed top-4 left-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back to Home
+      </Link>
+
+      <Card className="w-full max-w-md bg-black/40 backdrop-blur-sm border border-gray-800">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-game-gold">Empire's Legacy</CardTitle>
+          <CardTitle className="text-2xl font-bold text-yellow-400">Empire's Legacy</CardTitle>
         </CardHeader>
         <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-zinc-800/50">
-            <TabsTrigger value="signin" className="data-[state=active]:bg-zinc-700">Sign In</TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-zinc-700">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
+            <TabsTrigger 
+              value="signin" 
+              className="data-[state=active]:bg-yellow-500 data-[state=active]:text-gray-900"
+            >
+              Sign In
+            </TabsTrigger>
+            <TabsTrigger 
+              value="signup" 
+              className="data-[state=active]:bg-yellow-500 data-[state=active]:text-gray-900"
+            >
+              Sign Up
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="signin" className="text-white">
             <SignInForm
