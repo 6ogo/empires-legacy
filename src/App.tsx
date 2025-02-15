@@ -1,22 +1,24 @@
 // src/App.tsx
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import LandingPage from './pages/LandingPage';
+import LandingPage from './pages/Landing';
 import GamePage from './pages/GamePage';
+import AuthPage from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
+import LoadingScreen from './components/game/LoadingScreen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const { session, isLoading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
-        <p className="text-lg text-foreground">Checking authentication...</p>
+        <LoadingScreen message="Checking authentication..." />
       </div>
     );
   }
@@ -26,10 +28,19 @@ const App = () => {
       <ThemeProvider>
         <Router>
           <Routes>
-            <Route path="/" element={session ? <Navigate to="/game" replace /> : <LandingPage />} />
-            <Route path="/game" element={session ? <GamePage /> : <Navigate to="/" replace />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route 
+              path="/game/*" 
+              element={
+                user && profile ? (
+                  <GamePage />
+                ) : (
+                  <AuthPage />
+                )
+              } 
+            />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/auth" element={<Navigate to="/auth/callback" replace />} />
           </Routes>
         </Router>
         <Toaster />
