@@ -1,10 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TurnstileCaptcha } from "@/components/auth/Turnstile";
+import { toast } from "sonner";
 
 interface SignUpFormProps {
   email: string;
@@ -41,9 +42,27 @@ export const SignUpForm = ({
 }: SignUpFormProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string>();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (showTurnstile) {
+      console.log('Turnstile should be visible now');
+    }
+  }, [showTurnstile]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(e, turnstileToken);
+    console.log('Form submitted', { email, username, showTurnstile, turnstileToken });
+
+    if (!email || !password || !username) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      await onSubmit(e, turnstileToken);
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Failed to create account. Please try again.');
+    }
   };
 
   return (
@@ -104,7 +123,10 @@ export const SignUpForm = ({
 
       {showTurnstile && (
         <div className="flex justify-center">
-          <TurnstileCaptcha onVerify={setTurnstileToken} />
+          <TurnstileCaptcha onVerify={(token) => {
+            console.log('Turnstile token received');
+            setTurnstileToken(token);
+          }} />
         </div>
       )}
 

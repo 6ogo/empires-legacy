@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,7 +127,12 @@ export const useAuthForm = () => {
 
   const handleSignUp = async (e: React.FormEvent, turnstileToken?: string) => {
     e.preventDefault();
-    console.log('Handling sign up...', { email: formState.email, username: formState.username, turnstileToken });
+    console.log('Handling sign up...', { 
+      email: formState.email, 
+      username: formState.username, 
+      turnstileToken,
+      showTurnstile: formState.showTurnstile 
+    });
 
     // Validate all fields
     const emailError = validateInput(formState.email, 'email');
@@ -144,6 +148,7 @@ export const useAuthForm = () => {
           username: usernameError
         }
       }));
+      toast.error('Please fix the validation errors');
       return;
     }
 
@@ -156,6 +161,7 @@ export const useAuthForm = () => {
     setFormState(prev => ({ ...prev, loading: true }));
 
     try {
+      console.log('Attempting to create account...');
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formState.email.trim(),
         password: formState.password,
@@ -173,6 +179,8 @@ export const useAuthForm = () => {
         throw new Error('No user data returned after sign up');
       }
 
+      console.log('Account created, creating profile...');
+
       // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -188,12 +196,12 @@ export const useAuthForm = () => {
 
       if (profileError) throw profileError;
 
-      toast.success("Sign up successful!");
+      toast.success("Account created successfully! Check your email for verification.");
       console.log('Sign up successful, navigating to game');
       navigate('/game', { replace: true });
     } catch (error: any) {
       console.error('Sign up error:', error);
-      toast.error(error.message || 'Failed to sign up');
+      toast.error(error.message || 'Failed to create account');
       setFormState(prev => ({ ...prev, showTurnstile: false }));
     } finally {
       setFormState(prev => ({ ...prev, loading: false }));
