@@ -81,38 +81,56 @@ export const useAuth = () => {
     let mounted = true;
 
     const initializeAuth = async () => {
+      console.log('Initializing auth...');
+      setLoading(true); // Ensure loading is true at start
+
       try {
-        console.log('Initializing auth...');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // First, try to get the session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          throw sessionError;
+        }
+
+        // Guard against component unmount
+        if (!mounted) {
+          console.log('Component unmounted during auth initialization');
           return;
         }
 
-        console.log('Session retrieved:', session ? 'Valid session' : 'No session');
-        
-        if (!mounted) return;
+        console.log('Session state:', session ? 'Valid session' : 'No session');
 
         if (session?.user) {
-          console.log('Setting user from session');
+          console.log('Setting user from session:', session.user.email);
           setUser(session.user);
+          
           const profile = await fetchProfile(session.user.id);
-          if (mounted && profile) {
-            console.log('Setting profile');
-            setProfile(profile);
-          } else {
-            console.log('No profile found or component unmounted');
+          if (mounted) {
+            if (profile) {
+              console.log('Setting profile for user');
+              setProfile(profile);
+            } else {
+              console.log('No profile found for user');
+              // If no profile, treat as not authenticated
+              setUser(null);
+            }
           }
         } else {
-          console.log('No session user found');
+          console.log('No session found, clearing user and profile');
           setUser(null);
           setProfile(null);
         }
       } catch (error) {
-        console.error('Error in initializeAuth:', error);
+        console.error('Error in auth initialization:', error);
+        // Clear auth state on error
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+        }
+        toast.error('Authentication error. Please try again.');
       } finally {
+        // Always set loading to false if component is still mounted
         if (mounted) {
           console.log('Setting loading to false');
           setLoading(false);
@@ -120,34 +138,54 @@ export const useAuth = () => {
       }
     };
 
-    // Initialize auth immediately
-    initializeAuth();
-
-    // Set up auth state change listener
+    // Set up auth state change listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'Has session' : 'No session');
-      
-      if (!mounted) return;
+      console.log('Auth state changed:', event);
 
-      if (session?.user) {
-        console.log('Setting user from auth change');
-        setUser(session.user);
-        const profile = await fetchProfile(session.user.id);
-        if (mounted && profile) {
-          console.log('Setting profile from auth change');
-          setProfile(profile);
-        }
-      } else {
-        console.log('Clearing user and profile from auth change');
-        setUser(null);
-        setProfile(null);
+      if (!mounted) {
+        console.log('Component unmounted during auth state change');
+        return;
       }
 
-      if (mounted) {
-        setLoading(false);
+      try {
+        if (session?.user) {
+          console.log('Auth state change: User found');
+          setUser(session.user);
+          const profile = await fetchProfile(session.user.id);
+          
+          if (mounted) {
+            if (profile) {
+              console.log('Auth state change: Setting profile');
+              setProfile(profile);
+            } else {
+              console.log('Auth state change: No profile found');
+              setUser(null);
+              setProfile(null);
+            }
+          }
+        } else {
+          console.log('Auth state change: No user');
+          setUser(null);
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('Error handling auth state change:', error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+        }
+      } finally {
+        if (mounted) {
+          console.log('Auth state change: Setting loading to false');
+          setLoading(false);
+        }
       }
     });
 
+    // Initialize auth after setting up listener
+    initializeAuth();
+
+    // Cleanup function
     return () => {
       console.log('Cleaning up auth effect');
       mounted = false;
