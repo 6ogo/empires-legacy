@@ -1,11 +1,12 @@
-// src/components/game/GameNavigation.tsx
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 interface GameNavigationProps {
-  onBack: () => void;
+  onBack?: () => void;
   mode: 'menu' | 'mode_select' | 'creating' | 'joining' | 'playing' | 'waiting' | 'stats' | 'achievements' | 'leaderboard' | 'settings';
   isInRoom?: boolean;
   roomId?: string;
@@ -18,6 +19,16 @@ export const GameNavigation: React.FC<GameNavigationProps> = ({
   roomId 
 }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const navigate = useNavigate();
+
+  const handleBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onBack) {
+      onBack();
+    } else {
+      navigate('/game');
+    }
+  };
 
   const handleCopy = async () => {
     if (!roomId) return;
@@ -37,11 +48,11 @@ export const GameNavigation: React.FC<GameNavigationProps> = ({
       <div className="container flex h-14 max-w-screen-2xl items-center">
         <Button
           variant="ghost"
-          onClick={onBack}
+          onClick={handleBack}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {mode === 'menu' ? 'Home' : 'Back'}
         </Button>
         
         {isInRoom && roomId && (

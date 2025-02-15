@@ -9,7 +9,7 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .maybeSingle();
+      .single();
 
     if (error) {
       console.error('Error fetching profile:', error);
@@ -27,7 +27,7 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
       username: data.username || undefined,
       verified: !!data.verified,
       email_verified: !!data.email_verified,
-      preferences: data.preferences as { stayLoggedIn: boolean } ?? { stayLoggedIn: false },
+      preferences: data.preferences || { stayLoggedIn: false },
       avatarUrl: data.avatar_url || undefined,
       createdAt: data.created_at,
       updatedAt: data.created_at,

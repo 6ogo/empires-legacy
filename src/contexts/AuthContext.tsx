@@ -39,7 +39,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.error('Auth error:', error);
     setError(error);
     setIsLoading(false);
-    toast.error(error.message);
+  }, []);
+
+  const loadProfile = useCallback(async (userId: string) => {
+    try {
+      const userProfile = await fetchProfile(userId);
+      if (userProfile) {
+        setProfile(userProfile);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      return false;
+    }
   }, []);
 
   const signOut = async () => {
@@ -51,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       setSession(null);
-      navigate('/', { replace: true });
+      navigate('/auth', { replace: true });
     } catch (error: any) {
       handleError(error);
     } finally {
@@ -59,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async () => {
     try {
       setIsLoading(true);
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -70,14 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Refreshing session for user:', session.user.email);
         setUser(session.user);
         setSession(session);
-        const userProfile = await fetchProfile(session.user.id);
-        if (userProfile) {
-          console.log('Profile found:', userProfile);
-          setProfile(userProfile);
-        } else {
-          console.log('No profile found for user');
-          throw new Error('Profile not found');
-        }
+        await loadProfile(session.user.id);
       } else {
         setUser(null);
         setProfile(null);
@@ -88,9 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [handleError, loadProfile]);
 
-  // Initial session check and setup auth state listener
   useEffect(() => {
     let mounted = true;
 
@@ -105,15 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('Session found:', session.user.email);
           setUser(session.user);
           setSession(session);
-          const userProfile = await fetchProfile(session.user.id);
-          if (mounted && userProfile) {
-            console.log('Profile loaded for user');
-            setProfile(userProfile);
-          } else if (mounted) {
-            console.log('No profile found for user');
-            setUser(null);
-            setSession(null);
-          }
+          await loadProfile(session.user.id);
         }
       } catch (error: any) {
         console.error('Auth initialization error:', error);
@@ -122,16 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted) {
-          console.log('Auth initialization complete');
           setIsLoading(false);
         }
       }
     };
 
-    // Initialize auth state
     initializeAuth();
 
-    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       if (!mounted) return;
@@ -140,18 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           setUser(session.user);
           setSession(session);
-          try {
-            const userProfile = await fetchProfile(session.user.id);
-            if (mounted && userProfile) {
-              setProfile(userProfile);
-            } else if (mounted) {
-              setUser(null);
-              setSession(null);
-              setProfile(null);
-            }
-          } catch (error: any) {
-            handleError(error);
-          }
+          await loadProfile(session.user.id);
         } else {
           setUser(null);
           setProfile(null);
@@ -168,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [handleError]);
+  }, [handleError, loadProfile]);
 
   const value = {
     user,
