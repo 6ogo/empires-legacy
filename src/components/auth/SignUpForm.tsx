@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { TurnstileCaptcha as Turnstile } from "@/components/auth/Turnstile";
+import { TurnstileCaptcha } from "@/components/auth/Turnstile";
 
 interface SignUpFormProps {
   email: string;
@@ -17,6 +18,11 @@ interface SignUpFormProps {
   loading: boolean;
   onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
   showTurnstile: boolean;
+  validationErrors?: {
+    email?: string;
+    password?: string;
+    username?: string;
+  };
 }
 
 export const SignUpForm = ({
@@ -31,6 +37,7 @@ export const SignUpForm = ({
   loading,
   onSubmit,
   showTurnstile,
+  validationErrors,
 }: SignUpFormProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string>();
 
@@ -50,7 +57,11 @@ export const SignUpForm = ({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          className="bg-white/10"
         />
+        {validationErrors?.email && (
+          <p className="text-red-500 text-sm">{validationErrors.email}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="username">Username</Label>
@@ -61,7 +72,11 @@ export const SignUpForm = ({
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
+          className="bg-white/10"
         />
+        {validationErrors?.username && (
+          <p className="text-red-500 text-sm">{validationErrors.username}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
@@ -72,7 +87,11 @@ export const SignUpForm = ({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          className="bg-white/10"
         />
+        {validationErrors?.password && (
+          <p className="text-red-500 text-sm">{validationErrors.password}</p>
+        )}
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -80,14 +99,20 @@ export const SignUpForm = ({
           checked={stayLoggedIn}
           onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
         />
-        <Label htmlFor="stayLoggedIn">Stay logged in</Label>
+        <Label htmlFor="stayLoggedIn" className="text-sm">Stay logged in</Label>
       </div>
 
       {showTurnstile && (
-        <Turnstile onVerify={setTurnstileToken} />
+        <div className="flex justify-center">
+          <TurnstileCaptcha onVerify={setTurnstileToken} />
+        </div>
       )}
 
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button 
+        type="submit" 
+        className="w-full bg-game-gold hover:bg-game-gold/90"
+        disabled={loading}
+      >
         {loading ? "Creating account..." : "Create account"}
       </Button>
     </form>

@@ -15,6 +15,10 @@ interface SignInFormProps {
   onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
   onMagicLinkLogin: (e: React.FormEvent) => Promise<void>;
   showTurnstile: boolean;
+  validationErrors?: {
+    email?: string;
+    password?: string;
+  };
 }
 
 export const SignInForm = ({
@@ -28,6 +32,7 @@ export const SignInForm = ({
   onSubmit,
   onMagicLinkLogin,
   showTurnstile,
+  validationErrors,
 }: SignInFormProps) => {
   const [activeTab, setActiveTab] = useState<string>("password");
 
@@ -53,6 +58,7 @@ export const SignInForm = ({
           loading={loading}
           onSubmit={onSubmit}
           showTurnstile={showTurnstile}
+          validationErrors={validationErrors}
         />
       </TabsContent>
 
