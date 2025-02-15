@@ -35,9 +35,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user, profile, loading, navigate]);
 
-  // Don't show loading if we're already redirecting
-  if (!loading && (!user || !profile)) return null;
+  // Show loading only during initial check
   if (loading) return <LoadingScreen message="Checking authentication..." />;
+  
+  // Don't show loading if we're already redirecting
+  if (!user || !profile) return null;
+  
   return <>{children}</>;
 }
 
