@@ -524,7 +524,14 @@ export class GameStateValidator {
     };
 
     return Object.entries(resources).some(
-      ([resource, amount]) => amount > thresholds[resource as keyof typeof thresholds]
+      ([resource, amount]) => {
+        const threshold = thresholds[resource as keyof typeof thresholds];
+        const resourceAmount = Number(amount);
+        
+        if (isNaN(resourceAmount)) return false;
+        
+        return resourceAmount > threshold;
+      }
     );
   }
 }
