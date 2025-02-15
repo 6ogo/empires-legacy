@@ -11,8 +11,9 @@ interface SignInFormProps {
   stayLoggedIn: boolean;
   setStayLoggedIn: (stayLoggedIn: boolean) => void;
   loading: boolean;
-  onSubmit: (e: React.FormEvent) => Promise<void>;
+  onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
   onMagicLinkLogin: (e: React.FormEvent) => Promise<void>;
+  showTurnstile?: boolean;
 }
 
 export const SignInForm = ({
@@ -25,6 +26,7 @@ export const SignInForm = ({
   loading,
   onSubmit,
   onMagicLinkLogin,
+  showTurnstile,
 }: SignInFormProps) => {
   return (
     <Tabs defaultValue="password" className="w-full">
@@ -43,6 +45,7 @@ export const SignInForm = ({
           setStayLoggedIn={setStayLoggedIn}
           loading={loading}
           onSubmit={onSubmit}
+          showTurnstile={showTurnstile}
         />
       </TabsContent>
 

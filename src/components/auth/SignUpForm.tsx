@@ -6,6 +6,7 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { TurnstileCaptcha } from "./Turnstile";
+import React from "react";
 
 interface SignUpFormProps {
   email: string;
@@ -36,6 +37,12 @@ export const SignUpForm = ({
   showTurnstile,
   onGuestLogin,
 }: SignUpFormProps) => {
+  // Create a synthetic form event
+  const createFormEvent = () => {
+    const event = new Event('submit', { bubbles: true, cancelable: true });
+    return event as unknown as React.FormEvent;
+  };
+
   return (
     <form onSubmit={(e) => onSubmit(e)}>
       <CardContent className="space-y-4">
@@ -87,7 +94,7 @@ export const SignUpForm = ({
         </div>
         {showTurnstile && (
           <div className="flex justify-center">
-            <TurnstileCaptcha onSuccess={(token) => onSubmit(new Event('submit') as React.FormEvent, token)} />
+            <TurnstileCaptcha onSuccess={(token) => onSubmit(createFormEvent(), token)} />
           </div>
         )}
       </CardContent>

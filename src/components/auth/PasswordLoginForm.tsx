@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { GuestLoginButton } from "./GuestLoginButton";
 import { TurnstileCaptcha } from "./Turnstile";
+import React from "react";
 
 interface PasswordLoginFormProps {
   email: string;
@@ -31,6 +32,12 @@ export const PasswordLoginForm = ({
   onSubmit,
   showTurnstile,
 }: PasswordLoginFormProps) => {
+  // Create a synthetic form event
+  const createFormEvent = () => {
+    const event = new Event('submit', { bubbles: true, cancelable: true });
+    return event as unknown as React.FormEvent;
+  };
+
   return (
     <form onSubmit={(e) => onSubmit(e)}>
       <CardContent className="space-y-4">
@@ -68,7 +75,7 @@ export const PasswordLoginForm = ({
         </div>
         {showTurnstile && (
           <div className="flex justify-center">
-            <TurnstileCaptcha onSuccess={(token) => onSubmit(new Event('submit') as React.FormEvent, token)} />
+            <TurnstileCaptcha onSuccess={(token) => onSubmit(createFormEvent(), token)} />
           </div>
         )}
       </CardContent>
