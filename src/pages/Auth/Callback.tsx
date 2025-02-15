@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import LoadingScreen from '@/components/game/LoadingScreen';
 
 const Callback = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const Callback = () => {
           }
 
           toast.success('Email verified successfully!');
+          // Use replace to prevent back navigation to callback
           navigate('/game', { replace: true });
         } else {
           console.log('No session found, redirecting to auth...'); // Debug log
@@ -49,14 +51,15 @@ const Callback = () => {
       }
     };
 
-    handleEmailConfirmation();
+    // Add a small delay to ensure Supabase has time to process the callback
+    const timeoutId = setTimeout(() => {
+      handleEmailConfirmation();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [navigate]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-      <div className="text-white text-lg animate-pulse">Verifying your email...</div>
-    </div>
-  );
+  return <LoadingScreen message="Verifying your email..." />;
 };
 
 export default Callback;
