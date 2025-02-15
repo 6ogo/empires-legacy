@@ -36,5 +36,7 @@ export interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
+  error: Error | null;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }

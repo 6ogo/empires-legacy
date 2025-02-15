@@ -23,15 +23,23 @@ export function ProtectedRoute({
     }
   }, [error]);
 
+  useEffect(() => {
+    console.log('ProtectedRoute check:', { user, profile, isLoading });
+  }, [user, profile, isLoading]);
+
   if (isLoading) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  if (requireEmailVerified && !profile.email_verified) {
+  if (user && !profile) {
+    return <LoadingScreen message="Loading profile..." />;
+  }
+
+  if (requireEmailVerified && !profile?.email_verified) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
         <h1 className="text-2xl font-bold mb-4">Email Verification Required</h1>

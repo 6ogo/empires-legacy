@@ -34,8 +34,12 @@ export const SignInForm = ({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="password">Password</TabsTrigger>
-        <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
+        <TabsTrigger value="password" disabled={loading}>
+          Password {loading && "(Loading...)"}
+        </TabsTrigger>
+        <TabsTrigger value="magic-link" disabled={loading}>
+          Magic Link {loading && "(Loading...)"}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="password">
