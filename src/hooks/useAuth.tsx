@@ -33,6 +33,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
+    console.log('Fetching profile for user:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -45,8 +46,12 @@ export const useAuth = () => {
         return null;
       }
       
-      if (!data) return null;
+      if (!data) {
+        console.log('No profile found for user:', userId);
+        return null;
+      }
 
+      console.log('Profile fetched successfully:', data);
       return {
         id: data.id,
         username: data.username,
@@ -72,76 +77,79 @@ export const useAuth = () => {
     }
   };
 
-  const updateLastLogin = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('Error updating last login:', error);
-      }
-    } catch (error) {
-      console.error('Error in updateLastLogin:', error);
-    }
-  };
-
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initializing auth...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        console.log('Session retrieved:', session ? 'Valid session' : 'No session');
         
         if (!mounted) return;
 
         if (session?.user) {
+          console.log('Setting user from session');
           setUser(session.user);
           const profile = await fetchProfile(session.user.id);
           if (mounted && profile) {
+            console.log('Setting profile');
             setProfile(profile);
-            await updateLastLogin(session.user.id);
+          } else {
+            console.log('No profile found or component unmounted');
           }
+        } else {
+          console.log('No session user found');
+          setUser(null);
+          setProfile(null);
         }
       } catch (error) {
         console.error('Error in initializeAuth:', error);
       } finally {
         if (mounted) {
+          console.log('Setting loading to false');
           setLoading(false);
         }
       }
     };
 
+    // Initialize auth immediately
     initializeAuth();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session ? 'Has session' : 'No session');
+      
       if (!mounted) return;
 
-      try {
-        if (session?.user) {
-          setUser(session.user);
-          const profile = await fetchProfile(session.user.id);
-          if (mounted && profile) {
-            setProfile(profile);
-            if (event === 'SIGNED_IN') {
-              await updateLastLogin(session.user.id);
-            }
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
+      if (session?.user) {
+        console.log('Setting user from auth change');
+        setUser(session.user);
+        const profile = await fetchProfile(session.user.id);
+        if (mounted && profile) {
+          console.log('Setting profile from auth change');
+          setProfile(profile);
         }
-      } catch (error) {
-        console.error('Auth state change error:', error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+      } else {
+        console.log('Clearing user and profile from auth change');
+        setUser(null);
+        setProfile(null);
+      }
+
+      if (mounted) {
+        setLoading(false);
       }
     });
 
     return () => {
+      console.log('Cleaning up auth effect');
       mounted = false;
       subscription.unsubscribe();
     };
@@ -149,6 +157,7 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
+      console.log('Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
