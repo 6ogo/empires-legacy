@@ -42,15 +42,17 @@ const HeroSection = ({ handlePlayNowClick, mousePosition, backgroundRef }: HeroS
       <div 
         ref={backgroundRef}
         className="relative min-h-screen flex items-center justify-center w-full overflow-hidden"
-        style={{
-          backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('/bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: `calc(50% + ${mousePosition.x}px) calc(50% + ${mousePosition.y}px)`,
-          backgroundAttachment: "fixed",
-          transition: "background-position 0.3s ease-out"
-        }}
       >
-        <div className="absolute inset-0 bg-black opacity-60"></div>
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/bg.jpg')",
+            transform: `translate(${mousePosition.x * 0.5}px, ${mousePosition.y * 0.5}px)`,
+            transition: 'transform 0.2s ease-out',
+            willChange: 'transform'
+          }}
+        />
+        <div className="absolute inset-0 bg-black opacity-30"></div>
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center justify-center min-h-screen -mt-32">
           <img 
             src="/testLogo.png" 

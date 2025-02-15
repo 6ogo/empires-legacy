@@ -30,8 +30,8 @@ const Landing = () => {
     if (backgroundRef.current) {
       const { clientX, clientY } = e;
       const { width, height } = backgroundRef.current.getBoundingClientRect();
-      const x = (clientX / width - 0.5) * 20;
-      const y = (clientY / height - 0.5) * 20;
+      const x = (clientX / width - 0.5) * 10; // Reduced from 20 to 10
+      const y = (clientY / height - 0.5) * 10; // Reduced from 20 to 10
       setMousePosition({ x, y });
     }
   };
