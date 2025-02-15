@@ -1,5 +1,4 @@
 
-// Explicitly import React and JSX type
 import React, { type ReactElement } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -29,10 +28,14 @@ const CombatHistory = ({ onClose }: CombatHistoryProps): ReactElement => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching combat history:', error);
+        throw error;
+      }
       return data;
     },
     enabled: !!user,
+    retry: 1,
   });
 
   const getGameResult = (game: any) => {
