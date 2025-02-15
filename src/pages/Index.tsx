@@ -148,17 +148,16 @@ const Index = () => {
             setGameStatus("playing");
             
             try {
-              let stateData: unknown;
-              if (typeof payload.new.state === 'string') {
-                stateData = JSON.parse(payload.new.state);
-              } else {
-                stateData = payload.new.state;
-              }
+              const rawState = payload.new.state as unknown;
+              
+              const parsedState = typeof rawState === 'string' 
+                ? JSON.parse(rawState) as unknown
+                : rawState;
 
-              if (isValidGameState(stateData)) {
-                setGameState(stateData);
+              if (isValidGameState(parsedState)) {
+                setGameState(parsedState);
               } else {
-                console.error('Invalid game state received:', stateData);
+                console.error('Invalid game state received:', parsedState);
                 toast.error('Received invalid game state from server');
               }
             } catch (error) {
