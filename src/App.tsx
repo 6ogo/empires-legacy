@@ -30,7 +30,7 @@ const queryClient = new QueryClient({
 
 const App = () => {
   return (
-    <QueryClient.Provider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -72,7 +72,7 @@ const App = () => {
         </BrowserRouter>
         <SpeedInsights />
       </TooltipProvider>
-    </QueryClient.Provider>
+    </QueryClientProvider>
   );
 };
 
