@@ -150,6 +150,7 @@ export class GameStateValidator {
       typeof unit.damage === 'number' &&
       typeof unit.experience === 'number' &&
       typeof unit.hasMoved === 'boolean' &&
+      this.validateResources(unit.cost) && // Validate the cost
       unit.health > 0 &&
       unit.damage > 0 &&
       unit.experience >= 0
@@ -328,15 +329,17 @@ export class GameStateValidator {
     }
 
     const unitCost = action.payload.unit.cost;
-    for (const [resource, cost] of Object.entries(unitCost)) {
-      if ((player.resources[resource as keyof Resources] || 0) < (cost || 0)) {
+  
+    // Use type assertion for the entries
+    for (const [resource, cost] of Object.entries(unitCost) as Array<[keyof Resources, number]>) {
+      if ((player.resources[resource] || 0) < (cost || 0)) {
         return {
           valid: false,
           message: `Insufficient ${resource}`
         };
       }
     }
-
+  
     return { valid: true };
   }
 
@@ -524,14 +527,7 @@ export class GameStateValidator {
     };
 
     return Object.entries(resources).some(
-      ([resource, amount]) => {
-        const threshold = thresholds[resource as keyof typeof thresholds];
-        const resourceAmount = Number(amount);
-        
-        if (isNaN(resourceAmount)) return false;
-        
-        return resourceAmount > threshold;
-      }
+      ([resource, amount]) => amount > thresholds[resource as keyof typeof thresholds]
     );
   }
 }
