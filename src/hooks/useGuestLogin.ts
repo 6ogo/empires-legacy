@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,64 +10,57 @@ export const useGuestLogin = () => {
 
   const handleGuestLogin = async (turnstileToken?: string) => {
     if (!turnstileToken) {
-      console.log('No turnstile token, showing captcha...'); // Debug log
       setShowTurnstile(true);
       return;
     }
 
-    try {
-      setIsGuestLoading(true);
-      console.log('Fetching guest credentials with turnstile token...', turnstileToken); // Debug log
+    setIsGuestLoading(true);
 
+    try {
+      // First ensure any existing session is cleared
+      await supabase.auth.signOut();
+
+      // Get available guest credentials with row locking
       const { data: guestCreds, error: guestCredsError } = await supabase
         .from('guest_credentials')
         .select('email, password')
-        .order('last_used_at', { ascending: true, nullsFirst: true })
+        .eq('last_used_at', null)
+        .order('created_at', { ascending: true })
         .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (guestCredsError) {
-        console.error('Error fetching guest credentials:', guestCredsError);
-        throw new Error('Failed to fetch guest credentials');
+      if (guestCredsError || !guestCreds) {
+        throw new Error('No guest accounts available. Please try again later.');
       }
 
-      if (!guestCreds) {
-        throw new Error('No guest accounts available');
-      }
-
-      console.log('Found guest credentials, attempting login...'); // Debug log
-
-      // First, sign out any existing session
-      await supabase.auth.signOut();
-
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: guestCreds.email,
-        password: guestCreds.password,
-      });
-
-      if (signInError) {
-        console.error('Sign in error:', signInError);
-        throw signInError;
-      }
-
-      if (!data.user) {
-        throw new Error('Failed to create guest session');
-      }
-
-      console.log('Guest login successful, updating timestamps...'); // Debug log
-
-      // Update last used timestamp
+      // Immediately mark the credentials as in use
       const { error: updateError } = await supabase
         .from('guest_credentials')
         .update({ last_used_at: new Date().toISOString() })
         .eq('email', guestCreds.email);
 
       if (updateError) {
-        console.error('Error updating last_used_at:', updateError);
+        throw new Error('Failed to secure guest account. Please try again.');
       }
 
-      // Update turnstile verification in profile
-      const { error: profileError } = await supabase
+      // Attempt to sign in
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: guestCreds.email,
+        password: guestCreds.password,
+      });
+
+      if (signInError || !data.user) {
+        // If sign in fails, release the guest credentials
+        await supabase
+          .from('guest_credentials')
+          .update({ last_used_at: null })
+          .eq('email', guestCreds.email);
+          
+        throw signInError || new Error('Failed to create guest session');
+      }
+
+      // Update profile with turnstile verification
+      await supabase
         .from('profiles')
         .update({ 
           turnstile_verified: true,
@@ -76,14 +68,7 @@ export const useGuestLogin = () => {
         })
         .eq('id', data.user.id);
 
-      if (profileError) {
-        console.error('Error updating profile:', profileError);
-      }
-
       toast.success('Logged in as guest successfully!');
-      
-      // Force navigation after successful login
-      console.log('Redirecting to game page...'); // Debug log
       navigate("/game", { replace: true });
     } catch (error: any) {
       console.error('Guest login error:', error);
