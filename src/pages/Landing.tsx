@@ -1,5 +1,5 @@
-
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Compass,
   Building2,
@@ -14,8 +14,27 @@ import {
   ChevronRight,
   LogIn
 } from "lucide-react";
+import { useEffect } from "react";
 
 const Landing = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // If user is already authenticated, redirect to game
+  useEffect(() => {
+    if (user) {
+      navigate('/game');
+    }
+  }, [user, navigate]);
+
+  const handlePlayNowClick = () => {
+    if (user) {
+      navigate('/game');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Navigation */}
@@ -47,9 +66,12 @@ const Landing = () => {
             Forge Your Empire, Conquer Your Destiny
           </p>
           <div className="flex gap-4 justify-center">
-            <Link to="/auth" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg flex items-center gap-2 transform hover:scale-105 transition">
+            <button
+              onClick={handlePlayNowClick}
+              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg flex items-center gap-2 transform hover:scale-105 transition"
+            >
               Play Now <ChevronRight className="w-5 h-5" />
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -212,12 +234,12 @@ const Landing = () => {
           <p className="text-xl mb-8 text-gray-300">
             Join thousands of players in the ultimate strategy experience
           </p>
-          <Link 
-            to="/auth" 
+          <button 
+            onClick={handlePlayNowClick}
             className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-4 px-12 rounded-lg flex items-center gap-2 mx-auto w-fit transform hover:scale-105 transition"
           >
             Start Your Journey <ChevronRight className="w-6 h-6" />
-          </Link>
+          </button>
         </div>
       </section>
     </div>
