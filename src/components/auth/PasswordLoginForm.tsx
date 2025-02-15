@@ -1,13 +1,11 @@
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { CardContent, CardFooter } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
-import { GuestLoginButton } from "./GuestLoginButton";
-import { TurnstileCaptcha } from "./Turnstile";
 import React, { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TurnstileCaptcha } from "@/components/auth/Turnstile";
+import { toast } from "sonner";
 
 interface PasswordLoginFormProps {
   email: string;
@@ -18,7 +16,7 @@ interface PasswordLoginFormProps {
   setStayLoggedIn: (stayLoggedIn: boolean) => void;
   loading: boolean;
   onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
-  showTurnstile?: boolean;
+  showTurnstile: boolean;
   validationErrors?: {
     email?: string;
     password?: string;
@@ -39,69 +37,84 @@ export const PasswordLoginForm = ({
 }: PasswordLoginFormProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string>();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(e, turnstileToken);
+    console.log('Password login form submitted', { email, turnstileToken });
+
+    if (!email || !password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      await onSubmit(e, turnstileToken);
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Failed to sign in. Please try again.');
+    }
+  };
+
+  const onTurnstileVerify = (token: string) => {
+    console.log('Turnstile verified, submitting form with token');
+    setTurnstileToken(token);
+    // Automatically submit the form when we get the token
+    onSubmit(new Event('submit') as React.FormEvent, token);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="signin-email">Email</Label>
-          <Input
-            id="signin-email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="bg-white/10"
-          />
-          {validationErrors?.email && (
-            <p className="text-red-500 text-sm">{validationErrors.email}</p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="signin-password">Password</Label>
-          <Input
-            id="signin-password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="bg-white/10"
-          />
-          {validationErrors?.password && (
-            <p className="text-red-500 text-sm">{validationErrors.password}</p>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="stay-logged-in"
-            checked={stayLoggedIn}
-            onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
-          />
-          <Label htmlFor="stay-logged-in" className="text-sm">Stay logged in</Label>
-        </div>
-        {showTurnstile && (
-          <div className="flex justify-center">
-            <TurnstileCaptcha onVerify={setTurnstileToken} />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="bg-white/10"
+        />
+        {validationErrors?.email && (
+          <p className="text-red-500 text-sm">{validationErrors.email}</p>
         )}
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4">
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="Enter your password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="bg-white/10"
+        />
+        {validationErrors?.password && (
+          <p className="text-red-500 text-sm">{validationErrors.password}</p>
+        )}
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="stayLoggedIn"
+          checked={stayLoggedIn}
+          onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
+        />
+        <Label htmlFor="stayLoggedIn" className="text-sm">Stay logged in</Label>
+      </div>
+
+      {showTurnstile ? (
+        <div className="flex justify-center">
+          <TurnstileCaptcha onVerify={onTurnstileVerify} />
+        </div>
+      ) : (
         <Button 
           type="submit" 
           className="w-full bg-game-gold hover:bg-game-gold/90"
           disabled={loading}
         >
-          {loading ? "Signing in..." : "Sign In"}
+          {loading ? "Signing in..." : "Sign in"}
         </Button>
-        <Separator className="my-2" />
-        <GuestLoginButton />
-      </CardFooter>
+      )}
     </form>
   );
 };
