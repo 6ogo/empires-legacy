@@ -430,11 +430,16 @@ export class GameStateValidator {
 
     const uniquePlayers = new Set(
       this.state.updates
-        .filter(update => 
-          update.timestamp > this.state.lastUpdated &&
-          (update.type === 'territory' || update.type === 'combat' || update.type === 'building') &&
-          update.playerId
-        )
+        .filter(update => {
+          if (!update.timestamp || !update.playerId) return false;
+          const updateTime = Number(update.timestamp);
+          const lastUpdated = Number(this.state.lastUpdated);
+          
+          if (isNaN(updateTime) || isNaN(lastUpdated)) return false;
+          
+          return updateTime > lastUpdated &&
+                 (update.type === 'territory' || update.type === 'combat' || update.type === 'building');
+        })
         .map(update => update.playerId)
     );
 
