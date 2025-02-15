@@ -20,6 +20,7 @@ const Auth = () => {
     handleSignIn,
     handleSignUp,
     handleMagicLinkLogin,
+    showTurnstile,
   } = useAuthForm();
 
   return (
@@ -44,6 +45,7 @@ const Auth = () => {
               loading={loading}
               onSubmit={handleSignIn}
               onMagicLinkLogin={handleMagicLinkLogin}
+              showTurnstile={showTurnstile}
             />
           </TabsContent>
           <TabsContent value="signup" className="text-white">
@@ -58,6 +60,7 @@ const Auth = () => {
               setStayLoggedIn={setStayLoggedIn}
               loading={loading}
               onSubmit={handleSignUp}
+              showTurnstile={showTurnstile}
             />
           </TabsContent>
         </Tabs>

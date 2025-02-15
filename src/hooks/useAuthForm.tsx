@@ -10,10 +10,17 @@ export const useAuthForm = () => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
+  const [showTurnstile, setShowTurnstile] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent, turnstileToken?: string) => {
     e.preventDefault();
+
+    if (!turnstileToken) {
+      setShowTurnstile(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -25,6 +32,9 @@ export const useAuthForm = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
+        options: {
+          captchaToken: turnstileToken
+        }
       });
 
       if (error) {
@@ -43,7 +53,8 @@ export const useAuthForm = () => {
         .from('profiles')
         .update({ 
           preferences: { stayLoggedIn },
-          last_login: new Date().toISOString()
+          last_login: new Date().toISOString(),
+          turnstile_verified: true
         })
         .eq('id', data.user.id);
 
@@ -51,19 +62,27 @@ export const useAuthForm = () => {
         console.error('Failed to update preferences:', updateError);
       }
 
+      setShowTurnstile(false);
       toast.success("Signed in successfully!");
       console.log('Redirecting to game page...'); // Debug log
       navigate("/game", { replace: true });
     } catch (error: any) {
       console.error('Sign in error:', error); // Debug log
       toast.error(error.message || 'Failed to sign in');
+      setShowTurnstile(false);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent, turnstileToken?: string) => {
     e.preventDefault();
+
+    if (!turnstileToken) {
+      setShowTurnstile(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -77,6 +96,7 @@ export const useAuthForm = () => {
             username,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          captchaToken: turnstileToken
         },
       });
 
@@ -102,6 +122,7 @@ export const useAuthForm = () => {
             is_guest: false,
             verified: false,
             email_verified: false,
+            turnstile_verified: true
           },
         ]);
 
@@ -110,11 +131,13 @@ export const useAuthForm = () => {
         throw profileError;
       }
 
+      setShowTurnstile(false);
       toast.success("Sign up successful! Please check your email for verification.");
       toast.info("You'll need to verify your email before accessing all features.");
     } catch (error: any) {
       console.error('Sign up error:', error); // Debug log
       toast.error(error.message || 'Failed to sign up');
+      setShowTurnstile(false);
     } finally {
       setLoading(false);
     }
@@ -161,5 +184,7 @@ export const useAuthForm = () => {
     handleSignIn,
     handleSignUp,
     handleMagicLinkLogin,
+    showTurnstile,
+    setShowTurnstile,
   };
 };

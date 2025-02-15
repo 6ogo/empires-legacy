@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { TurnstileCaptcha } from "./Turnstile";
 
 interface SignUpFormProps {
   email: string;
@@ -16,8 +17,9 @@ interface SignUpFormProps {
   stayLoggedIn: boolean;
   setStayLoggedIn: (stayLoggedIn: boolean) => void;
   loading: boolean;
-  onSubmit: (e: React.FormEvent) => Promise<void>;
-  onGuestLogin?: () => Promise<void>; // Made optional with ?
+  onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
+  showTurnstile?: boolean;
+  onGuestLogin?: () => Promise<void>;
 }
 
 export const SignUpForm = ({
@@ -31,10 +33,11 @@ export const SignUpForm = ({
   setStayLoggedIn,
   loading,
   onSubmit,
+  showTurnstile,
   onGuestLogin,
 }: SignUpFormProps) => {
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={(e) => onSubmit(e)}>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="signup-email">Email</Label>
@@ -82,6 +85,11 @@ export const SignUpForm = ({
           />
           <Label htmlFor="stay-logged-in-signup" className="text-sm">Stay logged in</Label>
         </div>
+        {showTurnstile && (
+          <div className="flex justify-center">
+            <TurnstileCaptcha onSuccess={(token) => onSubmit(new Event('submit') as React.FormEvent, token)} />
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         <Button 
