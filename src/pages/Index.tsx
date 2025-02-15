@@ -148,11 +148,12 @@ const Index = () => {
             setGameStatus("playing");
             
             try {
-              const parsedState = typeof payload.new.state === 'string' 
-                ? JSON.parse(payload.new.state) 
-                : payload.new.state;
-                
-              const stateData = parsedState as unknown;
+              let stateData: unknown;
+              if (typeof payload.new.state === 'string') {
+                stateData = JSON.parse(payload.new.state);
+              } else {
+                stateData = payload.new.state;
+              }
 
               if (isValidGameState(stateData)) {
                 setGameState(stateData);
