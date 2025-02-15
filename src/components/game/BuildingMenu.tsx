@@ -13,7 +13,7 @@ import {
   Mountain,
   GalleryThumbnails,
   Castle,
-  ArrowRight
+  ArrowsExpand
 } from "lucide-react";
 
 interface BuildingMenuProps {
@@ -54,11 +54,11 @@ const buildings = [
     description: "+2 food per turn",
   },
   {
-    id: "road",
-    name: "Road",
-    icon: ArrowRight,
+    id: "expand",
+    name: "Expand Territory",
+    icon: ArrowsExpand,
     cost: { wood: 25, stone: 25 },
-    description: "Allows territory expansion",
+    description: "Buy adjacent territory",
   },
   {
     id: "barracks",
@@ -94,11 +94,13 @@ const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selecte
       return false;
     }
 
-    // Check building count limit
-    const buildingCount = selectedTerritory.buildings?.length || 0;
-    if (buildingCount >= 2) {
-      toast.error("Maximum of 2 buildings per territory reached!");
-      return false;
+    // Check building count limit (except for expand action)
+    if (building.id !== 'expand') {
+      const buildingCount = selectedTerritory.building ? 1 : 0;
+      if (buildingCount >= 1) {
+        toast.error("Maximum of 1 building per territory reached!");
+        return false;
+      }
     }
 
     // Check if territory has required resource for resource buildings

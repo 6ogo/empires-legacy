@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { TurnManager } from '@/lib/TurnManager';
 import { CombatManager } from '@/lib/CombatManager';
@@ -60,7 +61,13 @@ export const useGameFlow = (
     const turnManager = turnManagerRef.current;
     
     // Validate phase requirements
-    const validation = turnManager.validatePhaseRequirements();
+    const validation = turnManager.validatePhaseRequirements({
+      type: 'END_PHASE',
+      playerId: gameState.currentPlayer,
+      timestamp: Date.now(),
+      payload: {}
+    });
+    
     if (!validation.valid) {
       toast.error(validation.message || "Cannot end phase");
       return false;
@@ -82,3 +89,5 @@ export const useGameFlow = (
     getActionHistory: turnManagerRef.current.getActionHistory.bind(turnManagerRef.current)
   };
 };
+
+export default useGameFlow;

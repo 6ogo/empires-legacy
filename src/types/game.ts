@@ -7,7 +7,7 @@ export type GameStatus = "menu" | "mode_select" | "creating" | "joining" | "play
 export type TerrainType = 'plains' | 'hills' | 'mountains' | 'forest' | 'river';
 export type WeatherType = 'clear' | 'rain' | 'fog';
 export type TimeOfDay = 'day' | 'night';
-export type BuildingType = 'fortress' | 'walls' | 'watchtower' | 'barracks' | 'market' | 'farm' | 'road' | 'lumber_mill' | 'mine';
+export type BuildingType = 'fortress' | 'walls' | 'watchtower' | 'barracks' | 'market' | 'farm' | 'expand' | 'lumber_mill' | 'mine';
 export type GameMode = 'local' | 'online';
 export type ActionType = 'CLAIM_TERRITORY' | 'BUILD' | 'RECRUIT' | 'ATTACK' | 'END_TURN' | 'END_PHASE' | 'SET_STATE';
 

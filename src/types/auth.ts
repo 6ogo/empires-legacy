@@ -12,6 +12,7 @@ export interface UserProfile {
   xp?: number;
   level?: number;
   verified?: boolean;
+  email_verified?: boolean;
   total_gametime?: number;
   total_games_played?: number;
   total_wins?: number;
