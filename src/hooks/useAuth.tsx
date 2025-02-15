@@ -96,9 +96,8 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       try {
-        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('Session check:', session?.user?.email);
+        console.log('Initial session check:', session?.user?.email);
 
         if (!mounted) return;
 
@@ -139,6 +138,7 @@ export const useAuth = () => {
         setUser(null);
         setProfile(null);
       }
+      
       setLoading(false);
     });
 
@@ -149,14 +149,18 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setUser(null);
+      setProfile(null);
+      
+      console.log('Successfully signed out');
+    } catch (error: any) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
-      return;
     }
-    setUser(null);
-    setProfile(null);
   };
 
   return {

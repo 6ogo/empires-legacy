@@ -11,27 +11,69 @@ import Callback from "./pages/Auth/Callback";
 import Settings from "./pages/Settings";
 import Achievements from "./components/game/Achievements";
 import { useAuth } from "./hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import LoadingScreen from "@/components/game/LoadingScreen";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function RouteHandler() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Handle direct navigation to sub-routes
-    if (!loading && !user && location.pathname !== '/auth') {
-      navigate('/auth', { replace: true });
-      return;
-    }
+    const initializeAuth = async () => {
+      // Wait for auth to initialize
+      if (loading) return;
 
-    // If we're on a game-related route and it's a page refresh
-    if (location.pathname.includes('/game/') && !location.key) {
-      navigate('/game', { replace: true });
-    }
-  }, [location, navigate, user, loading]);
+      // Mark as initialized
+      if (!isInitialized) {
+        setIsInitialized(true);
+      }
+
+      // Handle authentication routing
+      if (!user && !loading && location.pathname !== '/auth' && location.pathname !== '/auth/callback') {
+        console.log('No user found, redirecting to auth', { pathname: location.pathname });
+        navigate('/auth', { replace: true });
+        return;
+      }
+
+      // If we have a user but no profile, redirect to auth
+      if (user && !profile && !loading && location.pathname !== '/auth/callback') {
+        console.log('No profile found, redirecting to auth');
+        navigate('/auth', { replace: true });
+        return;
+      }
+
+      // If authenticated and on auth page, redirect to game
+      if (user && profile && location.pathname === '/auth') {
+        console.log('User is authenticated, redirecting to game');
+        navigate('/game', { replace: true });
+        return;
+      }
+
+      // If we're on a game sub-route and it's a page refresh, redirect to main game page
+      if (location.pathname.includes('/game/') && !location.key) {
+        console.log('Game sub-route detected on refresh, redirecting to main game page');
+        navigate('/game', { replace: true });
+      }
+    };
+
+    initializeAuth();
+  }, [loading, user, profile, location, navigate, isInitialized]);
+
+  // Show loading screen until auth is initialized
+  if (loading || !isInitialized) {
+    return <LoadingScreen message="Initializing..." />;
+  }
 
   return null;
 }
@@ -39,21 +81,16 @@ function RouteHandler() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   
   useEffect(() => {
     if (!loading && (!user || !profile)) {
-      console.log('No user or profile, redirecting to auth');
+      console.log('Protected route - no user or profile, redirecting to auth');
       navigate('/auth', { replace: true });
     }
-  }, [loading, user, profile, navigate, location]);
+  }, [loading, user, profile, navigate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Loading..." />;
   }
   
   if (!user || !profile) {
@@ -64,25 +101,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (!loading && user) {
-      console.log('User is logged in, redirecting to game');
+    if (!loading && user && profile) {
+      console.log('Auth route - user is logged in, redirecting to game');
       navigate('/game', { replace: true });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, profile, navigate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Loading..." />;
   }
   
-  if (user) {
+  if (user && profile) {
     return null;
   }
 
@@ -101,7 +134,7 @@ const App = () => {
             <Route path="/" element={<Navigate to="/game" replace />} />
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/auth/callback" element={<Callback />} />
-            <Route path="/game" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/game/*" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
