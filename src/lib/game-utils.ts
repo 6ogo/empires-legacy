@@ -41,34 +41,64 @@ export const generateInitialTerritories = (boardSize: number): Territory[] => {
 
 export const calculateTotalResourceYield = (territory: Territory): Partial<Resources> => {
   const baseResources = { ...territory.resources };
-  const totalYield: Partial<Resources> = {};
+  const totalYield: Partial<Resources> = {
+    gold: 0,
+    wood: 0,
+    stone: 0,
+    food: 0
+  };
 
   // Add base resources
   Object.entries(baseResources).forEach(([resource, amount]) => {
-    totalYield[resource as keyof Resources] = amount as number;
+    if (amount && amount > 0) {
+      totalYield[resource as keyof Resources] = amount;
+    }
   });
 
   // Add building bonuses
   if (territory.building) {
-    switch (territory.building) {
-      case 'lumber_mill':
-        totalYield.wood = (totalYield.wood || 0) + 20;
-        break;
-      case 'mine':
-        totalYield.stone = (totalYield.stone || 0) + 20;
-        break;
-      case 'market':
-        totalYield.gold = (totalYield.gold || 0) + 20;
-        break;
-      case 'farm':
-        totalYield.food = (totalYield.food || 0) + 8;
-        break;
+    const buildingBonuses: Record<string, Partial<Resources>> = {
+      'lumber_mill': { wood: 20 },
+      'mine': { stone: 20 },
+      'market': { gold: 20 },
+      'farm': { food: 8 }
+    };
+
+    const bonus = buildingBonuses[territory.building];
+    if (bonus) {
+      Object.entries(bonus).forEach(([resource, amount]) => {
+        totalYield[resource as keyof Resources] = 
+          (totalYield[resource as keyof Resources] || 0) + amount;
+      });
     }
   }
 
+  // Apply territory type bonuses
+  const territoryTypeBonuses: Record<TerritoryType, Partial<Resources>> = {
+    'plains': {},
+    'mountains': { stone: 2 },
+    'forests': { wood: 2 },
+    'coast': { gold: 2 },
+    'capital': { gold: 5, food: 2 }
+  };
+
+  const typeBonus = territoryTypeBonuses[territory.type];
+  if (typeBonus) {
+    Object.entries(typeBonus).forEach(([resource, amount]) => {
+      totalYield[resource as keyof Resources] = 
+        (totalYield[resource as keyof Resources] || 0) + amount;
+    });
+  }
+
+  // Remove any zero values
+  Object.entries(totalYield).forEach(([key, value]) => {
+    if (!value || value <= 0) {
+      delete totalYield[key as keyof Resources];
+    }
+  });
+
   return totalYield;
 };
-
 export const createInitialGameState = (numPlayers: number, boardSize: number): GameState => {
   const scaledBoardSize = Math.max(boardSize, numPlayers * 12);
 
