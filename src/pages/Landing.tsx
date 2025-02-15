@@ -76,7 +76,7 @@ const Landing = () => {
           <img 
             src="/testLogo.png" 
             alt="Empire's Legacy Logo" 
-            className="w-1/2 mb-8 opacity-80"
+            className="w-1/4 mb-8 opacity-80" // Changed from w-1/2 to w-1/4 to make it 50% smaller
           />
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 text-[#F5D547] animate-float">
             Empire's Legacy
