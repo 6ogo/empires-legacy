@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import GameStartMenu from "./GameStartMenu";
 import TopBar from "./menu/TopBar";
 import RandomEventsDialog from "./menu/RandomEventsDialog";
