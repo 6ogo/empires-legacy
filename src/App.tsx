@@ -23,39 +23,19 @@ const queryClient = new QueryClient({
   },
 });
 
-function RouteHandler() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, loading, profile } = useAuth();
-
-  useEffect(() => {
-    if (!loading) {
-      if (!user && location.pathname !== '/auth' && location.pathname !== '/auth/callback') {
-        navigate('/auth', { replace: true });
-      } else if (user && profile && location.pathname === '/auth') {
-        navigate('/game', { replace: true });
-      }
-    }
-  }, [loading, user, profile, location.pathname, navigate]);
-
-  if (loading) {
-    return <LoadingScreen message="Loading..." />;
-  }
-
-  return null;
-}
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
+    // Only redirect if we're done loading and there's no user/profile
     if (!loading && (!user || !profile)) {
       navigate('/auth', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  if (loading) return <LoadingScreen message="Loading..." />;
+  // Show loading only during initial auth check
+  if (loading) return <LoadingScreen message="Checking authentication..." />;
   if (!user || !profile) return null;
   return <>{children}</>;
 }
@@ -65,12 +45,14 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   
   useEffect(() => {
+    // Only redirect if we're done loading and have user/profile
     if (!loading && user && profile) {
       navigate('/game', { replace: true });
     }
   }, [user, profile, loading, navigate]);
 
-  if (loading) return <LoadingScreen message="Loading..." />;
+  // Don't show loading screen on auth page, let the auth form show immediately
+  if (loading) return null;
   if (user && profile) return null;
   return <>{children}</>;
 }
@@ -82,7 +64,6 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <RouteHandler />
           <Routes>
             <Route path="/" element={<Navigate to="/game" replace />} />
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />

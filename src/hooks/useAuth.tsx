@@ -31,6 +31,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -45,31 +46,29 @@ export const useAuth = () => {
         return null;
       }
       
-      if (data) {
-        const transformedProfile: UserProfile = {
-          id: data.id,
-          username: data.username,
-          verified: !!data.verified,
-          email_verified: !!data.email_verified,
-          preferences: typeof data.preferences === 'string' 
-            ? JSON.parse(data.preferences)
-            : (data.preferences as { stayLoggedIn: boolean }) ?? { stayLoggedIn: false },
-          avatar_url: data.avatar_url,
-          created_at: data.created_at,
-          last_login: data.last_login,
-          total_gametime: data.total_gametime || 0,
-          total_games_played: data.total_games_played || 0,
-          total_wins: data.total_wins || 0,
-          economic_wins: data.economic_wins || 0,
-          domination_wins: data.domination_wins || 0,
-          xp: data.xp || 0,
-          level: data.level || 1,
-          last_username_change: data.last_username_change,
-          achievements: Array.isArray(data.achievements) ? data.achievements : [],
-        };
-        return transformedProfile;
-      }
-      return null;
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        username: data.username,
+        verified: !!data.verified,
+        email_verified: !!data.email_verified,
+        preferences: typeof data.preferences === 'string' 
+          ? JSON.parse(data.preferences)
+          : (data.preferences as { stayLoggedIn: boolean }) ?? { stayLoggedIn: false },
+        avatar_url: data.avatar_url,
+        created_at: data.created_at,
+        last_login: data.last_login,
+        total_gametime: data.total_gametime || 0,
+        total_games_played: data.total_games_played || 0,
+        total_wins: data.total_wins || 0,
+        economic_wins: data.economic_wins || 0,
+        domination_wins: data.domination_wins || 0,
+        xp: data.xp || 0,
+        level: data.level || 1,
+        last_username_change: data.last_username_change,
+        achievements: Array.isArray(data.achievements) ? data.achievements : [],
+      } as UserProfile;
     } catch (error: any) {
       console.error('Error in fetchProfile:', error);
       return null;
@@ -95,10 +94,11 @@ export const useAuth = () => {
     let mounted = true;
 
     const initializeAuth = async () => {
+      if (initialized) return;
+      
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('Initial session check:', session?.user?.email);
-
+        
         if (!mounted) return;
 
         if (session?.user) {
@@ -108,15 +108,13 @@ export const useAuth = () => {
             setProfile(profile);
             await updateLastLogin(session.user.id);
           }
-        } else {
-          setUser(null);
-          setProfile(null);
         }
       } catch (error) {
         console.error('Error in initializeAuth:', error);
       } finally {
         if (mounted) {
           setLoading(false);
+          setInitialized(true);
         }
       }
     };
@@ -124,35 +122,40 @@ export const useAuth = () => {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-
       if (!mounted) return;
 
-      if (session?.user) {
-        setUser(session.user);
-        const profile = await fetchProfile(session.user.id);
-        if (mounted && profile) {
-          setProfile(profile);
-          if (event === 'SIGNED_IN') {
-            await updateLastLogin(session.user.id);
+      try {
+        if (session?.user) {
+          setUser(session.user);
+          const profile = await fetchProfile(session.user.id);
+          if (mounted && profile) {
+            setProfile(profile);
+            if (event === 'SIGNED_IN') {
+              await updateLastLogin(session.user.id);
+            }
           }
+        } else {
+          setUser(null);
+          setProfile(null);
         }
-      } else {
-        setUser(null);
-        setProfile(null);
+      } catch (error) {
+        console.error('Auth state change error:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      
-      setLoading(false);
     });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initialized]);
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -163,6 +166,8 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
+    } finally {
+      setLoading(false);
     }
   };
 
