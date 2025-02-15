@@ -104,7 +104,6 @@ export const useGameState = (
           break;
         }
         case 'RECRUIT': {
-          const territory = draft.territories.find(t => case 'RECRUIT': {
           const territory = draft.territories.find(t => t.id === action.payload.territoryId);
           if (territory) {
             territory.militaryUnit = action.payload.unit;
@@ -169,6 +168,7 @@ export const useGameState = (
           const currentPhaseIndex = phases.indexOf(draft.phase);
           
           if (currentPhaseIndex === phases.length - 1) {
+            // Game is over
             draft.phase = 'end';
           } else {
             draft.phase = phases[currentPhaseIndex + 1];
@@ -281,4 +281,3 @@ export const useGameState = (
 };
 
 export default useGameState;
-
