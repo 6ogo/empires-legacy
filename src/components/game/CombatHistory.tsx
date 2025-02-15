@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { Trophy, Skull, Clock } from "lucide-react";
+import { Trophy, Skull, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -41,12 +41,29 @@ const CombatHistory: React.FC<CombatHistoryProps> = ({ onClose }) => {
     return game.winner_id === user.id ? "Victory" : "Defeat";
   };
 
+  // Handle click outside
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={handleOverlayClick}
+    >
+      <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">Combat History</h2>
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onClose}
+            className="absolute top-2 right-2 hover:bg-gray-800"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         <ScrollArea className="h-[400px] rounded-md border p-4">
@@ -60,46 +77,3 @@ const CombatHistory: React.FC<CombatHistoryProps> = ({ onClose }) => {
                 <div 
                   key={game.id} 
                   className="bg-gray-800 p-4 rounded-lg border border-gray-700"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">
-                      {formatDistanceToNow(new Date(game.created_at), { addSuffix: true })}
-                    </span>
-                    {getGameResult(game) === "In Progress" ? (
-                      <div className="flex items-center text-yellow-500">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>In Progress</span>
-                      </div>
-                    ) : getGameResult(game) === "Victory" ? (
-                      <div className="flex items-center text-green-500">
-                        <Trophy className="w-4 h-4 mr-1" />
-                        <span>Victory</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center text-red-500">
-                        <Skull className="w-4 h-4 mr-1" />
-                        <span>Defeat</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-300">
-                    Players: {game.num_players}
-                    {game.game_summary && (
-                      <div className="mt-2 text-xs text-gray-400">
-                        {typeof game.game_summary === 'string' 
-                          ? game.game_summary 
-                          : JSON.stringify(game.game_summary)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </div>
-    </div>
-  );
-};
-
-export default CombatHistory;
