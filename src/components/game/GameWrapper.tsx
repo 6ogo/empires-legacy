@@ -43,27 +43,29 @@ const GameWrapper = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 px-4 py-6 md:px-0 md:py-0">
-      <PreGameScreens
-        showLeaderboard={showLeaderboard}
-        gameStatus={gameStatus}
-        onBackToMenu={handleBackToMenu}
-      >
-        <MainMenu
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 to-gray-800 overflow-x-hidden">
+      <div className="px-4 py-6 md:px-6 md:py-8 w-full">
+        <PreGameScreens
+          showLeaderboard={showLeaderboard}
           gameStatus={gameStatus}
-          gameMode={gameMode}
-          onSelectMode={onSelectMode}
-          onCreateGame={onCreateGame}
-          onJoinGame={onJoinGame}
-          joinRoomId={joinRoomId}
-          onJoinRoomIdChange={onJoinRoomIdChange}
-          isHost={isHost}
-          onStartAnyway={onStartAnyway}
-          onShowLeaderboard={onShowLeaderboard}
-          onShowStats={onShowStats}
-          connectedPlayers={connectedPlayers}
-        />
-      </PreGameScreens>
+          onBackToMenu={handleBackToMenu}
+        >
+          <MainMenu
+            gameStatus={gameStatus}
+            gameMode={gameMode}
+            onSelectMode={onSelectMode}
+            onCreateGame={onCreateGame}
+            onJoinGame={onJoinGame}
+            joinRoomId={joinRoomId}
+            onJoinRoomIdChange={onJoinRoomIdChange}
+            isHost={isHost}
+            onStartAnyway={onStartAnyway}
+            onShowLeaderboard={onShowLeaderboard}
+            onShowStats={onShowStats}
+            connectedPlayers={connectedPlayers}
+          />
+        </PreGameScreens>
+      </div>
     </div>
   );
 };

@@ -32,14 +32,12 @@ const Landing = () => {
     }
   };
 
-  // Don't render anything while checking initial auth state
   if (isLoading) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden">
-      {/* Navigation */}
+    <div className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden w-full">
       <nav className="fixed top-0 right-0 z-50 p-4 flex items-center gap-4">
         {user ? (
           <Button 
@@ -63,9 +61,8 @@ const Landing = () => {
         )}
       </nav>
 
-      {/* Hero Section */}
       <div 
-        className="relative min-h-screen flex items-center justify-center"
+        className="relative min-h-screen flex items-center justify-center w-full overflow-hidden"
         style={{
           backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80')",
           backgroundSize: "cover",
@@ -73,17 +70,17 @@ const Landing = () => {
           backgroundAttachment: "fixed"
         }}
       >
-        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
-          <h1 className="text-6xl md:text-7xl font-bold mb-4 text-[#F5D547] animate-float">
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto w-full">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 text-[#F5D547] animate-float">
             Empire's Legacy
           </h1>
-          <p className="text-2xl md:text-3xl mb-8 text-gray-200">
+          <p className="text-xl md:text-2xl lg:text-3xl mb-8 text-gray-200">
             A Turn-Based Strategy Game of Conquest and Empire Building
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               onClick={handlePlayNowClick}
-              className="game-button-primary text-lg px-8 py-6"
+              className="game-button-primary text-lg px-6 md:px-8 py-4 md:py-6"
             >
               Play Now <ChevronRight className="h-5 w-5 ml-2" />
             </Button>
@@ -91,11 +88,10 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* Features Section */}
       <section className="game-section bg-[#1a2237]">
         <div className="game-container">
           <h2 className="game-title">Strategic Gameplay Features</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <GameFeatureCard
               icon={Castle}
               title="Empire Building"
@@ -118,11 +114,10 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Game Modes Section */}
       <section className="game-section bg-[#141B2C]">
         <div className="game-container">
           <h2 className="game-title">Multiple Ways to Play</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <GameModeCard
               icon={Users}
               title="Local Multiplayer"
@@ -147,11 +142,10 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Victory Conditions */}
       <section className="game-section bg-[#1a2237]">
         <div className="game-container">
           <h2 className="game-title">Paths to Victory</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <VictoryCard
               icon={Shield}
               title="Domination"
@@ -171,19 +165,18 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="game-section bg-[#141B2C]">
         <div className="game-container text-center">
-          <h2 className="text-4xl font-bold mb-6 text-[#F5D547]">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-[#F5D547]">
             Ready to Begin Your Conquest?
           </h2>
-          <p className="text-xl mb-8 text-gray-300 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl mb-8 text-gray-300 max-w-2xl mx-auto">
             Join thousands of players in epic battles for territory and resources. 
             Your empire awaits!
           </p>
           <Button
             onClick={handlePlayNowClick}
-            className="game-button-primary text-lg px-12 py-6 transform hover:scale-105 transition-transform"
+            className="game-button-primary text-lg px-8 md:px-12 py-4 md:py-6 transform hover:scale-105 transition-transform"
           >
             Start Your Journey <ChevronRight className="h-6 w-6 ml-2" />
           </Button>
