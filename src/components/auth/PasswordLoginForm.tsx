@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -70,7 +71,22 @@ export const PasswordLoginForm = ({
     setTurnstileToken(token);
     
     try {
-      await onSubmit(new Event('submit'), token);
+      // Create a synthetic React form event
+      const syntheticEvent = {
+        preventDefault: () => {},
+        target: document.createElement('form'),
+        currentTarget: document.createElement('form'),
+        nativeEvent: new Event('submit'),
+        isDefaultPrevented: () => false,
+        isPropagationStopped: () => false,
+        persist: () => {},
+        bubbles: true,
+        cancelable: true,
+        type: 'submit',
+        isTrusted: true,
+      } as React.FormEvent<HTMLFormElement>;
+
+      await onSubmit(syntheticEvent, token);
     } catch (error) {
       console.error('Login error after Turnstile:', error);
       toast.error('Failed to sign in. Please try again.');
