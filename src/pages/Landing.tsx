@@ -195,7 +195,7 @@ const Landing = () => {
             Ready to Begin Your Conquest?
           </h2>
           <p className="text-lg md:text-xl mb-8 text-gray-300 max-w-2xl mx-auto">
-            Join thousands of players in epic battles for territory and resources. 
+            Join players in epic battles for territory and resources. 
             Your empire awaits!
           </p>
           <Button
