@@ -1,5 +1,6 @@
 
-import React from "react";
+// Explicitly import React and JSX type
+import React, { type ReactElement } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ interface CombatHistoryProps {
   onClose: () => void;
 }
 
-const CombatHistory: React.FC<CombatHistoryProps> = ({ onClose }) => {
+const CombatHistory = ({ onClose }: CombatHistoryProps): ReactElement => {
   const { user } = useAuth();
 
   const { data: games, isLoading } = useQuery({
@@ -41,7 +42,6 @@ const CombatHistory: React.FC<CombatHistoryProps> = ({ onClose }) => {
     return game.winner_id === user.id ? "Victory" : "Defeat";
   };
 
-  // Handle click outside
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
