@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,10 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.error('Auth error:', error);
     setError(error);
     setIsLoading(false);
+    toast.error(error.message);
   }, []);
 
   const signOut = async () => {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -51,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate('/', { replace: true });
     } catch (error: any) {
       handleError(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,7 +72,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userProfile = await fetchProfile(session.user.id);
         if (userProfile) {
           setProfile(userProfile);
+        } else {
+          throw new Error('Profile not found');
         }
+      } else {
+        setUser(null);
+        setProfile(null);
+        setSession(null);
       }
     } catch (error: any) {
       handleError(error);
@@ -82,24 +93,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth state...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) throw error;
         
         if (session?.user && mounted) {
+          console.log('Session found:', session.user.email);
           setUser(session.user);
           setSession(session);
           const userProfile = await fetchProfile(session.user.id);
           if (mounted && userProfile) {
+            console.log('Profile loaded for user');
             setProfile(userProfile);
+          } else if (mounted) {
+            console.log('No profile found for user');
+            setUser(null);
+            setSession(null);
           }
+        } else if (mounted) {
+          console.log('No session found');
+          setUser(null);
+          setProfile(null);
+          setSession(null);
         }
       } catch (error: any) {
+        console.error('Auth initialization error:', error);
         if (mounted) {
           handleError(error);
         }
       } finally {
         if (mounted) {
+          console.log('Auth initialization complete');
           setIsLoading(false);
         }
       }
@@ -108,14 +133,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       if (!mounted) return;
 
       if (session?.user) {
         setUser(session.user);
         setSession(session);
-        const userProfile = await fetchProfile(session.user.id);
-        if (mounted && userProfile) {
-          setProfile(userProfile);
+        try {
+          const userProfile = await fetchProfile(session.user.id);
+          if (mounted && userProfile) {
+            setProfile(userProfile);
+          } else if (mounted) {
+            setUser(null);
+            setSession(null);
+            setProfile(null);
+          }
+        } catch (error: any) {
+          handleError(error);
         }
       } else {
         setUser(null);

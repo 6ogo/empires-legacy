@@ -13,7 +13,7 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
 
     if (error) {
       console.error('Error fetching profile:', error);
-      return null;
+      throw error;
     }
     
     if (!data) {
@@ -42,6 +42,6 @@ export const fetchProfile = async (userId: string): Promise<UserProfile | null> 
     };
   } catch (error: any) {
     console.error('Error in fetchProfile:', error);
-    return null;
+    throw error;
   }
 };
