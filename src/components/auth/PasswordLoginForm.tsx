@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TurnstileCaptcha } from "@/components/auth/Turnstile";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface PasswordLoginFormProps {
   email: string;
@@ -36,6 +37,7 @@ export const PasswordLoginForm = ({
   validationErrors,
 }: PasswordLoginFormProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string>();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,25 +50,27 @@ export const PasswordLoginForm = ({
 
     try {
       await onSubmit(e, turnstileToken);
+      navigate('/game');
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Failed to sign in. Please try again.');
     }
   };
 
-  const onTurnstileVerify = (token: string) => {
+  const onTurnstileVerify = async (token: string) => {
     console.log('Turnstile verified, submitting form with token');
     setTurnstileToken(token);
     
-    // Create a real Event object
-    const nativeEvent = new Event('submit', {
-      bubbles: true,
-      cancelable: true
-    });
+    try {
+      // Create a real Event object
+      const nativeEvent = new Event('submit', {
+        bubbles: true,
+        cancelable: true
+      });
 
-    // Create a proper React FormEvent
-    const syntheticEvent: React.FormEvent<HTMLFormElement> = Object.assign(
-      new Event('submit', { bubbles: true, cancelable: true }), {
+      // Create a proper React FormEvent
+      const syntheticEvent: React.FormEvent<HTMLFormElement> = Object.assign(
+        new Event('submit', { bubbles: true, cancelable: true }), {
         target: document.createElement('form'),
         currentTarget: document.createElement('form'),
         nativeEvent,
@@ -79,10 +83,16 @@ export const PasswordLoginForm = ({
         type: 'submit',
         eventPhase: 2, // Bubbling phase
       }
-    ) as unknown as React.FormEvent<HTMLFormElement>;
+      ) as unknown as React.FormEvent<HTMLFormElement>;
 
-    // Call onSubmit with the properly typed event
-    onSubmit(syntheticEvent, token);
+      // Call onSubmit with the properly typed event and token
+      await onSubmit(syntheticEvent, token);
+      // After successful submission, navigate to game
+      navigate('/game');
+    } catch (error) {
+      console.error('Login error after Turnstile:', error);
+      toast.error('Failed to sign in. Please try again.');
+    }
   };
 
   return (
