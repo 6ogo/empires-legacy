@@ -25,11 +25,11 @@ interface Achievement {
 }
 
 const categoryIcons: Record<string, React.ElementType> = {
-  general: Trophy,
-  economy: Medal,
+  game: Trophy,
+  resource: Medal,
   military: Swords,
-  territory: Building2,
-  unique: Sparkles,
+  building: Building2,
+  social: Sparkles,
 };
 
 const xpRewards = [
@@ -62,11 +62,14 @@ const Achievements = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_achievements")
-        .select("achievement_id")
+        .select("achievement_id, progress")
         .eq("user_id", user?.id);
 
       if (error) throw error;
-      return data.map((ua) => ua.achievement_id);
+      return data.map((ua) => ({
+        achievementId: ua.achievement_id,
+        progress: ua.progress,
+      }));
     },
     enabled: !!user,
   });
@@ -141,7 +144,12 @@ const Achievements = () => {
                 <ScrollArea className="h-full">
                   <div className="grid gap-4">
                     {categoryAchievements.map((achievement) => {
-                      const isUnlocked = userAchievements?.includes(achievement.id);
+                      const userAchievement = userAchievements?.find(
+                        (ua) => ua.achievementId === achievement.id
+                      );
+                      const progress = userAchievement?.progress || 0;
+                      const isUnlocked = progress >= 100;
+
                       return (
                         <div
                           key={achievement.id}
@@ -157,6 +165,19 @@ const Achievements = () => {
                               <p className="text-sm text-gray-400">
                                 {achievement.description}
                               </p>
+                              {!isUnlocked && progress > 0 && (
+                                <div className="mt-2">
+                                  <div className="h-1 bg-white/10 rounded-full">
+                                    <div
+                                      className="h-full bg-game-gold rounded-full"
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {progress.toFixed(0)}% complete
+                                  </p>
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Trophy
