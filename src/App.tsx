@@ -8,6 +8,7 @@ import GamePage from './pages/GamePage';
 import AuthPage from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +25,14 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/game/*" element={<GamePage />} />
+      <Route
+        path="/game/*"
+        element={
+          <ProtectedRoute>
+            <GamePage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

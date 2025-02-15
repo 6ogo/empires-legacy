@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Settings, Trophy, BarChart2, ArrowLeft, History } from "lucide-react";
@@ -25,14 +25,17 @@ const TopBar: React.FC<TopBarProps> = ({
   profile,
 }) => {
   const navigate = useNavigate();
-  const [showCombatHistory, setShowCombatHistory] = React.useState(false);
+  const [showCombatHistory, setShowCombatHistory] = useState(false);
   
-  // Calculate XP progress
   const currentXP = profile?.xp || 0;
   const currentLevel = profile?.level || 1;
   const xpForNextLevel = currentLevel * XP_PER_LEVEL;
   const xpInCurrentLevel = currentXP % XP_PER_LEVEL;
   const progressToNextLevel = (xpInCurrentLevel / xpForNextLevel) * 100;
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
 
   return (
     <>
@@ -53,7 +56,7 @@ const TopBar: React.FC<TopBarProps> = ({
             <div className="flex items-center gap-2">
               <Button
                 variant="link"
-                onClick={() => navigate('/achievements')}
+                onClick={() => handleNavigate('/game/achievements')}
                 className="text-game-gold ml-4 hover:text-game-gold/80 flex flex-col items-start"
               >
                 <div className="flex items-center gap-2">
@@ -99,7 +102,7 @@ const TopBar: React.FC<TopBarProps> = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/settings')}
+            onClick={() => handleNavigate('/game/settings')}
             className="bg-white/10"
           >
             <Settings className="h-4 w-4" />

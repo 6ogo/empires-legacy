@@ -4,6 +4,7 @@ import Leaderboard from "./Leaderboard";
 import Stats from "./Stats";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface PreGameScreensProps {
   showLeaderboard: boolean;
@@ -18,16 +19,18 @@ const PreGameScreens: React.FC<PreGameScreensProps> = ({
   onBackToMenu,
   children,
 }) => {
-  const handleBackClick = (e: React.MouseEvent) => {
+  const navigate = useNavigate();
+
+  const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
-    onBackToMenu();
+    navigate('/game');
   };
 
   if (showLeaderboard) {
     return (
       <div className="p-4">
         <Button
-          onClick={handleBackClick}
+          onClick={handleBack}
           variant="outline"
           className="mb-4 hover:bg-gray-800 transition-colors"
         >
@@ -43,7 +46,7 @@ const PreGameScreens: React.FC<PreGameScreensProps> = ({
     return (
       <div className="container mx-auto p-4">
         <Button
-          onClick={handleBackClick}
+          onClick={handleBack}
           variant="outline"
           className="mb-4 hover:bg-gray-800 transition-colors"
         >
