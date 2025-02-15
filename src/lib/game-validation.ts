@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
 
 export class GameStateValidator {
@@ -144,13 +145,20 @@ export class GameStateValidator {
   }
 
   private validateMilitaryUnit(unit: MilitaryUnit): boolean {
+    const defaultResources: Resources = {
+      gold: 0,
+      wood: 0,
+      stone: 0,
+      food: 0
+    };
+
     return (
       typeof unit.type === 'string' &&
       typeof unit.health === 'number' &&
       typeof unit.damage === 'number' &&
       typeof unit.experience === 'number' &&
       typeof unit.hasMoved === 'boolean' &&
-      this.validateResources(unit.cost) && // Validate the cost
+      this.validateResources({ ...defaultResources, ...unit.cost }) && // Merge with default resources
       unit.health > 0 &&
       unit.damage > 0 &&
       unit.experience >= 0
