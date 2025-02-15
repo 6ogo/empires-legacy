@@ -9,6 +9,14 @@ export interface UserProfile {
   email?: string;
   username?: string;
   avatarUrl?: string;
+  xp?: number;
+  level?: number;
+  verified?: boolean;
+  total_gametime?: number;
+  total_games_played?: number;
+  total_wins?: number;
+  economic_wins?: number;
+  domination_wins?: number;
   createdAt: string;
   updatedAt: string;
 }

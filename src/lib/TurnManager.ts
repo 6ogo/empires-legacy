@@ -1,65 +1,68 @@
 
-import { GameState, GameAction, GamePhase } from '@/types/game';
+import { GameState, GameAction, GamePhase, ValidationResult } from '@/types/game';
 
 export class TurnManager {
   private state: GameState;
   private maxTurns: number;
   private actionsPerTurn: number;
+  private turnActions: GameAction[];
 
   constructor(state: GameState, maxTurns: number = 100, actionsPerTurn: number = 3) {
     this.state = state;
     this.maxTurns = maxTurns;
     this.actionsPerTurn = actionsPerTurn;
+    this.turnActions = [];
   }
 
-  isGameOver(): boolean {
-    return this.state.phase === 'end' || this.state.turn >= this.maxTurns;
+  canPerformAction(action: GameAction): boolean {
+    return this.validatePhaseRequirements(action);
   }
 
-  validateTurnTransition(): boolean {
-    // Check if current player has completed required actions
-    return true;
+  trackAction(action: GameAction): void {
+    this.turnActions.push(action);
   }
 
-  validatePhaseRequirements(action: GameAction): boolean {
+  clearTurnTracking(): void {
+    this.turnActions = [];
+  }
+
+  getActionHistory(): GameAction[] {
+    return [...this.turnActions];
+  }
+
+  validateTurnTransition(): ValidationResult {
+    const hasRequiredActions = this.turnActions.length >= 1;
+    return {
+      valid: hasRequiredActions,
+      message: hasRequiredActions ? 'Turn can end' : 'Must perform at least one action before ending turn'
+    };
+  }
+
+  validatePhaseRequirements(action: GameAction): ValidationResult {
     const { phase } = this.state;
     const { type } = action;
 
-    // Validate phase-specific actions
+    let result: ValidationResult = { valid: false, message: 'Invalid action for current phase' };
+
     switch (phase) {
       case 'setup':
-        return type === 'CLAIM_TERRITORY' || type === 'END_PHASE';
-
+        result.valid = type === 'CLAIM_TERRITORY' || type === 'END_PHASE' || type === 'SET_STATE';
+        break;
       case 'building':
-        return type === 'BUILD' || type === 'END_PHASE';
-
+        result.valid = type === 'BUILD' || type === 'END_PHASE' || type === 'SET_STATE';
+        break;
       case 'recruitment':
-        return type === 'RECRUIT' || type === 'END_PHASE';
-
+        result.valid = type === 'RECRUIT' || type === 'END_PHASE' || type === 'SET_STATE';
+        break;
       case 'combat':
-        return type === 'ATTACK' || type === 'END_PHASE';
-
+        result.valid = type === 'ATTACK' || type === 'END_PHASE' || type === 'SET_STATE';
+        break;
       case 'end':
-        return false;
-
-      default:
-        return false;
-    }
-  }
-
-  private validateAction(action: GameAction): boolean {
-    // Basic validation
-    if (!action.playerId || !action.type) {
-      return false;
+        result.valid = type === 'SET_STATE';
+        break;
     }
 
-    // Check if it's the player's turn
-    if (action.playerId !== this.state.currentPlayer) {
-      return false;
-    }
-
-    // Validate based on game phase
-    return this.validatePhaseRequirements(action);
+    return result;
   }
 
   getNextPhase(): GamePhase {

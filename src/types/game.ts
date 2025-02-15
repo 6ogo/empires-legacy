@@ -7,13 +7,20 @@ export type GameStatus = "menu" | "mode_select" | "creating" | "joining" | "play
 export type TerrainType = 'plains' | 'hills' | 'mountains' | 'forest' | 'river';
 export type WeatherType = 'clear' | 'rain' | 'fog';
 export type TimeOfDay = 'day' | 'night';
-export type BuildingType = 'fortress' | 'walls' | 'watchtower' | 'barracks' | 'market' | 'farm';
+export type BuildingType = 'fortress' | 'walls' | 'watchtower' | 'barracks' | 'market' | 'farm' | 'road' | 'lumber_mill' | 'mine';
+export type GameMode = 'local' | 'online';
+export type ActionType = 'CLAIM_TERRITORY' | 'BUILD' | 'RECRUIT' | 'ATTACK' | 'END_TURN' | 'END_PHASE' | 'SET_STATE';
 
 export interface Resources {
   gold: number;
   wood: number;
   stone: number;
   food: number;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  message?: string;
 }
 
 export interface Units {
@@ -73,7 +80,7 @@ export interface GameState {
 }
 
 export interface GameAction {
-  type: 'CLAIM_TERRITORY' | 'BUILD' | 'RECRUIT' | 'ATTACK' | 'END_TURN' | 'END_PHASE';
+  type: ActionType;
   payload: any;
   playerId: string;
   timestamp: number;
