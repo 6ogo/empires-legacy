@@ -7,36 +7,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { Trophy, Skull, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CombatHistoryProps {
   onClose: () => void;
 }
 
 const CombatHistory: React.FC<CombatHistoryProps> = ({ onClose }) => {
+  const { user } = useAuth();
+
   const { data: games, isLoading } = useQuery({
     queryKey: ['combatHistory'],
     queryFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error("Not authenticated");
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from('games')
         .select('*')
-        .contains('players_info', [{ player_id: user.user.id }])
+        .contains('players_info', [{ player_id: user.id }])
         .order('created_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   const getGameResult = (game: any) => {
-    const { data: user } = supabase.auth.getUser();
-    if (!user.user) return null;
+    if (!user) return null;
 
     if (!game.winner_id) return "In Progress";
-    return game.winner_id === user.user.id ? "Victory" : "Defeat";
+    return game.winner_id === user.id ? "Victory" : "Defeat";
   };
 
   return (
