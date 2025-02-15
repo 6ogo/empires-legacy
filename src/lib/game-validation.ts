@@ -100,7 +100,10 @@ export class GameStateValidator {
     ];
 
     const stateObj = state as Record<string, unknown>;
-    return requiredProperties.every(prop => prop in stateObj && stateObj[prop] !== undefined);
+    return requiredProperties.every(prop => {
+      const value = stateObj[prop];
+      return value !== undefined;
+    });
   }
 
   private validatePlayer(player: Player): ValidationResult {
@@ -182,8 +185,9 @@ export class GameStateValidator {
 
   private validateTurnActions(playerId: string): ValidationResult {
     const turnUpdates = this.state.updates.filter(update => {
-      if (typeof update.timestamp !== 'number') return false;
-      return update.timestamp > this.state.lastUpdated && update.playerId === playerId;
+      const timestamp = Number(update.timestamp);
+      if (isNaN(timestamp)) return false;
+      return timestamp > this.state.lastUpdated && update.playerId === playerId;
     });
 
     return {
