@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,10 +52,26 @@ export const useAuthForm = () => {
     setFormState(prev => {
       const newState = { ...prev, [field]: value };
       
-      if (typeof value === 'string' && ['email', 'password', 'confirmPassword', 'username'].includes(field)) {
-        const error = validateInput(value, field as 'email' | 'password' | 'confirmPassword' | 'username');
+      if (field === 'password' || field === 'confirmPassword') {
+        if (field === 'password') {
+          newState.validationErrors = {
+            ...prev.validationErrors,
+            confirmPassword: newState.confirmPassword ? 
+              (newState.confirmPassword === value ? null : 'Passwords do not match') : 
+              null
+          };
+        } else {
+          newState.validationErrors = {
+            ...prev.validationErrors,
+            confirmPassword: value === newState.password ? null : 'Passwords do not match'
+          };
+        }
+      }
+      
+      if (typeof value === 'string' && ['email', 'username'].includes(field)) {
+        const error = validateInput(value, field as 'email' | 'username');
         newState.validationErrors = {
-          ...prev.validationErrors,
+          ...newState.validationErrors,
           [field]: error
         };
       }
@@ -69,7 +84,6 @@ export const useAuthForm = () => {
     e.preventDefault();
     console.log('Handling sign in...', { email: formState.email, turnstileToken });
 
-    // Validate email and password
     const emailError = validateInput(formState.email, 'email');
     const passwordError = validateInput(formState.password, 'password');
 
@@ -104,7 +118,6 @@ export const useAuthForm = () => {
         throw new Error('No user data returned after sign in');
       }
 
-      // Update profile with login info
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -139,10 +152,9 @@ export const useAuthForm = () => {
       showTurnstile: formState.showTurnstile 
     });
 
-    // Validate all fields
     const emailError = validateInput(formState.email, 'email');
     const passwordError = validateInput(formState.password, 'password');
-    const confirmPasswordError = validateInput(formState.confirmPassword, 'confirmPassword');
+    const confirmPasswordError = formState.password !== formState.confirmPassword ? 'Passwords do not match' : null;
     const usernameError = validateInput(formState.username, 'username');
 
     if (emailError || passwordError || confirmPasswordError || usernameError) {
@@ -159,11 +171,6 @@ export const useAuthForm = () => {
       return;
     }
 
-    if (formState.password !== formState.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
     if (!turnstileToken) {
       console.log('No turnstile token, showing captcha');
       setFormState(prev => ({ ...prev, showTurnstile: true }));
@@ -173,7 +180,6 @@ export const useAuthForm = () => {
     setFormState(prev => ({ ...prev, loading: true }));
 
     try {
-      // Check if email exists
       const { data: emailExists } = await supabase.rpc('check_email_exists', {
         email_to_check: formState.email
       });
@@ -183,7 +189,6 @@ export const useAuthForm = () => {
         return;
       }
 
-      // Check if username exists
       const { data: usernameExists } = await supabase.rpc('check_username_exists', {
         username_to_check: formState.username
       });
@@ -213,7 +218,6 @@ export const useAuthForm = () => {
 
       console.log('Account created, creating profile...');
 
-      // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([{

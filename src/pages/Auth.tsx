@@ -19,6 +19,8 @@ const Auth = () => {
     setEmail,
     password,
     setPassword,
+    confirmPassword,
+    setConfirmPassword,
     username,
     setUsername,
     loading: authFormLoading,
@@ -26,7 +28,6 @@ const Auth = () => {
     setStayLoggedIn,
     handleSignIn,
     handleSignUp,
-    handleMagicLinkLogin,
     showTurnstile,
     setShowTurnstile,
     validationErrors,
@@ -48,14 +49,7 @@ const Auth = () => {
   }
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4"
-      style={{
-        backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
       <Link 
         to="/" 
         className="fixed top-4 left-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
@@ -93,7 +87,6 @@ const Auth = () => {
               setStayLoggedIn={setStayLoggedIn}
               loading={authFormLoading}
               onSubmit={handleSignIn}
-              onMagicLinkLogin={handleMagicLinkLogin}
               showTurnstile={showTurnstile}
               validationErrors={validationErrors}
             />
@@ -104,6 +97,8 @@ const Auth = () => {
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
+              confirmPassword={confirmPassword}
+              setConfirmPassword={setConfirmPassword}
               username={username}
               setUsername={setUsername}
               stayLoggedIn={stayLoggedIn}
