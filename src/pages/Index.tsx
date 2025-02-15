@@ -14,6 +14,22 @@ import { Loader } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Json } from "@/integrations/supabase/types";
 
+// Helper function to validate GameState shape
+const isValidGameState = (state: unknown): state is GameState => {
+  const gameState = state as GameState;
+  return (
+    gameState &&
+    Array.isArray(gameState.players) &&
+    Array.isArray(gameState.territories) &&
+    typeof gameState.currentPlayer === 'string' &&
+    typeof gameState.phase === 'string' &&
+    typeof gameState.turn === 'number' &&
+    Array.isArray(gameState.updates) &&
+    typeof gameState.hasExpandedThisTurn === 'boolean' &&
+    typeof gameState.hasRecruitedThisTurn === 'boolean'
+  );
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,10 +138,22 @@ const Index = () => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus("playing");
-            const stateData = typeof payload.new.state === 'string' 
-              ? JSON.parse(payload.new.state) 
-              : payload.new.state;
-            setGameState(stateData as GameState);
+            
+            try {
+              const stateData = typeof payload.new.state === 'string' 
+                ? JSON.parse(payload.new.state) 
+                : payload.new.state;
+
+              if (isValidGameState(stateData)) {
+                setGameState(stateData);
+              } else {
+                console.error('Invalid game state received:', stateData);
+                toast.error('Received invalid game state from server');
+              }
+            } catch (error) {
+              console.error('Error parsing game state:', error);
+              toast.error('Error parsing game state');
+            }
           }
         })
         .subscribe();
