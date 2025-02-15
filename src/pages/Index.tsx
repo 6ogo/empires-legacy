@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,7 +72,6 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
-  // Handle back button in game
   const handleBackFromGame = () => {
     setGameStarted(false);
     setGameStatus("menu");
@@ -82,7 +82,6 @@ const Index = () => {
     }
   };
 
-  // Handle back button in mode selection
   const handleBackToMenu = () => {
     setGameMode(null);
     setGameStatus("menu");
@@ -91,7 +90,6 @@ const Index = () => {
     }
   };
 
-  // Handle back to main menu from any section
   const handleBackToMainMenu = () => {
     navigate('/game');
     setGameStarted(false);
@@ -104,7 +102,6 @@ const Index = () => {
     }
   };
 
-  // Initialize game status on mount and after auth
   useEffect(() => {
     if (!authLoading && user && !gameStatus) {
       console.log("Setting initial game status to menu for user:", user.email);
@@ -117,7 +114,6 @@ const Index = () => {
     }
   }, [authLoading, user, gameStatus, setGameStatus]);
 
-  // Handle page refresh and navigation
   useEffect(() => {
     const handlePageRefresh = () => {
       if (location.pathname === '/game' && !gameStatus) {
@@ -132,7 +128,6 @@ const Index = () => {
     };
   }, [gameStatus, location.pathname]);
 
-  // Handle online game updates
   useEffect(() => {
     if (gameId) {
       const subscription = supabase
