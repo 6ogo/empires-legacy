@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GameState } from "@/types/game";
@@ -20,41 +19,47 @@ export const useGameSubscription = (
   setGameState: (state: GameState | null) => void
 ) => {
   useEffect(() => {
-    if (gameId) {
-      const subscription = supabase
-        .channel(`game_updates_${gameId}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${gameId}`,
-        }, (payload: GameUpdatePayload) => {
-          if (payload.new.game_status === 'playing') {
-            setGameStarted(true);
-            setGameStatus("playing");
-            
-            try {
-              const state = payload.new.state;
-              // First convert to unknown, then validate
-              const parsedState = (typeof state === 'string' ? JSON.parse(state) : state) as unknown;
-              
-              if (isValidGameState(parsedState)) {
-                setGameState(parsedState);
-              } else {
-                console.error('Invalid game state received:', parsedState);
-                toast.error('Received invalid game state from server');
-              }
-            } catch (error) {
-              console.error('Error parsing game state:', error);
-              toast.error('Error parsing game state');
-            }
-          }
-        })
-        .subscribe();
+    if (!gameId) return;
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
+    let isSubscribed = true;
+
+    const subscription = supabase
+      .channel(`game_updates_${gameId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'games',
+        filter: `id=eq.${gameId}`,
+      }, (payload: GameUpdatePayload) => {
+        if (!isSubscribed) return;
+
+        if (payload.new.game_status === 'playing') {
+          try {
+            const state = payload.new.state;
+            const parsedState = (typeof state === 'string' ? JSON.parse(state) : state) as unknown;
+            
+            if (isValidGameState(parsedState)) {
+              // Update game status first
+              setGameStatus("playing");
+              setGameStarted(true);
+              
+              // Then update game state
+              setGameState(parsedState);
+            } else {
+              console.error('Invalid game state received:', parsedState);
+              toast.error('Received invalid game state from server');
+            }
+          } catch (error) {
+            console.error('Error processing game state:', error);
+            toast.error('Error processing game state');
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      isSubscribed = false;
+      supabase.removeChannel(subscription);
+    };
   }, [gameId, setGameStarted, setGameStatus, setGameState]);
 };
