@@ -10,13 +10,13 @@ import MainMenu from "@/components/game/MainMenu";
 import PreGameScreens from "@/components/game/PreGameScreens";
 import GameContainer from "@/components/game/GameContainer";
 import { GameState } from "@/types/game";
-import { isValidGameState } from "@/lib/game-validation";
 import { Loader } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Json } from "@/integrations/supabase/types";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading, profile } = useAuth();
   const [initializationError, setInitializationError] = useState<string | null>(null);
   
@@ -67,13 +67,37 @@ const Index = () => {
     }
   };
 
+  // Handle back to main menu from any section
+  const handleBackToMainMenu = () => {
+    navigate('/game');
+    setGameStarted(false);
+    setGameStatus("menu");
+    setGameMode(null);
+    setGameState(null);
+    setShowLeaderboard(false);
+    if (joinRoomId) {
+      setJoinRoomId('');
+    }
+  };
+
+  // Initialize game status on mount and after auth
+  useEffect(() => {
+    if (!authLoading && user && !gameStatus) {
+      console.log("Setting initial game status to menu for user:", user.email);
+      try {
+        setGameStatus("menu");
+      } catch (error) {
+        console.error("Error setting initial game status:", error);
+        setInitializationError("Failed to initialize game. Please try refreshing the page.");
+      }
+    }
+  }, [authLoading, user, gameStatus, setGameStatus]);
+
   // Handle page refresh and navigation
   useEffect(() => {
     const handlePageRefresh = () => {
-      if (window.location.pathname === '/game' && !gameStatus) {
-        setGameStarted(false);
-        setGameStatus("menu");
-        setGameMode(null);
+      if (location.pathname === '/game' && !gameStatus) {
+        handleBackToMainMenu();
       }
     };
 
@@ -82,7 +106,7 @@ const Index = () => {
     return () => {
       window.removeEventListener('focus', handlePageRefresh);
     };
-  }, [gameStatus, setGameStarted, setGameStatus, setGameMode]);
+  }, [gameStatus, location.pathname]);
 
   // Handle online game updates
   useEffect(() => {
@@ -98,23 +122,10 @@ const Index = () => {
           if (payload.new.game_status === 'playing') {
             setGameStarted(true);
             setGameStatus("playing");
-            try {
-              // First convert to unknown, then to GameState after validation
-              const stateData: unknown = typeof payload.new.state === 'string' 
-                ? JSON.parse(payload.new.state) 
-                : payload.new.state;
-              
-              if (isValidGameState(stateData)) {
-                const validGameState: GameState = stateData;
-                setGameState(validGameState);
-              } else {
-                console.error('Invalid game state received:', stateData);
-                toast.error('Failed to load game state');
-              }
-            } catch (error) {
-              console.error('Error parsing game state:', error);
-              toast.error('Failed to load game state');
-            }
+            const stateData = typeof payload.new.state === 'string' 
+              ? JSON.parse(payload.new.state) 
+              : payload.new.state;
+            setGameState(stateData as GameState);
           }
         })
         .subscribe();
@@ -124,19 +135,6 @@ const Index = () => {
       };
     }
   }, [gameId, setGameStarted, setGameStatus, setGameState]);
-
-  // Ensure gameStatus is set to "menu" when component mounts
-  useEffect(() => {
-    if (!authLoading && user && !gameStatus) {
-      console.log("Setting initial game status to menu for user:", user.email);
-      try {
-        setGameStatus("menu");
-      } catch (error) {
-        console.error("Error setting initial game status:", error);
-        setInitializationError("Failed to initialize game. Please try refreshing the page.");
-      }
-    }
-  }, [authLoading, user, gameStatus, setGameStatus]);
 
   if (authLoading) {
     return (
@@ -152,12 +150,7 @@ const Index = () => {
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
         <div className="text-white text-lg mb-4">{initializationError}</div>
         <button 
-          onClick={() => {
-            setGameStarted(false);
-            setGameStatus("menu");
-            setGameMode(null);
-            navigate('/game');
-          }}
+          onClick={handleBackToMainMenu}
           className="px-4 py-2 bg-game-gold text-black rounded hover:bg-game-gold/90"
         >
           Return to Menu
@@ -167,7 +160,7 @@ const Index = () => {
   }
 
   if (!user || !profile) {
-    window.location.href = '/auth';
+    navigate('/auth', { replace: true });
     return (
       <div className="min-h-screen bg-[#141B2C] flex flex-col items-center justify-center">
         <Loader className="w-8 h-8 text-game-gold animate-spin mb-4" />
@@ -213,15 +206,10 @@ const Index = () => {
               try {
                 const result = await handleJoinGame();
                 if (result && 'state' in result) {
-                  const stateData: unknown = result.state;
-                  if (isValidGameState(stateData)) {
-                    setGameState(stateData);
-                    if (result.game_status === 'playing') {
-                      setGameStarted(true);
-                      setGameStatus('playing');
-                    }
-                  } else {
-                    toast.error('Invalid game state received');
+                  setGameState(result.state as GameState);
+                  if (result.game_status === 'playing') {
+                    setGameStarted(true);
+                    setGameStatus('playing');
                   }
                 }
               } catch (error) {
@@ -243,7 +231,7 @@ const Index = () => {
   }
 
   console.log("Rendering game container with mode:", gameMode);
-  return <GameContainer gameMode={gameMode} onBack={handleBackFromGame} />;
+  return <GameContainer gameMode={gameMode} onBack={handleBackToMainMenu} />;
 };
 
 export default Index;

@@ -18,13 +18,20 @@ const queryClient = new QueryClient();
 function RouteHandler() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    // Handle direct navigation to sub-routes
+    if (!loading && !user && location.pathname !== '/auth') {
+      navigate('/auth', { replace: true });
+      return;
+    }
+
     // If we're on a game-related route and it's a page refresh
-    if (location.pathname.includes('/game') && !location.key) {
+    if (location.pathname.includes('/game/') && !location.key) {
       navigate('/game', { replace: true });
     }
-  }, [location, navigate]);
+  }, [location, navigate, user, loading]);
 
   return null;
 }
@@ -32,12 +39,14 @@ function RouteHandler() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
     if (!loading && (!user || !profile)) {
+      console.log('No user or profile, redirecting to auth');
       navigate('/auth', { replace: true });
     }
-  }, [loading, user, profile, navigate]);
+  }, [loading, user, profile, navigate, location]);
 
   if (loading) {
     return (
@@ -60,6 +69,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     if (!loading && user) {
+      console.log('User is logged in, redirecting to game');
       navigate('/game', { replace: true });
     }
   }, [loading, user, navigate]);
@@ -91,7 +101,7 @@ const App = () => {
             <Route path="/" element={<Navigate to="/game" replace />} />
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/auth/callback" element={<Callback />} />
-            <Route path="/game/*" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/game" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
