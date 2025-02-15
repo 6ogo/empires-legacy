@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,6 +60,13 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!user && !authLoading) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
   const handleStateUpdate = (newState: GameState) => {
     dispatchAction({
       type: 'SET_STATE',
@@ -76,47 +84,19 @@ const Index = () => {
 
   useGameSubscription(gameId, setGameStarted, setGameStatus, handleActionDispatch);
 
-  // Redirect to landing page if not authenticated
-  useEffect(() => {
-    if (!user) {
-      navigate('/', { replace: true });
-    }
-  }, [user, navigate]);
-
-  const handleBackFromGame = () => {
-    setGameStarted(false);
-    setGameStatus("menu");
-    setGameMode(null);
-    if (joinRoomId) {
-      setJoinRoomId('');
-    }
-  };
-
-  const handleBackToMenu = () => {
-    setGameMode(null);
-    setGameStatus("menu");
-    if (joinRoomId) {
-      setJoinRoomId('');
-    }
-  };
-
-  const handleBackToMainMenu = () => {
-    navigate('/game');
-    setGameStarted(false);
-    setGameStatus("menu");
-    setGameMode(null);
-    setShowLeaderboard(false);
-    if (joinRoomId) {
-      setJoinRoomId('');
-    }
-  };
-
+  // Show loading screen while checking auth
   if (authLoading) {
     return <LoadingScreen message="Loading game..." />;
   }
 
+  // Show error screen if there's an initialization error
   if (initializationError) {
-    return <ErrorScreen message={initializationError} onRetry={handleBackToMainMenu} />;
+    return <ErrorScreen message={initializationError} onRetry={() => navigate('/game')} />;
+  }
+
+  // Don't render anything if we're not authenticated
+  if (!user) {
+    return null;
   }
 
   return gameStarted ? (
