@@ -11,12 +11,7 @@ import GameWrapper from "@/components/game/GameWrapper";
 import GameContainer from "@/components/game/GameContainer";
 import { isValidGameState } from "@/lib/game-validation";
 import { toast } from "sonner";
-import { GameMode, GameState } from "@/types/game";
-
-interface GameContainerProps {
-  gameMode: GameMode;
-  onBack: () => void;
-}
+import { GameMode, GameState, GameAction } from "@/types/game";
 
 const Index = () => {
   const navigate = useNavigate();

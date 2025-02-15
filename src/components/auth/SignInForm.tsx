@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordLoginForm } from "./PasswordLoginForm";
 import { MagicLinkForm } from "./MagicLinkForm";
@@ -13,6 +14,7 @@ interface SignInFormProps {
   loading: boolean;
   onSubmit: (e: React.FormEvent, turnstileToken?: string) => Promise<void>;
   onMagicLinkLogin: (e: React.FormEvent) => Promise<void>;
+  showTurnstile: boolean;
 }
 
 export const SignInForm = ({
@@ -25,24 +27,9 @@ export const SignInForm = ({
   loading,
   onSubmit,
   onMagicLinkLogin,
+  showTurnstile,
 }: SignInFormProps) => {
   const [activeTab, setActiveTab] = useState<string>("password");
-  const [showTurnstile, setShowTurnstile] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent, turnstileToken?: string) => {
-    e.preventDefault();
-    if (!turnstileToken) {
-      setShowTurnstile(true);
-      return;
-    }
-    try {
-      await onSubmit(e, turnstileToken);
-    } catch (error) {
-      console.error('Login failed:', error);
-    } finally {
-      setShowTurnstile(false);
-    }
-  };
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -60,7 +47,7 @@ export const SignInForm = ({
           stayLoggedIn={stayLoggedIn}
           setStayLoggedIn={setStayLoggedIn}
           loading={loading}
-          onSubmit={handleSubmit}
+          onSubmit={onSubmit}
           showTurnstile={showTurnstile}
         />
       </TabsContent>
