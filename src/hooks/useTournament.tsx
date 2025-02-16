@@ -4,6 +4,36 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tournament, TournamentPlayer } from '@/types/tournament';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Database } from '@/types/database.types';
+
+type Tables = Database['public']['Tables'];
+
+const mapToTournament = (row: Tables['tournaments']['Row']): Tournament => ({
+  id: row.id,
+  status: row.status,
+  stage: row.stage,
+  regionId: row.region_id,
+  startTime: row.start_time,
+  signupStartTime: row.signup_start_time,
+  verificationStartTime: row.verification_start_time,
+  maxPlayers: row.max_players,
+  currentPlayers: row.current_players,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const mapToTournamentPlayer = (row: Tables['tournament_players']['Row']): TournamentPlayer => ({
+  id: row.id,
+  tournamentId: row.tournament_id,
+  userId: row.user_id,
+  status: row.status,
+  signupTime: row.signup_time,
+  verificationTime: row.verification_time || undefined,
+  eliminated: row.eliminated,
+  position: row.position || undefined,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 export const useTournament = (tournamentId?: string) => {
   const queryClient = useQueryClient();
@@ -20,7 +50,7 @@ export const useTournament = (tournamentId?: string) => {
         .single();
 
       if (error) throw error;
-      return data as Tournament;
+      return data ? mapToTournament(data) : null;
     },
     enabled: !!tournamentId
   });
@@ -35,7 +65,7 @@ export const useTournament = (tournamentId?: string) => {
         .order('start_time', { ascending: true });
 
       if (error) throw error;
-      return data as Tournament[];
+      return data?.map(mapToTournament) || [];
     }
   });
 
@@ -48,10 +78,10 @@ export const useTournament = (tournamentId?: string) => {
         .select('*')
         .eq('tournament_id', tournamentId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as TournamentPlayer | null;
+      if (error) throw error;
+      return data ? mapToTournamentPlayer(data) : null;
     },
     enabled: !!tournamentId && !!user
   });
