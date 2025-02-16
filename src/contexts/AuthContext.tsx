@@ -16,81 +16,96 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateUserAndProfile = async (currentUser: User | null) => {
     try {
-      if (currentUser) {
-        setUser(currentUser);
-        const userProfile = await fetchProfile(currentUser.id);
-        
-        if (!userProfile) {
-          // If no profile exists, create one
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: currentUser.id,
-                username: currentUser.user_metadata?.username,
-                email_verified: currentUser.email_confirmed_at ? true : false,
-                verified: false,
-                is_guest: false,
-                preferences: { stayLoggedIn: false },
-                created_at: new Date().toISOString(),
-              },
-            ])
-            .select('*')
-            .single();
-
-          if (createError) throw createError;
-          setProfile(newProfile as UserProfile);
-        } else {
-          setProfile(userProfile);
-        }
-      } else {
+      if (!currentUser) {
         setUser(null);
         setProfile(null);
+        return;
+      }
+
+      setUser(currentUser);
+      
+      // Attempt to fetch existing profile
+      const userProfile = await fetchProfile(currentUser.id);
+      
+      if (userProfile) {
+        setProfile(userProfile);
+        return;
+      }
+
+      // If no profile exists, create one
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: currentUser.id,
+            username: currentUser.user_metadata?.username || null,
+            email_verified: !!currentUser.email_confirmed_at,
+            verified: false,
+            is_guest: false,
+            preferences: { stayLoggedIn: false },
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select('*')
+        .single();
+
+      if (createError) {
+        console.error('Error creating profile:', createError);
+        // Don't throw here, just log the error
+        return;
+      }
+
+      // Fetch the profile again to ensure we get the correct format
+      const createdProfile = await fetchProfile(currentUser.id);
+      if (createdProfile) {
+        setProfile(createdProfile);
       }
     } catch (err) {
-      console.error('Error updating user and profile:', err);
-      setError(err instanceof Error ? err : new Error('Failed to update user profile'));
-      setUser(null);
-      setProfile(null);
+      console.error('Error in updateUserAndProfile:', err);
+      // Don't set user/profile to null here, as we still want to maintain the auth state
     }
   };
 
   const refreshSession = async () => {
     try {
-      setIsLoading(true);
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error('Session refresh error:', sessionError);
+        return;
+      }
       
       setSession(currentSession);
-      await updateUserAndProfile(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        await updateUserAndProfile(currentSession.user);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
     } catch (err) {
-      console.error('Session refresh error:', err);
-      setError(err instanceof Error ? err : new Error('Session refresh failed'));
-      setUser(null);
-      setProfile(null);
+      console.error('Error in refreshSession:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   const refreshProfile = async () => {
-    if (user?.id) {
-      try {
-        const userProfile = await fetchProfile(user.id);
-        if (userProfile) {
-          setProfile(userProfile);
-        }
-      } catch (err) {
-        console.error('Profile refresh error:', err);
-        toast.error('Failed to refresh profile');
+    if (!user?.id) return;
+
+    try {
+      const userProfile = await fetchProfile(user.id);
+      if (userProfile) {
+        setProfile(userProfile);
       }
+    } catch (err) {
+      console.error('Profile refresh error:', err);
+      toast.error('Failed to refresh profile');
     }
   };
 
   const signOut = async () => {
     try {
-      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -99,19 +114,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null);
     } catch (err) {
       console.error('Sign out error:', err);
-      setError(err instanceof Error ? err : new Error('Sign out failed'));
-    } finally {
-      setIsLoading(false);
+      toast.error('Failed to sign out');
     }
   };
 
   useEffect(() => {
+    // Initial session check
     refreshSession();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log('Auth state changed:', event, currentSession?.user?.email);
+      
       setSession(currentSession);
-      await updateUserAndProfile(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        await updateUserAndProfile(currentSession.user);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      
       setIsLoading(false);
     });
 
