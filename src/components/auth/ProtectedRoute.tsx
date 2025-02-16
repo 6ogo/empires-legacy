@@ -16,7 +16,7 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
-  const [attemptedRefresh, setAttemptedRefresh] = useState(false);
+  const [attemptedRefresh, setAttemptedRefresh] = useState<boolean>(false);
 
   useEffect(() => {
     const checkAuth = async () => {
