@@ -19,70 +19,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('updateUserAndProfile called with user:', currentUser?.email);
     
     if (!currentUser) {
-      console.log('No current user, clearing states');
       setUser(null);
       setProfile(null);
       setIsLoading(false);
       return;
     }
-  
+    
     try {
+      setIsLoading(true);
       setUser(currentUser);
-      console.log('Fetching profile for user:', currentUser.id);
       
-      // First try to get the profile
+      // Fetch profile with error handling
       const { data: profileData, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
         .single();
   
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        throw fetchError;
-      }
-  
-      if (profileData) {
-        console.log('Existing profile found:', profileData);
-        setProfile(profileData as UserProfile);
-        setIsLoading(false);
+      if (fetchError) {
+        console.error('Profile fetch error:', fetchError);
+        setProfile(null);
         return;
       }
   
-      console.log('No profile found, creating new profile');
-      // Create new profile if none exists
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: currentUser.id,
-            email: currentUser.email,
-            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0],
-            email_verified: !!currentUser.email_confirmed_at,
-            verified: false,
-            is_guest: false,
-            preferences: { stayLoggedIn: false },
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
-        .select('*')
-        .single();
+      // Important: Wait for profile to be set
+      await new Promise(resolve => {
+        setProfile(profileData as UserProfile);
+        resolve(true);
+      });
   
-      if (createError) throw createError;
-  
-      if (newProfile) {
-        console.log('New profile created:', newProfile);
-        setProfile(newProfile as UserProfile);
-      }
-  
-    } catch (err) {
-      console.error('Error in updateUserAndProfile:', err);
-      setError(err as Error);
+    } catch (error) {
+      console.error('Error in updateUserAndProfile:', error);
+      setProfile(null);
     } finally {
       setIsLoading(false);
     }
-  };  
-
+  };
+  
   const refreshSession = async () => {
     if (!mounted) return;
 
