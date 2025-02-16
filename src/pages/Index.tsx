@@ -14,24 +14,6 @@ import { isValidGameState } from "@/lib/game-validation";
 import { toast } from "sonner";
 import { GameMode, GameState } from "@/types/game";
 
-const onCreateGame = async (
-  numPlayers: number, 
-  boardSize: number, 
-  gameMode: GameMode | null,
-  handleCreateGame: (numPlayers: number, boardSize: number) => Promise<{ initialState: GameState, data: any } | undefined>,
-  handleActionDispatch: (state: GameState) => void
-) => {
-  if (!gameMode) {
-    toast.error('Please select a game mode first');
-    return;
-  }
-
-  const result = await handleCreateGame(numPlayers, boardSize);
-  if (result?.initialState) {
-    handleActionDispatch(result.initialState);
-  }
-};
-
 const Index = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -79,29 +61,18 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
-  // Redirect to auth if not authenticated
-  useEffect(() => {
-    if (!user && !authLoading) {
-      navigate('/auth', { replace: true });
-    }
-  }, [user, authLoading, navigate]);
-
-  const handleStateUpdate = (newState: GameState) => {
-    dispatchAction({
-      type: 'SET_STATE',
-      payload: { state: newState },
-      playerId: user?.id || '',
-      timestamp: Date.now()
-    });
-  };
+  useGameSubscription(gameId, setGameStarted, setGameStatus, handleActionDispatch);
 
   const handleActionDispatch = (state: GameState) => {
     if (isValidGameState(state)) {
-      handleStateUpdate(state);
+      dispatchAction({
+        type: 'SET_STATE',
+        payload: { state },
+        playerId: user?.id || '',
+        timestamp: Date.now()
+      });
     }
   };
-
-  useGameSubscription(gameId, setGameStarted, setGameStatus, handleActionDispatch);
 
   if (authLoading) {
     return <LoadingScreen message="Loading game..." />;
@@ -110,19 +81,6 @@ const Index = () => {
   if (initializationError) {
     return <ErrorScreen message={initializationError} onRetry={() => navigate('/game')} />;
   }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Add debug logging
-  console.log('Index render:', {
-    gameStarted,
-    gameStatus,
-    gameMode,
-    user: !!user,
-    showLeaderboard
-  });
 
   return (
     <div className="min-h-screen w-full bg-[#141B2C] text-white">
@@ -143,7 +101,10 @@ const Index = () => {
           }}
           onCreateGame={async (numPlayers, boardSize) => {
             try {
-              await onCreateGame(numPlayers, boardSize, gameMode, handleCreateGame, handleActionDispatch);
+              const result = await handleCreateGame(numPlayers, boardSize);
+              if (result?.initialState) {
+                handleActionDispatch(result.initialState);
+              }
             } catch (error) {
               console.error('Error creating game:', error);
               toast.error('Failed to create game. Please try again.');

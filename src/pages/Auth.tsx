@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { useAuthForm } from "@/hooks/useAuthForm";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -13,7 +13,9 @@ import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, isLoading } = useAuth();
+  const from = (location.state as any)?.from || "/game";
   const {
     email,
     setEmail,
@@ -35,18 +37,20 @@ const Auth = () => {
   } = useAuthForm();
 
   useEffect(() => {
-    console.log('Auth page state:', { user, profile, isLoading, showTurnstile });
-  }, [user, profile, isLoading, showTurnstile]);
+    if (user && profile) {
+      console.log('User authenticated, navigating to:', from);
+      navigate(from, { replace: true });
+    }
+  }, [user, profile, navigate, from]);
 
-  // Show loading screen while checking auth status
   if (isLoading) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
-  // Redirect to game if already authenticated
+  // If already authenticated, redirect to game
   if (user && profile) {
     console.log('User authenticated, redirecting to game');
-    return <Navigate to="/game" replace />;
+    return <Navigate to={from} replace />;
   }
 
   return (
