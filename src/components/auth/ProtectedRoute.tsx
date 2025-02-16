@@ -16,21 +16,24 @@ export function ProtectedRoute({
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!user && !isLoading && !isRefreshing) {
+      // Only attempt refresh once if no user and not already loading
+      if (!user && !isLoading && !isRefreshing && !hasAttemptedRefresh) {
         setIsRefreshing(true);
         await refreshSession();
+        setHasAttemptedRefresh(true); // Mark that we've attempted a refresh
         setIsRefreshing(false);
       }
     };
 
     checkAuth();
-  }, [user, isLoading, refreshSession]);
+  }, [user, isLoading, refreshSession, isRefreshing, hasAttemptedRefresh]);
 
-  // Show loading screen only during initial load or session refresh
-  if (isLoading || isRefreshing) {
+  // If we have a user and profile, don't show loading screen
+  if ((isLoading || isRefreshing) && !user && !profile) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
