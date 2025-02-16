@@ -4,11 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Gamepad, LogIn } from "lucide-react";
 import HeroSection from "@/components/landing/HeroSection";
-import { toast } from "sonner";
+import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = React.useRef<HTMLDivElement>(null);
 
@@ -28,6 +28,12 @@ const Index = () => {
       navigate('/auth');
     }
   };
+
+  // Only show loading screen if we're specifically loading the auth state
+  // Don't block the entire page render just because profile isn't loaded yet
+  if (isLoading && !user) {
+    return <LoadingScreen message="Loading..." />;
+  }
 
   return (
     <div 
@@ -65,6 +71,7 @@ const Index = () => {
         <div className="game-container">
           <h2 className="text-[#ffd02f] game-title">Strategic Gameplay Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {/* Game feature cards */}
             <div className="game-card bg-gradient-to-br from-purple-900/50 to-transparent">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
