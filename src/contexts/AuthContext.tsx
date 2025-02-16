@@ -11,8 +11,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with true since we're checking auth on mount
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [mounted, setMounted] = useState(true);
 
   const updateUserAndProfile = async (currentUser: User | null) => {
     console.log('updateUserAndProfile called with user:', currentUser?.email);
@@ -21,23 +22,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('No current user, clearing states');
       setUser(null);
       setProfile(null);
+      setIsLoading(false); // Ensure we clear loading state here
       return;
     }
 
     try {
       setUser(currentUser);
-      console.log('User state updated:', currentUser.email);
-
       const userProfile = await fetchProfile(currentUser.id);
-      console.log('Profile fetch result:', userProfile);
 
       if (userProfile) {
         setProfile(userProfile);
-        console.log('Existing profile set');
+        console.log('Profile set for user:', currentUser.email);
+        setIsLoading(false); // Clear loading after successful profile fetch
         return;
       }
 
-      console.log('No profile found, creating new profile');
+      // Only attempt to create profile if none exists
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert([
@@ -66,19 +66,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error('Error in updateUserAndProfile:', err);
       setError(err as Error);
+    } finally {
+      setIsLoading(false); // Ensure loading state is always cleared
     }
   };
-
   const refreshSession = async () => {
-    console.log('refreshSession called');
-    try {
-      setIsLoading(true);
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+    if (!mounted) return;
 
-      if (sessionError) throw sessionError;
+    try {
+      console.log('Refreshing session');
+      setIsLoading(true);
+
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      if (error) throw error;
 
       setSession(currentSession);
-
       if (currentSession?.user) {
         await updateUserAndProfile(currentSession.user);
       } else {
@@ -86,27 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(null);
       }
     } catch (err) {
-      console.error('Error in refreshSession:', err);
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    console.log('signOut called');
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      console.log('Sign out successful');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      toast.error('Failed to sign out');
+      console.error('Session refresh error:', err);
       setError(err as Error);
     } finally {
       setIsLoading(false);
@@ -115,10 +97,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshProfile = async () => {
     if (!user?.id) return;
-    console.log('Refreshing profile for user:', user.email);
 
     try {
+      console.log('Refreshing profile for user:', user.email);
       setIsLoading(true);
+
       const userProfile = await fetchProfile(user.id);
       if (userProfile) {
         setProfile(userProfile);
@@ -133,32 +116,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signOut = async () => {
+    try {
+      console.log('Signing out');
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      console.log('Sign out successful');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      toast.error('Failed to sign out');
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     console.log('AuthProvider mounted');
-    let mounted = true;
+    setMounted(true);
 
     const initializeAuth = async () => {
+
+      if (!mounted) return;
+
       try {
         console.log('Initializing auth');
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        setIsLoading(true); // Set loading at the start
 
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         if (error) throw error;
 
-        if (mounted) {
-          if (initialSession) {
-            setSession(initialSession);
-            await updateUserAndProfile(initialSession.user);
-          }
+        if (mounted && initialSession) {
+          setSession(initialSession);
+          await updateUserAndProfile(initialSession.user);
+        } else {
+          setIsLoading(false); // Clear loading if no session
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
         if (mounted) {
           setError(err as Error);
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
+          setIsLoading(false); // Clear loading on error
         }
       }
     };
@@ -170,9 +174,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!mounted) return;
 
-      setIsLoading(true);
-
       try {
+        setIsLoading(true);
         setSession(currentSession);
 
         if (currentSession?.user) {
@@ -180,21 +183,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setUser(null);
           setProfile(null);
+          setIsLoading(false);
         }
       } catch (err) {
         console.error('Auth state change error:', err);
         setError(err as Error);
-      } finally {
         setIsLoading(false);
       }
     });
 
     return () => {
-      mounted = false;
+      setMounted(false);
       subscription.unsubscribe();
     };
   }, []);
-
+  
   console.log('Auth Provider current state:', {
     hasSession: !!session,
     hasUser: !!user,
