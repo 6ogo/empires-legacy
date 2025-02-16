@@ -26,7 +26,7 @@ const GamePage = () => {
   const initialState = createInitialGameState(2, 24); // Default values
   const { gameState, dispatchAction } = useGameState(initialState);
 
-  if (isLoading) {
+  if (isLoading && (!user || !profile)) {
     return <LoadingScreen message="Loading game..." />;
   }
 
