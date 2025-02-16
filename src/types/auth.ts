@@ -39,4 +39,5 @@ export interface AuthContextType {
   error: Error | null;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }

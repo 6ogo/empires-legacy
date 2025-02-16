@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { UserProfile, AuthContextType } from '@/types/auth';
+import { UserProfile, AuthContextType, Profile } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -24,24 +24,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       if (data) {
+        const profileData = data as Profile;
+        const defaultPreferences = {
+          stayLoggedIn: false,
+          theme: undefined as 'light' | 'dark' | undefined,
+          notifications: { email: false, push: false }
+        };
+
         const userProfile: UserProfile = {
-          id: data.id,
-          username: data.username || undefined,
-          email: data.email,
-          avatarUrl: data.avatar_url || undefined,
-          verified: !!data.verified,
-          email_verified: !!data.email_verified,
-          preferences: data.preferences || { stayLoggedIn: false },
-          xp: Number(data.xp || 0),
-          level: Number(data.level || 1),
-          total_gametime: Number(data.total_gametime || 0),
-          total_games_played: Number(data.total_games_played || 0),
-          total_wins: Number(data.total_wins || 0),
-          economic_wins: Number(data.economic_wins || 0),
-          domination_wins: Number(data.domination_wins || 0),
-          createdAt: data.created_at,
-          updatedAt: data.updated_at || data.created_at,
-          lastLoginAt: data.last_login || undefined
+          id: profileData.id,
+          username: profileData.username || undefined,
+          avatarUrl: profileData.avatar_url || undefined,
+          verified: !!profileData.verified,
+          email_verified: !!profileData.email_verified,
+          preferences: typeof profileData.preferences === 'object' 
+            ? { ...defaultPreferences, ...profileData.preferences as any }
+            : defaultPreferences,
+          xp: Number(profileData.xp || 0),
+          level: Number(profileData.level || 1),
+          total_gametime: Number(profileData.total_gametime || 0),
+          total_games_played: Number(profileData.total_games_played || 0),
+          total_wins: Number(profileData.total_wins || 0),
+          economic_wins: Number(profileData.economic_wins || 0),
+          domination_wins: Number(profileData.domination_wins || 0),
+          createdAt: profileData.created_at,
+          updatedAt: profileData.created_at, // Use created_at as fallback since updated_at might not exist
+          lastLoginAt: profileData.last_login || undefined
         };
         setProfile(userProfile);
       }
@@ -54,6 +62,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshProfile = async () => {
     if (user?.id) {
       await fetchProfile(user.id);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        await fetchProfile(currentSession.user.id);
+      }
+    } catch (err) {
+      console.error('Session refresh error:', err);
+      setError(err instanceof Error ? err : new Error('Session refresh failed'));
     }
   };
 
@@ -119,7 +144,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         error,
         signOut,
-        refreshProfile
+        refreshProfile,
+        refreshSession
       }}
     >
       {children}
