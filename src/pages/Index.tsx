@@ -61,8 +61,6 @@ const Index = () => {
     handleStartAnyway,
   } = useOnlineGame();
 
-  useGameSubscription(gameId, setGameStarted, setGameStatus, handleActionDispatch);
-
   const handleActionDispatch = (state: GameState) => {
     if (isValidGameState(state)) {
       dispatchAction({
@@ -73,6 +71,8 @@ const Index = () => {
       });
     }
   };
+
+  useGameSubscription(gameId, setGameStarted, setGameStatus, handleActionDispatch);
 
   if (authLoading) {
     return <LoadingScreen message="Loading game..." />;
