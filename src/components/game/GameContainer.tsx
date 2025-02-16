@@ -1,4 +1,7 @@
+
 import React from 'react';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { GameMode } from '@/types/game';
 
 interface GameContainerProps {
@@ -9,7 +12,6 @@ interface GameContainerProps {
 export const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
   return (
     <div className="relative">
-      {/* Game content */}
       <Button
         onClick={onBack}
         className="absolute top-4 left-4 z-50"
@@ -22,6 +24,5 @@ export const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }
     </div>
   );
 };
-
 
 export default GameContainer;

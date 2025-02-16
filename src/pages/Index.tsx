@@ -12,7 +12,25 @@ import GameWrapper from "@/components/game/GameWrapper";
 import GameContainer from "@/components/game/GameContainer";
 import { isValidGameState } from "@/lib/game-validation";
 import { toast } from "sonner";
-import { GameMode, GameState, GameAction } from "@/types/game";
+import { GameMode, GameState } from "@/types/game";
+
+const onCreateGame = async (
+  numPlayers: number, 
+  boardSize: number, 
+  gameMode: GameMode | null,
+  handleCreateGame: (numPlayers: number, boardSize: number) => Promise<{ initialState: GameState, data: any } | undefined>,
+  handleActionDispatch: (state: GameState) => void
+) => {
+  if (!gameMode) {
+    toast.error('Please select a game mode first');
+    return;
+  }
+
+  const result = await handleCreateGame(numPlayers, boardSize);
+  if (result?.initialState) {
+    handleActionDispatch(result.initialState);
+  }
+};
 
 const Index = () => {
   const navigate = useNavigate();
