@@ -19,42 +19,76 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('updateUserAndProfile called with user:', currentUser?.email);
     
     if (!currentUser) {
+      console.log('No current user, clearing states');
       setUser(null);
       setProfile(null);
       setIsLoading(false);
       return;
     }
-    
+  
     try {
       setIsLoading(true);
       setUser(currentUser);
       
-      // Fetch profile with error handling
-      const { data: profileData, error: fetchError } = await supabase
+      // First try to get the profile - log the full response
+      const profileResponse = await supabase
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
         .single();
   
-      if (fetchError) {
-        console.error('Profile fetch error:', fetchError);
-        setProfile(null);
-        return;
-      }
+      console.log('Profile fetch response:', profileResponse);
   
-      // Important: Wait for profile to be set
-      await new Promise(resolve => {
-        setProfile(profileData as UserProfile);
-        resolve(true);
-      });
+      if (profileResponse.error) {
+        if (profileResponse.error.code === 'PGRST116') {
+          console.log('No profile found, attempting to create one');
+          // Create new profile
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: currentUser.id,
+                email: currentUser.email,
+                username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0],
+                email_verified: !!currentUser.email_confirmed_at,
+                verified: false,
+                is_guest: false,
+                preferences: { stayLoggedIn: false },
+                created_at: new Date().toISOString(),
+              }
+            ])
+            .select()
+            .single();
+  
+          if (createError) {
+            console.error('Profile creation error:', createError);
+            throw createError;
+          }
+  
+          if (newProfile) {
+            console.log('New profile created:', newProfile);
+            setProfile(newProfile as UserProfile);
+          }
+        } else {
+          console.error('Profile fetch error:', profileResponse.error);
+          throw profileResponse.error;
+        }
+      } else if (profileResponse.data) {
+        console.log('Existing profile found:', profileResponse.data);
+        setProfile(profileResponse.data as UserProfile);
+      }
   
     } catch (error) {
       console.error('Error in updateUserAndProfile:', error);
+      // Don't clear the user on profile error
+      // setUser(null);
       setProfile(null);
+      toast.error('Error loading user profile');
     } finally {
       setIsLoading(false);
     }
   };
+  
   
   const refreshSession = async () => {
     if (!mounted) return;
