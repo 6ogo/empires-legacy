@@ -347,6 +347,95 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_players: {
+        Row: {
+          created_at: string | null
+          eliminated: boolean | null
+          id: string
+          position: number | null
+          signup_time: string
+          status: string
+          tournament_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          verification_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          eliminated?: boolean | null
+          id?: string
+          position?: number | null
+          signup_time: string
+          status: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          verification_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          eliminated?: boolean | null
+          id?: string
+          position?: number | null
+          signup_time?: string
+          status?: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          verification_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_players_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string | null
+          current_players: number | null
+          id: string
+          max_players: number
+          region_id: string
+          signup_start_time: string
+          stage: string
+          start_time: string
+          status: string | null
+          updated_at: string | null
+          verification_start_time: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_players?: number | null
+          id?: string
+          max_players: number
+          region_id: string
+          signup_start_time: string
+          stage: string
+          start_time: string
+          status?: string | null
+          updated_at?: string | null
+          verification_start_time: string
+        }
+        Update: {
+          created_at?: string | null
+          current_players?: number | null
+          id?: string
+          max_players?: number
+          region_id?: string
+          signup_start_time?: string
+          stage?: string
+          start_time?: string
+          status?: string | null
+          updated_at?: string | null
+          verification_start_time?: string
+        }
+        Relationships: []
+      }
       unit_states: {
         Row: {
           created_at: string | null
