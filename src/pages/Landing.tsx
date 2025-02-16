@@ -6,8 +6,9 @@ import GameModeCard from "@/components/landing/GameModeCard";
 import VictoryCard from "@/components/landing/VictoryCard";
 import WorldWarTournament from "@/components/landing/WorldWarTournament";
 import { useState, useRef } from "react";
-import { Users, Globe, Castle, Crown, Sword, Shield, Coins, Target } from "lucide-react";
+import { Users, Globe, Castle, Crown, Sword, Shield, Coins, Target, ChevronRight } from "lucide-react";
 import LoadingScreen from "@/components/game/LoadingScreen";
+import { Button } from "@/components/ui/button";
 
 const Landing = () => {
   const { user, profile, isLoading } = useAuth();
