@@ -29,6 +29,7 @@ const App = () => {
         <Router>
           <ErrorBoundary>
             <AuthProvider>
+            <AuthDebugger /> {/* temporary debugger for authentication */}
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
