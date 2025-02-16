@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +14,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile, isLoading } = useAuth();
-  const from = (location.state as any)?.from || "/game";
   const {
     email,
     setEmail,
@@ -32,16 +30,15 @@ const Auth = () => {
     handleSignUp,
     handleMagicLinkLogin,
     showTurnstile,
-    setShowTurnstile,
     validationErrors,
   } = useAuthForm();
 
   useEffect(() => {
     if (user && profile) {
-      console.log('User authenticated, navigating to:', from);
-      navigate(from, { replace: true });
+      console.log('User authenticated, navigating to game');
+      navigate('/game', { replace: true });
     }
-  }, [user, profile, navigate, from]);
+  }, [user, profile, navigate]);
 
   if (isLoading) {
     return <LoadingScreen message="Checking authentication..." />;
@@ -49,8 +46,7 @@ const Auth = () => {
 
   // If already authenticated, redirect to game
   if (user && profile) {
-    console.log('User authenticated, redirecting to game');
-    return <Navigate to={from} replace />;
+    return <Navigate to="/game" replace />;
   }
 
   return (

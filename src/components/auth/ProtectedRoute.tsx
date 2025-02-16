@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +28,7 @@ export function ProtectedRoute({
     checkAuth();
   }, [user, isLoading, refreshSession, attemptedRefresh]);
 
-  if (isLoading) {
+  if (isLoading && !attemptedRefresh) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
@@ -38,11 +37,12 @@ export function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  if (!user && attemptedRefresh) {
+  if (!user || !profile) {
+    console.log('No user or profile, redirecting to auth');
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  if (requireEmailVerified && !profile?.email_verified) {
+  if (requireEmailVerified && !profile.email_verified) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
         <h1 className="text-2xl font-bold mb-4">Email Verification Required</h1>

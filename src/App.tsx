@@ -9,8 +9,6 @@ import AuthCallback from './pages/AuthCallback';
 import ErrorBoundary from './components/ErrorBoundary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import { useAuth } from './contexts/AuthContext';
-import LoadingScreen from './components/game/LoadingScreen';
 import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
 
@@ -25,12 +23,6 @@ const queryClient = new QueryClient({
 });
 
 const AppRoutes = () => {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return <LoadingScreen message="Loading application..." />;
-  }
-
   return (
     <Routes>
       {/* Public Routes */}
@@ -39,16 +31,22 @@ const AppRoutes = () => {
       <Route path="/auth/callback" element={<AuthCallback />} />
       
       {/* Protected Routes */}
-      <Route path="/game/*" element={
-        <ProtectedRoute>
-          <GamePage />
-        </ProtectedRoute>
-      } />
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Settings />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/game"
+        element={
+          <ProtectedRoute>
+            <GamePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
 
       {/* 404 Route */}
       <Route path="/404" element={<NotFound />} />
@@ -61,14 +59,14 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <ErrorBoundary>
-          <Router>
+        <Router>
+          <ErrorBoundary>
             <AuthProvider>
               <AppRoutes />
               <Toaster />
             </AuthProvider>
-          </Router>
-        </ErrorBoundary>
+          </ErrorBoundary>
+        </Router>
       </ThemeProvider>
     </QueryClientProvider>
   );
