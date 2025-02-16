@@ -8,7 +8,7 @@ import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = React.useRef<HTMLDivElement>(null);
 
@@ -29,11 +29,13 @@ const Index = () => {
     }
   };
 
-  // Only show loading screen if we're specifically loading the auth state
-  // Don't block the entire page render just because profile isn't loaded yet
-  if (isLoading && !user) {
-    return <LoadingScreen message="Loading..." />;
+  // Show loading screen only during initial auth check
+  if (isLoading) {
+    console.log('Index: Showing loading screen');
+    return <LoadingScreen message="Loading game..." />;
   }
+
+  console.log('Index: Rendering main content, user:', user?.email);
 
   return (
     <div 
