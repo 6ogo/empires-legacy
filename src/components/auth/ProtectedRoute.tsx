@@ -1,8 +1,8 @@
 
+import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/game/LoadingScreen";
-import { useEffect } from "react";
 import { toast } from "sonner";
 
 interface ProtectedRouteProps {
@@ -55,7 +55,3 @@ export function ProtectedRoute({
 
   return <>{children}</>;
 }
-function useState(arg0: boolean): [any, any] {
-  throw new Error("Function not implemented.");
-}
-
