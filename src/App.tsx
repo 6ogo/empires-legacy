@@ -17,43 +17,10 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
-
-const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      
-      {/* Protected Routes */}
-      <Route
-        path="/game"
-        element={
-          <ProtectedRoute>
-            <GamePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* 404 Route */}
-      <Route path="/404" element={<NotFound />} />
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
-  );
-};
 
 const App = () => {
   return (
@@ -62,7 +29,34 @@ const App = () => {
         <Router>
           <ErrorBoundary>
             <AuthProvider>
-              <AppRoutes />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                
+                {/* Protected Routes */}
+                <Route
+                  path="/game/*"
+                  element={
+                    <ProtectedRoute>
+                      <GamePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* 404 Route */}
+                <Route path="/404" element={<NotFound />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
               <Toaster />
             </AuthProvider>
           </ErrorBoundary>

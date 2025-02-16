@@ -1,27 +1,16 @@
-
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Users,
-  Globe,
-  Castle,
-  Crown,
-  Sword,
-  Shield,
-  Coins,
-  Target,
-  ChevronRight,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState, useRef } from "react";
 import HeroSection from "@/components/landing/HeroSection";
 import GameFeatureCard from "@/components/landing/GameFeatureCard";
 import GameModeCard from "@/components/landing/GameModeCard";
 import VictoryCard from "@/components/landing/VictoryCard";
 import WorldWarTournament from "@/components/landing/WorldWarTournament";
+import { useState, useRef } from "react";
+import { Users, Globe, Castle, Crown, Sword, Shield, Coins, Target } from "lucide-react";
+import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Landing = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = useRef<HTMLDivElement>(null);
@@ -30,8 +19,8 @@ const Landing = () => {
     if (backgroundRef.current) {
       const { clientX, clientY } = e;
       const { width, height } = backgroundRef.current.getBoundingClientRect();
-      const x = (clientX / width - 0.5) * 10; // Reduced from 20 to 10
-      const y = (clientY / height - 0.5) * 10; // Reduced from 20 to 10
+      const x = (clientX / width - 0.5) * 10;
+      const y = (clientY / height - 0.5) * 10;
       setMousePosition({ x, y });
     }
   };
@@ -45,7 +34,12 @@ const Landing = () => {
   };
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen message="Loading..." />;
+  }
+
+  // Redirect authenticated users away from landing page
+  if (user && profile) {
+    return <Navigate to="/game" replace />;
   }
 
   return (
