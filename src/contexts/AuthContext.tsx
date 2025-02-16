@@ -49,6 +49,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(err as Error);
     }
   };
+  
+  
+  const refreshSession = async () => {
+    if (!initialized) return;
+
+    try {
+      console.log('Refreshing session');
+      setIsLoading(true);
+
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+
+      setSession(currentSession);
+      if (currentSession?.user) {
+        await updateUserAndProfile(currentSession.user);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error('Session refresh error:', err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log('Refreshing profile for user:', user.email);
+      setIsLoading(true);
+
+      const userProfile = await fetchProfile(user.id);
+      if (userProfile) {
+        setProfile(userProfile);
+        console.log('Profile refreshed successfully');
+      }
+    } catch (err) {
+      console.error('Profile refresh error:', err);
+      toast.error('Failed to refresh profile');
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      console.log('Signing out');
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      console.log('Sign out successful');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      toast.error('Failed to sign out');
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     console.log('AuthProvider mounted');
@@ -85,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     initializeAuth();
-
+  
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.email);
@@ -108,6 +176,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+    
+  console.log('Auth Provider current state:', {
+    hasSession: !!session,
+    hasUser: !!user,
+    hasProfile: !!profile,
+    isLoading
+  });
 
   return (
     <AuthContext.Provider
@@ -126,6 +201,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
