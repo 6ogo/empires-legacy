@@ -15,20 +15,22 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
-  const [attemptedRefresh, setAttemptedRefresh] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!user && !isLoading && !attemptedRefresh) {
+      if (!user && !isLoading && !isRefreshing) {
+        setIsRefreshing(true);
         await refreshSession();
-        setAttemptedRefresh(true);
+        setIsRefreshing(false);
       }
     };
 
     checkAuth();
-  }, [user, isLoading, refreshSession, attemptedRefresh]);
+  }, [user, isLoading, refreshSession]);
 
-  if (isLoading && !attemptedRefresh) {
+  // Show loading screen only during initial load or session refresh
+  if (isLoading || isRefreshing) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
@@ -37,11 +39,12 @@ export function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
+  // No user or profile, redirect to auth
   if (!user || !profile) {
-    console.log('No user or profile, redirecting to auth');
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
+  // Check email verification if required
   if (requireEmailVerified && !profile.email_verified) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
