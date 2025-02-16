@@ -7,6 +7,7 @@ import LandingPage from './pages/Landing';
 import GamePage from './pages/GamePage';
 import AuthPage from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
+import ErrorBoundary from './components/ErrorBoundary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -43,10 +44,12 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Router>
-          <AuthProvider>
-            <AppRoutes />
-            <Toaster />
-          </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+              <AppRoutes />
+              <Toaster />
+            </AuthProvider>
+          </ErrorBoundary>
         </Router>
       </ThemeProvider>
     </QueryClientProvider>

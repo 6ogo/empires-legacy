@@ -16,44 +16,38 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
+  const [attemptedRefresh, setAttemptedRefresh] = useState(false);
 
   useEffect(() => {
-    if (!user && !isLoading) {
-      refreshSession();
-    }
-  }, [user, isLoading, refreshSession]);
+    const checkAuth = async () => {
+      if (!user && !isLoading && !attemptedRefresh) {
+        await refreshSession();
+        setAttemptedRefresh(true);
+      }
+    };
 
-  useEffect(() => {
-    if (error) {
-      toast.error("Authentication error. Please try logging in again.");
-    }
-  }, [error]);
-
-  useEffect(() => {
-    console.log('ProtectedRoute check:', { user, profile, isLoading });
-  }, [user, profile, isLoading]);
+    checkAuth();
+  }, [user, isLoading, refreshSession, attemptedRefresh]);
 
   if (isLoading) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
-  if (!user) {
+  if (error) {
+    toast.error("Authentication error. Please try logging in again.");
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  if (user && !profile) {
-    return <LoadingScreen message="Loading profile..." />;
+  if (!user && attemptedRefresh) {
+    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
   if (requireEmailVerified && !profile?.email_verified) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
         <h1 className="text-2xl font-bold mb-4">Email Verification Required</h1>
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted-foreground">
           Please verify your email address before accessing this page.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Check your inbox for the verification email.
         </p>
       </div>
     );
@@ -61,3 +55,7 @@ export function ProtectedRoute({
 
   return <>{children}</>;
 }
+function useState(arg0: boolean): [any, any] {
+  throw new Error("Function not implemented.");
+}
+
