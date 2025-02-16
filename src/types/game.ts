@@ -1,4 +1,3 @@
-
 export type ResourceType = "gold" | "wood" | "stone" | "food";
 export type TerritoryType = "plains" | "mountains" | "forests" | "coast" | "capital";
 export type PlayerColor = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
@@ -59,11 +58,21 @@ export interface Territory {
   lastUpdated: number;
 }
 
-export interface Player {
+export interface GamePlayer {
   id: string;
   resources: Resources;
   territories: string[];
   ready: boolean;
+}
+
+export interface UIPlayer {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+  level?: number;
+  xp?: number;
+  color?: PlayerColor;
+  isReady?: boolean;
 }
 
 export interface GameUpdate {
@@ -78,7 +87,7 @@ export interface GameState {
   phase: GamePhase;
   turn: number;
   currentPlayer: string;
-  players: Player[];
+  players: GamePlayer[];
   territories: Territory[];
   updates: GameUpdate[];
   weather: WeatherType;
@@ -92,4 +101,64 @@ export interface GameAction {
   payload: any;
   playerId: string;
   timestamp: number;
+}
+
+// UI Component Types
+export interface GameWrapperProps {
+  showLeaderboard: boolean;
+  gameStatus: GameStatus;
+  gameMode: GameMode;
+  onBackToMenu: () => void;
+  onSelectMode: (mode: GameMode) => void;
+  onCreateGame: (numPlayers: number, boardSize: number) => Promise<GameState | null>;
+  onJoinGame: () => Promise<boolean>;
+  joinRoomId: string;
+  onJoinRoomIdChange: (id: string) => void;
+  isHost: boolean;
+  onStartAnyway: () => void;
+  onShowLeaderboard: () => void;
+  onShowStats: () => void;
+  onShowAchievements: () => void;
+  onLocalGame: () => void;
+  onOnlineGame: () => void;
+  connectedPlayers: UIPlayer[];
+  playerProfile: any; // Replace with your UserProfile type from auth types
+}
+
+export interface GameMenuProps {
+  onLocalGame: () => void;
+  onOnlineGame: () => void;
+  onShowLeaderboard: () => void;
+  onShowStats: () => void;
+  onShowAchievements: () => void;
+  playerProfile: any; // Replace with your UserProfile type
+}
+
+export interface GameSetupProps {
+  gameMode: GameMode;
+  onStartGame: (numPlayers: number, boardSize: number) => void;
+  onBack: () => void;
+  isLoading?: boolean;
+}
+
+export interface LeaderboardProps {
+  onClose: () => void;
+  data: Array<{
+    username: string;
+    score: number;
+    rank: number;
+    avatarUrl?: string;
+  }>;
+}
+
+export interface StatsProps {
+  onClose: () => void;
+  stats: {
+    gamesPlayed: number;
+    wins: number;
+    totalPlayTime: number;
+    favoriteUnit: string;
+    resourcesCollected: Resources;
+    territoriesConquered: number;
+  };
 }
