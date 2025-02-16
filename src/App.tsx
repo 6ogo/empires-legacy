@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
+import AuthDebugger from './components/AuthDebugger';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,41 +24,45 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  const appContent = (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      {/* Protected Routes */}
+      <Route
+        path="/game/*"
+        element={
+          <ProtectedRoute>
+            <GamePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 Route */}
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
+    </Routes>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Router>
           <ErrorBoundary>
             <AuthProvider>
-            <AuthDebugger /> {/* temporary debugger for authentication */}
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                
-                {/* Protected Routes */}
-                <Route
-                  path="/game/*"
-                  element={
-                    <ProtectedRoute>
-                      <GamePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* 404 Route */}
-                <Route path="/404" element={<NotFound />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Routes>
+              <AuthDebugger />
+              {appContent}
               <Toaster />
             </AuthProvider>
           </ErrorBoundary>
