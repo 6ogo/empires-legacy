@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,14 +13,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [initialized, setInitialized] = useState(false);
 
   const updateUserAndProfile = async (currentUser: User | null) => {
     try {
       if (currentUser) {
         setUser(currentUser);
         const userProfile = await fetchProfile(currentUser.id);
-        setProfile(userProfile);
+        
+        if (!userProfile) {
+          // If no profile exists, create one
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: currentUser.id,
+                username: currentUser.user_metadata?.username,
+                email_verified: currentUser.email_confirmed_at ? true : false,
+                verified: false,
+                is_guest: false,
+                preferences: { stayLoggedIn: false },
+                created_at: new Date().toISOString(),
+              },
+            ])
+            .select('*')
+            .single();
+
+          if (createError) throw createError;
+          setProfile(newProfile as UserProfile);
+        } else {
+          setProfile(userProfile);
+        }
       } else {
         setUser(null);
         setProfile(null);
@@ -50,7 +71,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null);
     } finally {
       setIsLoading(false);
-      setInitialized(true);
     }
   };
 
@@ -58,7 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (user?.id) {
       try {
         const userProfile = await fetchProfile(user.id);
-        setProfile(userProfile);
+        if (userProfile) {
+          setProfile(userProfile);
+        }
       } catch (err) {
         console.error('Profile refresh error:', err);
         toast.error('Failed to refresh profile');
@@ -68,6 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -77,38 +100,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error('Sign out error:', err);
       setError(err instanceof Error ? err : new Error('Sign out failed'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log('AuthProvider initializing...');
     refreshSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log('Auth state changed:', event, currentSession?.user?.email);
-      
       setSession(currentSession);
       await updateUserAndProfile(currentSession?.user ?? null);
       setIsLoading(false);
-      setInitialized(true);
     });
 
     return () => {
-      console.log('Cleaning up AuthProvider...');
       subscription.unsubscribe();
     };
   }, []);
-
-  // Add debugging logs
-  useEffect(() => {
-    console.log('Auth state:', {
-      initialized,
-      isLoading,
-      hasUser: !!user,
-      hasProfile: !!profile,
-      hasError: !!error
-    });
-  }, [initialized, isLoading, user, profile, error]);
 
   return (
     <AuthContext.Provider
@@ -116,11 +126,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         user,
         profile,
-        isLoading: isLoading || !initialized,
+        isLoading,
         error,
         signOut,
         refreshProfile,
-        refreshSession
+        refreshSession,
       }}
     >
       {children}
