@@ -17,59 +17,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateUserAndProfile = async (currentUser: User | null) => {
     console.log('updateUserAndProfile called with user:', currentUser?.email);
-
+    
     if (!currentUser) {
       console.log('No current user, clearing states');
       setUser(null);
       setProfile(null);
-      setIsLoading(false); // Ensure we clear loading state here
+      setIsLoading(false);
       return;
     }
-
+  
     try {
       setUser(currentUser);
-      const userProfile = await fetchProfile(currentUser.id);
-
-      if (userProfile) {
-        setProfile(userProfile);
-        console.log('Profile set for user:', currentUser.email);
-        setIsLoading(false); // Clear loading after successful profile fetch
+      console.log('Fetching profile for user:', currentUser.id);
+      
+      // First try to get the profile
+      const { data: profileData, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+  
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw fetchError;
+      }
+  
+      if (profileData) {
+        console.log('Existing profile found:', profileData);
+        setProfile(profileData as UserProfile);
+        setIsLoading(false);
         return;
       }
-
-      // Only attempt to create profile if none exists
+  
+      console.log('No profile found, creating new profile');
+      // Create new profile if none exists
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert([
           {
             id: currentUser.id,
-            username: currentUser.user_metadata?.username || null,
+            email: currentUser.email,
+            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0],
             email_verified: !!currentUser.email_confirmed_at,
             verified: false,
             is_guest: false,
             preferences: { stayLoggedIn: false },
             created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           },
         ])
         .select('*')
         .single();
-
+  
       if (createError) throw createError;
-
+  
       if (newProfile) {
-        const createdProfile = await fetchProfile(currentUser.id);
-        if (createdProfile) {
-          setProfile(createdProfile);
-          console.log('New profile created and set');
-        }
+        console.log('New profile created:', newProfile);
+        setProfile(newProfile as UserProfile);
       }
+  
     } catch (err) {
       console.error('Error in updateUserAndProfile:', err);
       setError(err as Error);
     } finally {
-      setIsLoading(false); // Ensure loading state is always cleared
+      setIsLoading(false);
     }
-  };
+  };  
+
   const refreshSession = async () => {
     if (!mounted) return;
 
@@ -139,65 +152,69 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log('AuthProvider mounted');
-    setMounted(true);
-
+    let mounted = true;
+  
     const initializeAuth = async () => {
-
-      if (!mounted) return;
-
       try {
         console.log('Initializing auth');
-        setIsLoading(true); // Set loading at the start
-
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        setIsLoading(true);
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
-
-        if (mounted && initialSession) {
-          setSession(initialSession);
-          await updateUserAndProfile(initialSession.user);
+  
+        if (session?.user) {
+          console.log('Session found, updating user and profile');
+          setSession(session);
+          await updateUserAndProfile(session.user);
         } else {
-          setIsLoading(false); // Clear loading if no session
+          console.log('No session found');
+          setSession(null);
+          setUser(null);
+          setProfile(null);
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
+        setError(err as Error);
+      } finally {
         if (mounted) {
-          setError(err as Error);
-          setIsLoading(false); // Clear loading on error
+          setIsLoading(false);
         }
       }
     };
-
+  
     initializeAuth();
-
+  
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log('Auth state changed:', event, currentSession?.user?.email);
-
+      
       if (!mounted) return;
-
+  
       try {
         setIsLoading(true);
         setSession(currentSession);
-
+        
         if (currentSession?.user) {
           await updateUserAndProfile(currentSession.user);
         } else {
           setUser(null);
           setProfile(null);
-          setIsLoading(false);
         }
       } catch (err) {
         console.error('Auth state change error:', err);
         setError(err as Error);
-        setIsLoading(false);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     });
-
+  
     return () => {
-      setMounted(false);
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
-  
+    
   console.log('Auth Provider current state:', {
     hasSession: !!session,
     hasUser: !!user,
