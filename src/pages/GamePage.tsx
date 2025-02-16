@@ -1,3 +1,5 @@
+// src/pages/GamePage.tsx
+
 import React, { useCallback, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +8,7 @@ import LoadingScreen from "@/components/game/LoadingScreen";
 import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { createInitialGameState } from "@/lib/game-utils";
-import { GameStatus, GameMode } from "@/types/game";
+import { GameStatus, GameMode, GameState, UIPlayer } from "@/types/game";
 import { toast } from "sonner";
 
 const GamePage = () => {
@@ -29,7 +31,6 @@ const GamePage = () => {
   const initialState = createInitialGameState(2, 24);
   const { gameState, dispatchAction } = useGameState(initialState);
 
-  // Effect to check auth state on mount and refresh
   useEffect(() => {
     const checkAuth = async () => {
       if (!user && !isLoading) {
@@ -52,22 +53,18 @@ const GamePage = () => {
     }
   }, [setGameStarted, setGameStatus]);
 
-  const handleShowAchievements = useCallback(() => {
-    navigate('/achievements');
-  }, [navigate]);
-
   const handleShowStats = useCallback(() => {
     setGameStatus("stats");
   }, [setGameStatus]);
 
   const handleLocalGame = useCallback(() => {
     setGameMode("local");
-    setGameStatus("setup");
+    setGameStatus("creating");
   }, [setGameMode, setGameStatus]);
 
   const handleOnlineGame = useCallback(() => {
     setGameMode("online");
-    setGameStatus("setup");
+    setGameStatus("joining");
   }, [setGameMode, setGameStatus]);
 
   const handleShowLeaderboard = useCallback(() => {
@@ -94,11 +91,21 @@ const GamePage = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  const connectedPlayers: UIPlayer[] = [{
+    id: profile.id,
+    username: profile.username || 'Player',
+    avatarUrl: profile.avatarUrl,
+    level: profile.level || 1,
+    xp: profile.xp || 0,
+    isReady: true,
+    color: 'player1'
+  }];
+
   return (
     <GameWrapper
       showLeaderboard={showLeaderboard}
-      gameStatus={gameStatus as GameStatus}
-      gameMode={gameMode as GameMode}
+      gameStatus={gameStatus}
+      gameMode={gameMode}
       onBackToMenu={handleBackToMainMenu}
       onSelectMode={setGameMode}
       onCreateGame={handleCreateGame}
@@ -109,16 +116,9 @@ const GamePage = () => {
       onStartAnyway={() => {}}
       onShowLeaderboard={handleShowLeaderboard}
       onShowStats={handleShowStats}
-      onShowAchievements={handleShowAchievements}
       onLocalGame={handleLocalGame}
       onOnlineGame={handleOnlineGame}
-      connectedPlayers={[{ 
-        id: profile.id,
-        username: profile.username || 'Player',
-        avatarUrl: profile.avatarUrl,
-        level: profile.level || 1,
-        xp: profile.xp || 0
-      }]}
+      connectedPlayers={connectedPlayers}
       playerProfile={profile}
     />
   );

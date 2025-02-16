@@ -107,22 +107,18 @@ export interface GameAction {
 export interface GameWrapperProps {
   showLeaderboard: boolean;
   gameStatus: GameStatus;
-  gameMode: GameMode;
+  gameMode: "local" | "online" | null;
   onBackToMenu: () => void;
-  onSelectMode: (mode: GameMode) => void;
-  onCreateGame: (numPlayers: number, boardSize: number) => Promise<GameState | null>;
-  onJoinGame: () => Promise<boolean>;
+  onSelectMode: (mode: "local" | "online") => void;
+  onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
+  onJoinGame: () => Promise<void>;
   joinRoomId: string;
-  onJoinRoomIdChange: (id: string) => void;
+  onJoinRoomIdChange: (value: string) => void;
   isHost: boolean;
   onStartAnyway: () => void;
   onShowLeaderboard: () => void;
   onShowStats: () => void;
-  onShowAchievements: () => void;
-  onLocalGame: () => void;
-  onOnlineGame: () => void;
-  connectedPlayers: UIPlayer[];
-  playerProfile: any; // Replace with your UserProfile type from auth types
+  connectedPlayers: { username: string }[];
 }
 
 export interface GameMenuProps {

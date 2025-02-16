@@ -1,97 +1,104 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Trophy } from 'lucide-react';
-import TournamentsList from './tournaments/TournamentsList';
+// src/pages/GamePage.tsx
 
+import React, { useCallback, useEffect } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import GameWrapper from "@/components/game/GameWrapper";
+import LoadingScreen from "@/components/game/LoadingScreen";
+import { useGameInit } from "@/hooks/useGameInit";
+import { useGameState } from "@/hooks/useGameState";
+import { createInitialGameState } from "@/lib/game-utils";
 import { GameStatus } from "@/types/game";
-import PreGameScreens from "@/components/game/PreGameScreens";
-import MainMenu from "@/components/game/MainMenu";
+import { toast } from "sonner";
 
-interface GameWrapperProps {
-  showLeaderboard: boolean;
-  gameStatus: GameStatus;
-  gameMode: "local" | "online" | null;
-  onBackToMenu: () => void;
-  onSelectMode: (mode: "local" | "online") => void;
-  onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
-  onJoinGame: () => Promise<void>;
-  joinRoomId: string;
-  onJoinRoomIdChange: (value: string) => void;
-  isHost: boolean;
-  onStartAnyway: () => void;
-  onShowLeaderboard: () => void;
-  onShowStats: () => void;
-  connectedPlayers: { username: string }[];
-}
+const GamePage = () => {
+  const navigate = useNavigate();
+  const { user, profile, isLoading, refreshSession } = useAuth();
+  const {
+    gameStarted,
+    setGameStarted,
+    gameStatus,
+    setGameStatus,
+    gameMode,
+    setGameMode,
+    showLeaderboard,
+    setShowLeaderboard,
+    handleBackToMainMenu,
+    handleBackFromGame,
+    resetGameState,
+  } = useGameInit();
 
-const GameWrapper = ({
-  showLeaderboard,
-  gameStatus,
-  gameMode,
-  onBackToMenu,
-  onSelectMode,
-  onCreateGame,
-  onJoinGame,
-  joinRoomId,
-  onJoinRoomIdChange,
-  isHost,
-  onStartAnyway,
-  onShowLeaderboard,
-  onShowStats,
-  connectedPlayers,
-}: GameWrapperProps) => {
-  const [showTournaments, setShowTournaments] = useState(false);
+  const initialState = createInitialGameState(2, 24);
+  const { gameState, dispatchAction } = useGameState(initialState);
 
-  const handleBackToMenu = () => {
-    console.log("Back to menu clicked");
-    onBackToMenu();
-  };
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!user && !isLoading) {
+        await refreshSession();
+      }
+    };
+    checkAuth();
+  }, [user, isLoading, refreshSession]);
+
+  const handleCreateGame = useCallback(async (numPlayers: number, boardSize: number) => {
+    try {
+      setGameStarted(true);
+      setGameStatus("playing");
+      // Do any other game initialization here
+    } catch (error) {
+      console.error('Error creating game:', error);
+      toast.error('Failed to create game');
+    }
+  }, [setGameStarted, setGameStatus]);
+
+  const handleJoinGame = useCallback(async () => {
+    try {
+      setGameStarted(true);
+      setGameStatus("playing");
+    } catch (error) {
+      console.error('Error joining game:', error);
+      toast.error('Failed to join game');
+    }
+  }, [setGameStarted, setGameStatus]);
+
+  const handleShowStats = useCallback(() => {
+    setGameStatus("stats");
+  }, [setGameStatus]);
+
+  const handleShowLeaderboard = useCallback(() => {
+    setShowLeaderboard(true);
+  }, [setShowLeaderboard]);
+
+  if (isLoading) {
+    return <LoadingScreen message="Loading game..." />;
+  }
+
+  if (!user || !profile) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  const connectedPlayers = [{
+    username: profile.username || 'Player'
+  }];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4">
-      <div className="px-4 py-6 md:px-6 md:py-8 w-full">
-        <PreGameScreens
-          showLeaderboard={showLeaderboard}
-          gameStatus={gameStatus}
-          onBackToMenu={handleBackToMenu}
-        >
-          <MainMenu
-            gameStatus={gameStatus}
-            gameMode={gameMode}
-            onSelectMode={onSelectMode}
-            onCreateGame={onCreateGame}
-            onJoinGame={onJoinGame}
-            joinRoomId={joinRoomId}
-            onJoinRoomIdChange={onJoinRoomIdChange}
-            isHost={isHost}
-            onStartAnyway={onStartAnyway}
-            onShowLeaderboard={onShowLeaderboard}
-            onShowStats={onShowStats}
-            connectedPlayers={connectedPlayers}
-          />
-        </PreGameScreens>
-      </div>
-      <div className="fixed top-4 right-4 flex gap-2">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Trophy className="w-4 h-4" />
-              Tournaments
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-            <SheetHeader>
-              <SheetTitle>Active Tournaments</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4">
-              <TournamentsList />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-    </div>
+    <GameWrapper
+      showLeaderboard={showLeaderboard}
+      gameStatus={gameStatus}
+      gameMode={gameMode}
+      onBackToMenu={handleBackToMainMenu}
+      onSelectMode={setGameMode}
+      onCreateGame={handleCreateGame}
+      onJoinGame={handleJoinGame}
+      joinRoomId=""
+      onJoinRoomIdChange={() => {}}
+      isHost={true}
+      onStartAnyway={() => {}}
+      onShowLeaderboard={handleShowLeaderboard}
+      onShowStats={handleShowStats}
+      connectedPlayers={connectedPlayers}
+    />
   );
 };
 
-export default GameWrapper;
+export default GamePage;
