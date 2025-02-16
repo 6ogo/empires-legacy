@@ -17,18 +17,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchProfile = async (userId: string) => {
     console.log('Starting profile fetch for user:', userId);
     try {
-      const { data, error, status } = await supabase
+      let profileData: Profile | null = null;
+      
+      // First attempt to fetch existing profile
+      const { data: existingProfile, error, status } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      console.log('Profile fetch response:', { data, error, status });
+      console.log('Profile fetch response:', { existingProfile, error, status });
 
       if (error) {
         console.error('Supabase error fetching profile:', error);
         if (status === 406) {
-          // Profile doesn't exist, we should create one
+          // Profile doesn't exist, create one
           console.log('Profile not found, attempting to create...');
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
@@ -42,15 +45,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           console.log('New profile created:', newProfile);
-          data = newProfile;
+          profileData = newProfile;
         } else {
           throw error;
         }
+      } else {
+        profileData = existingProfile;
       }
       
-      if (data) {
-        console.log('Processing profile data:', data);
-        const profileData = data as Profile;
+      if (profileData) {
+        console.log('Processing profile data:', profileData);
         const defaultPreferences = {
           stayLoggedIn: false,
           theme: undefined as 'light' | 'dark' | undefined,
@@ -85,7 +89,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (err) {
       console.error('Error in fetchProfile:', err);
-      // Don't throw the error, just log it and set error state
       setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
       setProfile(null);
     }
