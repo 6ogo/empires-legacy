@@ -28,8 +28,8 @@ const Index = () => {
     setGameMode,
     showLeaderboard,
     setShowLeaderboard,
-    onCreateGame,
-    onJoinGame,
+    handleBackToMainMenu,
+    handleBackFromGame,
   } = useGameInit();
 
   const initialGameState: GameState = {
@@ -123,16 +123,19 @@ const Index = () => {
     showLeaderboard
   });
 
-  return (
+return (
     <div className="min-h-screen w-full bg-[#141B2C] text-white">
       {gameStarted ? (
-        <GameContainer gameMode={gameMode as GameMode} onBack={handleBackFromGame} />
+        <GameContainer 
+          gameMode={gameMode as GameMode} 
+          onBack={handleBackFromGame}
+        />
       ) : (
         <GameWrapper
           showLeaderboard={showLeaderboard}
           gameStatus={gameStatus}
           gameMode={gameMode}
-          onBackToMenu={handleBackToMenu}
+          onBackToMenu={handleBackToMainMenu}
           onSelectMode={(mode) => {
             setGameMode(mode);
             setGameStatus("mode_select");

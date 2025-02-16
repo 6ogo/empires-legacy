@@ -1,19 +1,27 @@
 import React from 'react';
 import { GameMode } from '@/types/game';
 
-export interface GameContainerProps {
+interface GameContainerProps {
   gameMode: GameMode;
   onBack: () => void;
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
+export const GameContainer: React.FC<GameContainerProps> = ({ gameMode, onBack }) => {
   return (
-    <div>
-      <h2>Game Container</h2>
-      <p>Game Mode: {gameMode}</p>
-      <button onClick={onBack}>Back to Main Menu</button>
+    <div className="relative">
+      {/* Game content */}
+      <Button
+        onClick={onBack}
+        className="absolute top-4 left-4 z-50"
+        variant="ghost"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Menu
+      </Button>
+      {/* Rest of your game container content */}
     </div>
   );
 };
+
 
 export default GameContainer;
