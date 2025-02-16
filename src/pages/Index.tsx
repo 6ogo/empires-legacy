@@ -30,6 +30,7 @@ const Index = () => {
     setShowLeaderboard,
     handleBackToMainMenu,
     handleBackFromGame,
+    resetGameState,
   } = useGameInit();
 
   const initialGameState: GameState = {
@@ -59,24 +60,6 @@ const Index = () => {
     handleJoinGame,
     handleStartAnyway,
   } = useOnlineGame();
-
-  // Handler functions
-  const handleBackFromGame = () => {
-    setGameStarted(false);
-    setGameStatus("menu");
-    setGameMode(null);
-    if (joinRoomId) {
-      setJoinRoomId('');
-    }
-  };
-
-  const handleBackToMenu = () => {
-    setGameMode(null);
-    setGameStatus("menu");
-    if (joinRoomId) {
-      setJoinRoomId('');
-    }
-  };
 
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -123,7 +106,7 @@ const Index = () => {
     showLeaderboard
   });
 
-return (
+  return (
     <div className="min-h-screen w-full bg-[#141B2C] text-white">
       {gameStarted ? (
         <GameContainer 
