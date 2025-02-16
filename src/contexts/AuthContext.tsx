@@ -11,12 +11,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(false);  // Start with false
+  const [isLoading, setIsLoading] = useState(true); // Start with true since we're checking auth on mount
   const [error, setError] = useState<Error | null>(null);
 
   const updateUserAndProfile = async (currentUser: User | null) => {
     console.log('updateUserAndProfile called with user:', currentUser?.email);
-    
+
     if (!currentUser) {
       console.log('No current user, clearing states');
       setUser(null);
@@ -24,10 +24,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    setUser(currentUser);
-    console.log('User state updated:', currentUser.email);
-
     try {
+      setUser(currentUser);
+      console.log('User state updated:', currentUser.email);
+
       const userProfile = await fetchProfile(currentUser.id);
       console.log('Profile fetch result:', userProfile);
 
@@ -54,10 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .select('*')
         .single();
 
-      if (createError) {
-        console.error('Profile creation error:', createError);
-        return;
-      }
+      if (createError) throw createError;
 
       if (newProfile) {
         const createdProfile = await fetchProfile(currentUser.id);
@@ -68,31 +65,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (err) {
       console.error('Error in updateUserAndProfile:', err);
+      setError(err as Error);
     }
   };
 
   const refreshSession = async () => {
     console.log('refreshSession called');
     try {
+      setIsLoading(true);
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Current session:', currentSession?.user?.email);
-      
-      if (sessionError) {
-        console.error('Session refresh error:', sessionError);
-        return;
-      }
-      
+
+      if (sessionError) throw sessionError;
+
       setSession(currentSession);
-      
+
       if (currentSession?.user) {
         await updateUserAndProfile(currentSession.user);
       } else {
-        console.log('No session user, clearing states');
         setUser(null);
         setProfile(null);
       }
     } catch (err) {
       console.error('Error in refreshSession:', err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    console.log('signOut called');
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      console.log('Sign out successful');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      toast.error('Failed to sign out');
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -101,6 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Refreshing profile for user:', user.email);
 
     try {
+      setIsLoading(true);
       const userProfile = await fetchProfile(user.id);
       if (userProfile) {
         setProfile(userProfile);
@@ -109,36 +127,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error('Profile refresh error:', err);
       toast.error('Failed to refresh profile');
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const signOut = async () => {
-    console.log('signOut called');
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      console.log('Sign out successful');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      toast.error('Failed to sign out');
-    }
-  };
 
   useEffect(() => {
     console.log('AuthProvider mounted');
     let mounted = true;
 
     const initializeAuth = async () => {
-      console.log('Initializing auth');
-      setIsLoading(true);
-      await refreshSession();
-      if (mounted) {
-        setIsLoading(false);
-        console.log('Auth initialization complete');
+      try {
+        console.log('Initializing auth');
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+
+        if (error) throw error;
+
+        if (mounted) {
+          if (initialSession) {
+            setSession(initialSession);
+            await updateUserAndProfile(initialSession.user);
+          }
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        if (mounted) {
+          setError(err as Error);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -146,20 +167,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log('Auth state changed:', event, currentSession?.user?.email);
-      
+
       if (!mounted) return;
 
       setIsLoading(true);
-      setSession(currentSession);
-      
-      if (currentSession?.user) {
-        await updateUserAndProfile(currentSession.user);
-      } else {
-        setUser(null);
-        setProfile(null);
+
+      try {
+        setSession(currentSession);
+
+        if (currentSession?.user) {
+          await updateUserAndProfile(currentSession.user);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error('Auth state change error:', err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
