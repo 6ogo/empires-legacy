@@ -16,27 +16,25 @@ export function ProtectedRoute({
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Only attempt refresh once if no user and not already loading
-      if (!user && !isLoading && !isRefreshing && !hasAttemptedRefresh) {
+      if (!user && !isLoading && !isRefreshing) {
         setIsRefreshing(true);
         await refreshSession();
-        setHasAttemptedRefresh(true); // Mark that we've attempted a refresh
         setIsRefreshing(false);
       }
     };
 
     checkAuth();
-  }, [user, isLoading, refreshSession, isRefreshing, hasAttemptedRefresh]);
+  }, [user, isLoading, refreshSession]);
 
-  // If we have a user and profile, don't show loading screen
-  if ((isLoading || isRefreshing) && !user && !profile) {
+  // Show loading screen during initial load or session refresh
+  if (isLoading || isRefreshing) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
+  // Handle error state
   if (error) {
     toast.error("Authentication error. Please try logging in again.");
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
@@ -45,18 +43,6 @@ export function ProtectedRoute({
   // No user or profile, redirect to auth
   if (!user || !profile) {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
-  }
-
-  // Check email verification if required
-  if (requireEmailVerified && !profile.email_verified) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-background">
-        <h1 className="text-2xl font-bold mb-4">Email Verification Required</h1>
-        <p className="text-muted-foreground">
-          Please verify your email address before accessing this page.
-        </p>
-      </div>
-    );
   }
 
   return <>{children}</>;
