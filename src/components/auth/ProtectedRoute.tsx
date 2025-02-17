@@ -15,22 +15,25 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!user && !isLoading && !isRefreshing) {
-        setIsRefreshing(true);
-        await refreshSession();
-        setIsRefreshing(false);
+      if (!user && !isLoading && !hasAttemptedRefresh) {
+        setHasAttemptedRefresh(true);
+        try {
+          await refreshSession();
+        } catch (error) {
+          console.error('Session refresh failed:', error);
+        }
       }
     };
 
     checkAuth();
-  }, [user, isLoading, refreshSession]);
+  }, [user, isLoading, refreshSession, hasAttemptedRefresh]);
 
-  // Show loading screen during initial load or session refresh
-  if (isLoading || isRefreshing) {
+  // Show loading screen only during initial load
+  if (isLoading && !hasAttemptedRefresh) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
@@ -40,7 +43,7 @@ export function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  // No user or profile, redirect to auth
+  // No user or profile after refresh attempt, redirect to auth
   if (!user || !profile) {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }

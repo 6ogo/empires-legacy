@@ -1,21 +1,9 @@
-// src/contexts/AuthContext.tsx
-
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType, UserProfile } from '@/types/auth';
-import { toast } from 'sonner';
+import { User, Session } from '@supabase/supabase-js';
 
-export const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  profile: null,
-  isLoading: true,
-  error: null,
-  signOut: async () => {},
-  refreshProfile: async () => {},
-  refreshSession: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -24,108 +12,101 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const updateUserAndProfile = async (currentUser: User) => {
-    try {
-      if (!currentUser) {
-        setProfile(null);
-        return;
+  // Initialize auth state from stored session
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // Get current session
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          await fetchProfile(currentSession.user.id);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setError(error instanceof Error ? error : new Error('Auth initialization failed'));
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      console.log('Fetching profile for user:', currentUser.id);
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
+    initializeAuth();
 
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        throw profileError;
-      }
-
-      console.log('Profile data fetched:', profileData);
-      setProfile(profileData);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setError(error as Error);
-    }
-  };
-
-  const refreshSession = async () => {
-    try {
-      setIsLoading(true);
-      console.log('Refreshing session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('Auth state changed:', event);
       
-      if (error) {
-        console.error('Session refresh error:', error);
-        throw error;
-      }
-      
-      if (session) {
-        console.log('Session found:', session.user.email);
-        setSession(session);
-        setUser(session.user);
-        await updateUserAndProfile(session.user);
+      if (newSession) {
+        setSession(newSession);
+        setUser(newSession.user);
+        await fetchProfile(newSession.user.id);
       } else {
-        console.log('No session found');
         setSession(null);
         setUser(null);
         setProfile(null);
       }
-    } catch (error) {
-      console.error('Session refresh error:', error);
-      setError(error as Error);
-    } finally {
+      
       setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Initial session check
-    refreshSession();
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log('Auth state changed:', event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          await updateUserAndProfile(currentSession.user);
-        } else {
-          setProfile(null);
-        }
-
-        setIsLoading(false);
-      }
-    );
+    });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  const signOut = async () => {
+  const fetchProfile = async (userId: string) => {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
       if (error) throw error;
       
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      
-      toast.success('Signed out successfully');
+      if (data) {
+        setProfile(data as UserProfile);
+      }
     } catch (error) {
-      console.error('Sign out error:', error);
-      toast.error('Failed to sign out');
+      console.error('Error fetching profile:', error);
+      setError(error instanceof Error ? error : new Error('Failed to fetch profile'));
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      await updateUserAndProfile(user);
+      await fetchProfile(user.id);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+      
+      if (error) throw error;
+
+      if (refreshedSession) {
+        setSession(refreshedSession);
+        setUser(refreshedSession.user);
+        await fetchProfile(refreshedSession.user.id);
+      }
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+      setError(error instanceof Error ? error : new Error('Session refresh failed'));
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      setError(error instanceof Error ? error : new Error('Sign out failed'));
     }
   };
 
@@ -149,7 +130,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
