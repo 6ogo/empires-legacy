@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ interface AuthFormState {
 
 export const useAuthForm = () => {
   const navigate = useNavigate();
-  const [formState, setFormState] = useState<AuthFormState>({
+  const [formState, setFormState] = useState({
     email: "",
     password: "",
     confirmPassword: "",
@@ -83,22 +83,13 @@ export const useAuthForm = () => {
     e.preventDefault();
     console.log('Handling sign in...', { email: formState.email, turnstileToken });
   
-    const emailError = validateInput(formState.email, 'email');
-    const passwordError = validateInput(formState.password, 'password');
-  
-    if (emailError || passwordError) {
-      setFormState(prev => ({
-        ...prev,
-        validationErrors: {
-          email: emailError,
-          password: passwordError
-        }
-      }));
+    if (!formState.email || !formState.password) {
+      toast.error('Please fill in all required fields');
       return;
     }
   
+    // If no turnstile token provided, show the captcha
     if (!turnstileToken) {
-      console.log('No turnstile token, showing captcha');
       setFormState(prev => ({ ...prev, showTurnstile: true }));
       return;
     }
@@ -106,7 +97,18 @@ export const useAuthForm = () => {
     setFormState(prev => ({ ...prev, loading: true }));
   
     try {
-      // Sign in with Supabase
+      // First verify the turnstile token
+      const verifyResponse = await fetch('/api/verify-turnstile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+
+      if (!verifyResponse.ok) {
+        throw new Error('Turnstile verification failed');
+      }
+
+      // Then attempt sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formState.email.trim(),
         password: formState.password,
@@ -117,26 +119,16 @@ export const useAuthForm = () => {
       if (!data.user) {
         throw new Error('No user data returned after sign in');
       }
-  
-      // Set session persistence based on stayLoggedIn
-      await supabase.auth.updateSession({
-        ...data.session,
-        persist_session: formState.stayLoggedIn
-      });
-  
+
       // Wait a moment for the auth state to update
       await new Promise(resolve => setTimeout(resolve, 500));
   
-      // Update profile with new login timestamp and preferences
+      // Update profile with new login timestamp
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           last_login: new Date().toISOString(),
           turnstile_verified: true,
-          preferences: {
-            ...data.user.user_metadata?.preferences,
-            stayLoggedIn: formState.stayLoggedIn
-          }
         })
         .eq('id', data.user.id);
   
@@ -144,11 +136,6 @@ export const useAuthForm = () => {
         console.error('Failed to update profile:', updateError);
       }
   
-      if (!data.user.email_confirmed_at) {
-        toast.warning("Please verify your email to access all features");
-      }
-  
-      console.log('Sign in successful, navigating to game');
       toast.success("Signed in successfully!");
       navigate('/game', { replace: true });
     } catch (error: any) {
@@ -318,15 +305,12 @@ export const useAuthForm = () => {
 
   return {
     ...formState,
-    setEmail: (email: string) => updateFormState('email', email),
-    setPassword: (password: string) => updateFormState('password', password),
-    setConfirmPassword: (confirmPassword: string) => updateFormState('confirmPassword', confirmPassword),
-    setUsername: (username: string) => updateFormState('username', username),
-    setStayLoggedIn: (stayLoggedIn: boolean) => updateFormState('stayLoggedIn', stayLoggedIn),
-    setShowTurnstile: (show: boolean) => updateFormState('showTurnstile', show),
+    setEmail: (email: string) => setFormState(prev => ({ ...prev, email })),
+    setPassword: (password: string) => setFormState(prev => ({ ...prev, password })),
+    setConfirmPassword: (confirmPassword: string) => setFormState(prev => ({ ...prev, confirmPassword })),
+    setUsername: (username: string) => setFormState(prev => ({ ...prev, username })),
+    setStayLoggedIn: (stayLoggedIn: boolean) => setFormState(prev => ({ ...prev, stayLoggedIn })),
+    setShowTurnstile: (show: boolean) => setFormState(prev => ({ ...prev, showTurnstile: show })),
     handleSignIn,
-    handleSignUp,
-    handleMagicLinkLogin,
-    handleResetPassword,
   };
 };
