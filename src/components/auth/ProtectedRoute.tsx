@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/game/LoadingScreen";
@@ -18,6 +18,8 @@ export function ProtectedRoute({
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       if (!user && !isLoading && !hasAttemptedRefresh) {
         setHasAttemptedRefresh(true);
@@ -25,11 +27,18 @@ export function ProtectedRoute({
           await refreshSession();
         } catch (error) {
           console.error('Session refresh failed:', error);
+          if (mounted) {
+            toast.error("Authentication failed. Please log in again.");
+          }
         }
       }
     };
 
     checkAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, [user, isLoading, refreshSession, hasAttemptedRefresh]);
 
   // Show loading screen only during initial load
@@ -45,6 +54,12 @@ export function ProtectedRoute({
 
   // No user or profile after refresh attempt, redirect to auth
   if (!user || !profile) {
+    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
+  }
+
+  // Check email verification if required
+  if (requireEmailVerified && !profile.email_verified) {
+    toast.error("Please verify your email first.");
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
