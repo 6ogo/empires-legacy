@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -82,10 +82,10 @@ export const useAuthForm = () => {
   const handleSignIn = async (e: React.FormEvent, turnstileToken?: string) => {
     e.preventDefault();
     console.log('Handling sign in...', { email: formState.email, turnstileToken });
-
+  
     const emailError = validateInput(formState.email, 'email');
     const passwordError = validateInput(formState.password, 'password');
-
+  
     if (emailError || passwordError) {
       setFormState(prev => ({
         ...prev,
@@ -96,59 +96,58 @@ export const useAuthForm = () => {
       }));
       return;
     }
-
+  
     if (!turnstileToken) {
       console.log('No turnstile token, showing captcha');
       setFormState(prev => ({ ...prev, showTurnstile: true }));
       return;
     }
-
+  
     setFormState(prev => ({ ...prev, loading: true }));
-
+  
     try {
+      // Sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formState.email.trim(),
         password: formState.password,
       });
-
+  
       if (error) throw error;
-
+  
       if (!data.user) {
         throw new Error('No user data returned after sign in');
       }
-
+  
+      // Set session persistence based on stayLoggedIn
+      await supabase.auth.updateSession({
+        ...data.session,
+        persist_session: formState.stayLoggedIn
+      });
+  
       // Wait a moment for the auth state to update
       await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Verify the profile exists
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
-
-      if (profileError || !profileData) {
-        console.error('Profile fetch error:', profileError);
-        throw new Error('Unable to fetch user profile');
-      }
-
+  
+      // Update profile with new login timestamp and preferences
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           last_login: new Date().toISOString(),
           turnstile_verified: true,
-          preferences: { stayLoggedIn: formState.stayLoggedIn }
+          preferences: {
+            ...data.user.user_metadata?.preferences,
+            stayLoggedIn: formState.stayLoggedIn
+          }
         })
         .eq('id', data.user.id);
-
+  
       if (updateError) {
         console.error('Failed to update profile:', updateError);
       }
-
+  
       if (!data.user.email_confirmed_at) {
         toast.warning("Please verify your email to access all features");
       }
-
+  
       console.log('Sign in successful, navigating to game');
       toast.success("Signed in successfully!");
       navigate('/game', { replace: true });

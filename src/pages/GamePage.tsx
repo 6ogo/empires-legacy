@@ -116,7 +116,6 @@ const GamePage = () => {
       onStartAnyway={() => {}}
       onShowLeaderboard={handleShowLeaderboard}
       onShowStats={handleShowStats}
-      onLocalGame={handleLocalGame}
       onOnlineGame={handleOnlineGame}
       connectedPlayers={connectedPlayers}
       playerProfile={profile}
