@@ -1,3 +1,4 @@
+// src/pages/Index.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +9,7 @@ import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = React.useRef<HTMLDivElement>(null);
 

@@ -1,19 +1,16 @@
 // src/pages/GamePage.tsx
-
 import React, { useCallback, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import GameWrapper from "@/components/game/GameWrapper";
-import LoadingScreen from "@/components/game/LoadingScreen";
 import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { createInitialGameState } from "@/lib/game-utils";
-import { GameStatus, GameMode, GameState, UIPlayer } from "@/types/game";
 import { toast } from "sonner";
 
 const GamePage = () => {
   const navigate = useNavigate();
-  const { user, profile, isLoading, refreshSession } = useAuth();
+  const { profile } = useAuth();
   const {
     gameStarted,
     setGameStarted,
@@ -30,6 +27,7 @@ const GamePage = () => {
 
   const initialState = createInitialGameState(2, 24);
   const { gameState, dispatchAction } = useGameState(initialState);
+
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -91,7 +89,7 @@ const GamePage = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  const connectedPlayers: UIPlayer[] = [{
+  const connectedPlayers = profile ? [{
     id: profile.id,
     username: profile.username || 'Player',
     avatarUrl: profile.avatarUrl,
@@ -99,7 +97,7 @@ const GamePage = () => {
     xp: profile.xp || 0,
     isReady: true,
     color: 'player1'
-  }];
+  }] : [];
 
   return (
     <GameWrapper
