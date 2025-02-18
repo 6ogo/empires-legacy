@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Gamepad, LogIn } from "lucide-react";
+import { ChevronRight, Gamepad, LogIn } from "lucide-react";
 import HeroSection from "@/components/landing/HeroSection";
 
 const Index = () => {
