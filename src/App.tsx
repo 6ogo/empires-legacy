@@ -1,61 +1,57 @@
+// src/App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import AuthPage from '@/pages/Auth';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import AuthPage from '@/pages/AuthPage';
 import GamePage from '@/pages/GamePage';
-import IndexPage from '@/pages/Index';
+import IndexPage from '@/pages/IndexPage';
 import Leaderboard from '@/components/game/Leaderboard';
 import { Toaster } from '@/components/ui/sonner';
 
-// Components
-import LandingPage from './pages/Landing';
-import AuthCallback from './pages/AuthCallback';
-import ErrorBoundary from './components/ErrorBoundary';
-import NotFound from './pages/NotFound';
-import Settings from './pages/Settings';
-import Achievements from './components/game/Achievements';
-import { routes } from './routes';
-
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<IndexPage />} />
-          <Route 
-            path="/auth/*" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <AuthPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/game/*" 
-            element={
-              <ProtectedRoute>
-                <GamePage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/leaderboard" 
-            element={<Leaderboard />} 
-          />
-        </Routes>
-        <Toaster />
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<IndexPage />} />
+            <Route 
+              path="/auth/*" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <AuthPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/game/*" 
+              element={
+                <ProtectedRoute>
+                  <GamePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/leaderboard" 
+              element={<Leaderboard />} 
+            />
+          </Routes>
+          <Toaster />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
