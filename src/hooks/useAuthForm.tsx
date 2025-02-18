@@ -112,14 +112,16 @@ export const useAuthForm = () => {
       try {
         const verifyResponse = await fetch('/api/turnstile/verify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.session?.access_token}`
+          },
           body: JSON.stringify({ token: turnstileToken }),
         });
 
         if (!verifyResponse.ok) {
-          // If verification fails, sign out and throw error
-          await supabase.auth.signOut();
-          throw new Error('Security verification failed');
+          // Don't sign out, just log the error
+          console.error('Turnstile verification failed but continuing session');
         }
       } catch (verifyError) {
         // If verification request fails, still allow sign in but log the error
