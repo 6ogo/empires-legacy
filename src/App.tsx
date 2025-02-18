@@ -1,4 +1,3 @@
-// src/App.tsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -12,7 +11,7 @@ import GamePage from './pages/GamePage';
 import AuthPage from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import ErrorBoundary from './components/ErrorBoundary';
-import { PrivateRoute } from './components/auth/ProtectedRoute';
+import { ProtectedRoute } from './components/auth/ProtectedRoute'; // Updated import
 import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
 import Achievements from './components/game/Achievements';
@@ -35,7 +34,6 @@ const App = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Any initial app setup can go here
         await queryClient.invalidateQueries();
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -48,40 +46,40 @@ const App = () => {
   }, []);
 
   if (isInitializing) {
-    return null; // Or a loading component if you prefer
+    return null;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Router>
-          <ErrorBoundary>
-            <AuthProvider>
+          <ErrorBoundary children={undefined}>
+            <AuthProvider children={undefined}>
               <Routes>
                 {/* Public Routes */}
                 <Route 
                   path={routes.home} 
                   element={
-                    <PrivateRoute requireAuth={false}>
+                    <ProtectedRoute requireAuth={false} children={undefined}>
                       <LandingPage />
-                    </PrivateRoute>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path={routes.auth} 
                   element={
-                    <PrivateRoute requireAuth={false}>
+                    <ProtectedRoute requireAuth={false} children={undefined}>
                       <AuthPage />
-                    </PrivateRoute>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route path={`${routes.auth}/callback`} element={<AuthCallback />} />
                 
                 {/* Protected Routes */}
-                <Route path={routes.game} element={<PrivateRoute><GamePage /></PrivateRoute>} />
-                <Route path={routes.settings} element={<PrivateRoute><Settings /></PrivateRoute>} />
-                <Route path={routes.achievements} element={<PrivateRoute><Achievements /></PrivateRoute>} />
-                <Route path={routes.leaderboard} element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
+                <Route path={routes.game} element={<ProtectedRoute children={undefined}><GamePage /></ProtectedRoute>} />
+                <Route path={routes.settings} element={<ProtectedRoute children={undefined}><Settings /></ProtectedRoute>} />
+                <Route path={routes.achievements} element={<ProtectedRoute children={undefined}><Achievements /></ProtectedRoute>} />
+                <Route path={routes.leaderboard} element={<ProtectedRoute children={undefined}><Leaderboard /></ProtectedRoute>} />
 
                 {/* 404 Route */}
                 <Route path="/404" element={<NotFound />} />

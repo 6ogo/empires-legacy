@@ -6,13 +6,13 @@ import { toast } from "sonner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireEmailVerified?: boolean;
+  requireAuth?: boolean;
 }
 
-export function ProtectedRoute({ 
+export const ProtectedRoute = ({ 
   children,
-  requireEmailVerified = false 
-}: ProtectedRouteProps) {
+  requireAuth = true 
+}: ProtectedRouteProps) => {
   const { user, profile, isLoading, error, refreshSession } = useAuth();
   const location = useLocation();
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
@@ -53,15 +53,17 @@ export function ProtectedRoute({
   }
 
   // No user or profile after refresh attempt, redirect to auth
-  if (!user || !profile) {
+  if (requireAuth && (!user || !profile)) {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
-  // Check email verification if required
-  if (requireEmailVerified && !profile.email_verified) {
-    toast.error("Please verify your email first.");
-    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
+  // If not requiring auth and user is authenticated, redirect to game
+  if (!requireAuth && user && profile) {
+    return <Navigate to="/game" replace />;
   }
 
   return <>{children}</>;
-}
+};
+
+// Also export as PrivateRoute for backwards compatibility
+export { ProtectedRoute as PrivateRoute };

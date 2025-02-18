@@ -1,104 +1,87 @@
-// src/pages/GamePage.tsx
+// src/components/game/GameWrapper.tsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useGameStore } from '@/store/gameStore';
+import { withErrorHandling, handleGameError } from '@/utils/error-handling';
+import { routes, getRoute } from '@/routes';
+import { GameState, GameMode } from '@/types/game';
+import MainMenu from './MainMenu';
+import GameBoard from './GameBoard';
+import ErrorScreen from './ErrorScreen';
+import LoadingScreen from './LoadingScreen';
+import { toast } from 'sonner';
 
-import React, { useCallback, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import GameWrapper from "@/components/game/GameWrapper";
-import LoadingScreen from "@/components/game/LoadingScreen";
-import { useGameInit } from "@/hooks/useGameInit";
-import { useGameState } from "@/hooks/useGameState";
-import { createInitialGameState } from "@/lib/game-utils";
-import { GameStatus } from "@/types/game";
-import { toast } from "sonner";
-
-const GamePage = () => {
+const GameWrapper = () => {
   const navigate = useNavigate();
-  const { user, profile, isLoading, refreshSession } = useAuth();
   const {
-    gameStarted,
-    setGameStarted,
     gameStatus,
-    setGameStatus,
     gameMode,
+    gameState,
+    isLoading,
+    error,
+    setGameStatus,
     setGameMode,
-    showLeaderboard,
-    setShowLeaderboard,
-    handleBackToMainMenu,
-    handleBackFromGame,
-    resetGameState,
-  } = useGameInit();
+    setGameState,
+    initializeGame,
+    resetGame
+  } = useGameStore();
 
-  const initialState = createInitialGameState(2, 24);
-  const { gameState, dispatchAction } = useGameState(initialState);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!user && !isLoading) {
-        await refreshSession();
-      }
-    };
-    checkAuth();
-  }, [user, isLoading, refreshSession]);
-
-  const handleCreateGame = useCallback(async (numPlayers: number, boardSize: number) => {
+  const handleCreateGame = async (numPlayers: number, boardSize: number) => {
     try {
-      setGameStarted(true);
-      setGameStatus("playing");
-      // Do any other game initialization here
+      await withErrorHandling(
+        (async () => {
+          setGameStatus('creating');
+          await initializeGame(numPlayers, boardSize);
+          setGameStatus('playing');
+        })(),
+        { context: 'Game Creation' }
+      );
     } catch (error) {
-      console.error('Error creating game:', error);
-      toast.error('Failed to create game');
+      handleGameError(error, 'Game Creation Failed');
+      setGameStatus('menu');
     }
-  }, [setGameStarted, setGameStatus]);
+  };
 
-  const handleJoinGame = useCallback(async () => {
-    try {
-      setGameStarted(true);
-      setGameStatus("playing");
-    } catch (error) {
-      console.error('Error joining game:', error);
-      toast.error('Failed to join game');
-    }
-  }, [setGameStarted, setGameStatus]);
+  const handleBackToMenu = () => {
+    resetGame();
+    navigate(getRoute('game'));
+  };
 
-  const handleShowStats = useCallback(() => {
-    setGameStatus("stats");
-  }, [setGameStatus]);
-
-  const handleShowLeaderboard = useCallback(() => {
-    setShowLeaderboard(true);
-  }, [setShowLeaderboard]);
+  const handleBackFromGame = () => {
+    setGameStatus('mode_select');
+  };
 
   if (isLoading) {
     return <LoadingScreen message="Loading game..." />;
   }
 
-  if (!user || !profile) {
-    return <Navigate to="/auth" replace />;
+  if (error) {
+    return (
+      <ErrorScreen
+        message={error.message}
+        onRetry={handleBackToMenu}
+      />
+    );
   }
 
-  const connectedPlayers = [{
-    username: profile.username || 'Player'
-  }];
+  if (gameStatus === 'playing' && gameState) {
+    return (
+      <GameBoard
+        gameState={gameState}
+        onBack={handleBackFromGame}
+      />
+    );
+  }
 
   return (
-    <GameWrapper
-      showLeaderboard={showLeaderboard}
+    <MainMenu
       gameStatus={gameStatus}
       gameMode={gameMode}
-      onBackToMenu={handleBackToMainMenu}
       onSelectMode={setGameMode}
       onCreateGame={handleCreateGame}
-      onJoinGame={handleJoinGame}
-      joinRoomId=""
-      onJoinRoomIdChange={() => {}}
-      isHost={true}
-      onStartAnyway={() => {}}
-      onShowLeaderboard={handleShowLeaderboard}
-      onShowStats={handleShowStats}
-      connectedPlayers={connectedPlayers}
+      onBack={handleBackToMenu}
     />
   );
 };
 
-export default GamePage;
+export default GameWrapper;
