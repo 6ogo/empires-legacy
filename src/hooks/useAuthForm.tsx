@@ -88,7 +88,6 @@ export const useAuthForm = () => {
       return;
     }
   
-    // If no turnstile token provided, show the captcha
     if (!turnstileToken) {
       setFormState(prev => ({ ...prev, showTurnstile: true }));
       return;
@@ -97,18 +96,7 @@ export const useAuthForm = () => {
     setFormState(prev => ({ ...prev, loading: true }));
   
     try {
-      // First verify the turnstile token
-      const verifyResponse = await fetch('/api/verify-turnstile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: turnstileToken }),
-      });
-
-      if (!verifyResponse.ok) {
-        throw new Error('Turnstile verification failed');
-      }
-
-      // Then attempt sign in
+      // Attempt sign in first - if it fails, we don't need to verify turnstile
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formState.email.trim(),
         password: formState.password,
@@ -118,6 +106,24 @@ export const useAuthForm = () => {
   
       if (!data.user) {
         throw new Error('No user data returned after sign in');
+      }
+
+      // Only verify turnstile after successful sign in
+      try {
+        const verifyResponse = await fetch('/api/turnstile/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: turnstileToken }),
+        });
+
+        if (!verifyResponse.ok) {
+          // If verification fails, sign out and throw error
+          await supabase.auth.signOut();
+          throw new Error('Security verification failed');
+        }
+      } catch (verifyError) {
+        // If verification request fails, still allow sign in but log the error
+        console.error('Turnstile verification error:', verifyError);
       }
 
       // Wait a moment for the auth state to update
@@ -305,12 +311,15 @@ export const useAuthForm = () => {
 
   return {
     ...formState,
-    setEmail: (email: string) => setFormState(prev => ({ ...prev, email })),
-    setPassword: (password: string) => setFormState(prev => ({ ...prev, password })),
-    setConfirmPassword: (confirmPassword: string) => setFormState(prev => ({ ...prev, confirmPassword })),
-    setUsername: (username: string) => setFormState(prev => ({ ...prev, username })),
-    setStayLoggedIn: (stayLoggedIn: boolean) => setFormState(prev => ({ ...prev, stayLoggedIn })),
-    setShowTurnstile: (show: boolean) => setFormState(prev => ({ ...prev, showTurnstile: show })),
+    setEmail: (email: string) => updateFormState('email', email),
+    setPassword: (password: string) => updateFormState('password', password),
+    setConfirmPassword: (confirmPassword: string) => updateFormState('confirmPassword', confirmPassword),
+    setUsername: (username: string) => updateFormState('username', username),
+    setStayLoggedIn: (stayLoggedIn: boolean) => updateFormState('stayLoggedIn', stayLoggedIn),
+    setShowTurnstile: (show: boolean) => updateFormState('showTurnstile', show),
     handleSignIn,
+    handleSignUp,
+    handleResetPassword,
+    handleMagicLinkLogin,
   };
 };
