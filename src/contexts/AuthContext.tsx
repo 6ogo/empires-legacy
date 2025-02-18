@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const navigate = useNavigate();
 
@@ -146,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (mounted) {
           setIsLoading(false);
+          setIsInitialized(true);
         }
       }
     };
@@ -157,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       console.log('Auth state changed:', event);
+      setIsLoading(true);
 
       try {
         if (newSession?.user) {
@@ -166,6 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (userProfile) {
             setProfile(userProfile);
+            if (event === 'SIGNED_IN') {
+              navigate('/game', { replace: true });
+            }
           } else {
             console.error('No profile found after auth state change');
             await signOut();
@@ -174,6 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          if (event === 'SIGNED_OUT') {
+            navigate('/auth', { replace: true });
+          }
         }
       } catch (error) {
         console.error('Error handling auth state change:', error);
@@ -192,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile, signOut]);
+  }, [fetchProfile, signOut, navigate]);
 
   const refreshProfile = useCallback(async () => {
     if (user) {
@@ -208,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     profile,
     isLoading,
+    isInitialized,
     error,
     signOut,
     refreshProfile,
