@@ -1,15 +1,14 @@
 // src/pages/Index.tsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Gamepad, LogIn } from "lucide-react";
+import { Gamepad, LogIn } from "lucide-react";
 import HeroSection from "@/components/landing/HeroSection";
-import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+  const { user, isInitialized } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = React.useRef<HTMLDivElement>(null);
 
@@ -30,21 +29,13 @@ const Index = () => {
     }
   };
 
-  // Show loading screen only during initial auth check
-  if (isLoading) {
-    console.log('Index: Showing loading screen');
-    return <LoadingScreen message="Loading game..." />;
-  }
-
-  console.log('Index: Rendering main content, user:', user?.email);
-
   return (
     <div 
       className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden w-full"
       onMouseMove={handleMouseMove}
     >
       <nav className="fixed top-0 right-0 z-50 p-4 flex items-center gap-4">
-        {user ? (
+        {isInitialized && user ? (
           <Button 
             onClick={() => navigate('/game')}
             className="bg-[#ffd02f] text-black hover:bg-[#ffd02f]/90"

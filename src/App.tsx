@@ -24,13 +24,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
+        <AuthProvider children={undefined}>
           <Routes>
             <Route path="/" element={<IndexPage />} />
             <Route 
               path="/auth/*" 
               element={
-                <ProtectedRoute requireAuth={false}>
+                <ProtectedRoute requireAuth={false} children={undefined}>
                   <AuthPage />
                 </ProtectedRoute>
               } 
@@ -38,7 +38,7 @@ function App() {
             <Route 
               path="/game/*" 
               element={
-                <ProtectedRoute>
+                <ProtectedRoute children={undefined}>
                   <GamePage />
                 </ProtectedRoute>
               } 

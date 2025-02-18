@@ -1,8 +1,8 @@
-// src/pages/GamePage.tsx
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import GameWrapper from "@/components/game/GameWrapper";
+import LoadingScreen from "@/components/game/LoadingScreen";
 import { useGameInit } from "@/hooks/useGameInit";
 import { useGameState } from "@/hooks/useGameState";
 import { createInitialGameState } from "@/lib/game-utils";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 const GamePage = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user, profile, isLoading, isInitialized } = useAuth();
   const {
     gameStarted,
     setGameStarted,
@@ -27,16 +27,6 @@ const GamePage = () => {
 
   const initialState = createInitialGameState(2, 24);
   const { gameState, dispatchAction } = useGameState(initialState);
-
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!user && !isLoading) {
-        await refreshSession();
-      }
-    };
-    checkAuth();
-  }, [user, isLoading, refreshSession]);
 
   const handleCreateGame = useCallback(async (numPlayers: number, boardSize: number) => {
     try {
@@ -81,15 +71,12 @@ const GamePage = () => {
     }
   }, [setGameStarted, setGameStatus]);
 
-  if (isLoading) {
+  // Wait for auth to initialize and user/profile to be available
+  if (!isInitialized || isLoading || !user || !profile) {
     return <LoadingScreen message="Loading game..." />;
   }
 
-  if (!user || !profile) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  const connectedPlayers = profile ? [{
+  const connectedPlayers = [{
     id: profile.id,
     username: profile.username || 'Player',
     avatarUrl: profile.avatarUrl,
@@ -97,7 +84,7 @@ const GamePage = () => {
     xp: profile.xp || 0,
     isReady: true,
     color: 'player1'
-  }] : [];
+  }];
 
   return (
     <GameWrapper
