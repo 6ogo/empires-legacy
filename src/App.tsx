@@ -1,5 +1,5 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -26,6 +26,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider children={undefined}>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<IndexPage />} />
             <Route 
               path="/auth/*" 
@@ -35,6 +36,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            
+            {/* Protected routes */}
             <Route 
               path="/game/*" 
               element={
@@ -45,8 +48,15 @@ function App() {
             />
             <Route 
               path="/leaderboard" 
-              element={<Leaderboard />} 
+              element={
+                <ProtectedRoute children={undefined}>
+                  <Leaderboard />
+                </ProtectedRoute>
+              } 
             />
+
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster />
         </AuthProvider>

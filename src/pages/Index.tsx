@@ -5,10 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Gamepad, LogIn } from "lucide-react";
 import HeroSection from "@/components/landing/HeroSection";
+import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isInitialized } = useAuth();
+  const { user, isLoading } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = React.useRef<HTMLDivElement>(null);
 
@@ -29,13 +30,17 @@ const Index = () => {
     }
   };
 
+  if (isLoading) {
+    return <LoadingScreen message="Loading..." />;
+  }
+
   return (
     <div 
       className="min-h-screen bg-[#141B2C] text-white overflow-x-hidden w-full"
       onMouseMove={handleMouseMove}
     >
       <nav className="fixed top-0 right-0 z-50 p-4 flex items-center gap-4">
-        {isInitialized && user ? (
+        {user ? (
           <Button 
             onClick={() => navigate('/game')}
             className="bg-[#ffd02f] text-black hover:bg-[#ffd02f]/90"

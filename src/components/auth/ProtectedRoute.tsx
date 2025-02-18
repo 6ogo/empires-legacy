@@ -1,38 +1,38 @@
 //ProtectedRoute.tsx
-import { useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import LoadingScreen from "@/components/game/LoadingScreen";
-import { toast } from "sonner";
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import LoadingScreen from '@/components/game/LoadingScreen';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
 }
 
-export const ProtectedRoute = ({ 
-  children,
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
   requireAuth = true 
-}: ProtectedRouteProps) => {
+}) => {
   const { user, profile, isLoading, isInitialized } = useAuth();
   const location = useLocation();
 
-  // Only show loading during initial auth check
-  if (!isInitialized) {
+  // Show loading screen only during initial auth check
+  if (!isInitialized || isLoading) {
     return <LoadingScreen message="Loading..." />;
   }
 
-  // After initialization, handle routing
-  if (requireAuth && !user) {
+  // Redirect to auth page if authentication is required but user is not authenticated
+  if (requireAuth && (!user || !profile)) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (!requireAuth && user) {
+  // Redirect to game page if user is authenticated but trying to access auth page
+  if (!requireAuth && user && profile) {
     return <Navigate to="/game" replace />;
   }
 
+  // Render the protected component
   return <>{children}</>;
 };
 
-// Also export as PrivateRoute for backwards compatibility
 export { ProtectedRoute as PrivateRoute };
+// This component is used to protect routes that require authentication. It checks the user's authentication status and redirects them to the appropriate page if necessary. It also shows a loading screen while the authentication status is being checked. The component is used in App.tsx to protect routes that require authentication.
