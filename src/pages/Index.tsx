@@ -9,7 +9,7 @@ import LoadingScreen from "@/components/game/LoadingScreen";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const backgroundRef = React.useRef<HTMLDivElement>(null);
 
