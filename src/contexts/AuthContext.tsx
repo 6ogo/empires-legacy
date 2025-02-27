@@ -27,20 +27,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   const refreshProfile = useCallback(async () => {
-    if (!user) return null;
+    if (!user) return;
     
     try {
       const userProfile = await fetchProfile(user.id);
       if (userProfile) {
         setProfile(userProfile);
-        return userProfile;
       } else {
         console.warn('No profile found during refresh for user:', user.id);
-        return null;
       }
     } catch (error) {
       console.error('Error refreshing profile:', error);
-      return null;
     }
   }, [user]);
 
@@ -66,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setProfile(null);
       }
-      return currentSession;
+      return;
     } catch (error) {
       console.error('Error refreshing session:', error);
       setError(error instanceof Error ? error : new Error('Session refresh failed'));
