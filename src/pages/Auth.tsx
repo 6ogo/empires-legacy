@@ -1,19 +1,13 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { useAuthForm } from "@/hooks/useAuthForm";
-import { useNavigate, Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import LoadingScreen from "@/components/game/LoadingScreen";
+import { ChevronLeft } from "lucide-react";
 
 const Auth = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, profile, isLoading } = useAuth();
   const {
     email,
     setEmail,
@@ -32,22 +26,6 @@ const Auth = () => {
     showTurnstile,
     validationErrors,
   } = useAuthForm();
-
-  useEffect(() => {
-    if (user && profile) {
-      console.log('User authenticated, navigating to game');
-      navigate('/game', { replace: true });
-    }
-  }, [user, profile, navigate]);
-
-  if (isLoading) {
-    return <LoadingScreen message="Checking authentication..." />;
-  }
-
-  // If already authenticated, redirect to game
-  if (user && profile) {
-    return <Navigate to="/game" replace />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">

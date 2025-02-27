@@ -1,13 +1,11 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import AuthPage from '@/pages/Auth';
-import GamePage from '@/pages/GamePage';
-import IndexPage from '@/pages/Index';
-import Leaderboard from '@/components/game/Leaderboard';
 import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import Router from './Router';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -22,46 +20,18 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider children={undefined}>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<IndexPage />} />
-            <Route 
-              path="/auth/*" 
-              element={
-                <ProtectedRoute requireAuth={false} children={undefined}>
-                  <AuthPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Protected routes */}
-            <Route 
-              path="/game/*" 
-              element={
-                <ProtectedRoute children={undefined}>
-                  <GamePage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/leaderboard" 
-              element={
-                <ProtectedRoute children={undefined}>
-                  <Leaderboard />
-                </ProtectedRoute>
-              } 
-            />
-
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <Toaster />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
+            <AuthProvider>
+              <Router />
+              <Toaster />
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
