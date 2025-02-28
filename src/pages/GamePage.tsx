@@ -23,7 +23,7 @@ const GamePage = () => {
   const [selectedBoardSize, setSelectedBoardSize] = useState(0);
   const [maxPlayers, setMaxPlayers] = useState(2);
   const [enableRandomEvents, setEnableRandomEvents] = useState(false);
-  
+
   const {
     gameStarted,
     setGameStarted,
@@ -40,30 +40,36 @@ const GamePage = () => {
 
   // Initialize with a dummy state that will be replaced
   const initialState = createInitialGameState(2, 24);
-  const { 
-    gameState, 
-    dispatchAction, 
-    resetState 
+  const {
+    gameState,
+    dispatchAction,
+    resetState
   } = useGameState(initialState);
 
   const handleCreateGame = useCallback(async (numPlayers: number, boardSize: number, enableRNG: boolean = false) => {
     try {
       console.log(`Creating ${gameMode} game with ${numPlayers} players, ${boardSize} hexes, random events: ${enableRNG}`);
       const newState = createInitialGameState(numPlayers, boardSize);
-      
-      // Set random events flag - add to game state via custom property
+
+      // Set random events flag
       (newState as any).randomEventsEnabled = enableRNG;
-      
+
       // Update the max players
       setMaxPlayers(numPlayers);
-      
+
       // Record the selected board size
       setSelectedBoardSize(boardSize);
-      
+
+      // For testing, log current state
+      console.log("Current gameMode:", gameMode);
+      console.log("Current gameStatus:", gameStatus);
+
       if (gameMode === 'local') {
+        // Force updating state
         setGameStarted(true);
         setGameStatus("playing");
         resetState(newState);
+        console.log("Set game to playing status");
         return newState;
       } else if (gameMode === 'online') {
         // For online games, show the waiting room first
@@ -74,7 +80,7 @@ const GamePage = () => {
         }
         return newState;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error creating game:', error);
@@ -82,6 +88,7 @@ const GamePage = () => {
       return null;
     }
   }, [gameMode, setGameStarted, setGameStatus, resetState, joinRoomId]);
+
 
   const handleShowStats = useCallback(() => {
     setGameStatus("stats");
@@ -93,18 +100,18 @@ const GamePage = () => {
         toast.error('Please enter a room ID');
         return false;
       }
-      
+
       console.log(`Joining game with room ID: ${joinRoomId}`);
-      
+
       // For the demo/prototype, we'll just simulate joining
       // In a real implementation, this would verify the room exists with the backend
-      
+
       if (gameMode === 'online') {
         setGameStatus("waiting");
         toast.success(`Joined room ${joinRoomId}`);
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error joining game:', error);
@@ -117,12 +124,12 @@ const GamePage = () => {
     if (gameMode === 'online' && gameStatus === 'waiting') {
       setGameStarted(true);
       setGameStatus("playing");
-      
+
       // Create a new game state with the specified number of players and board size
       const newState = createInitialGameState(maxPlayers, selectedBoardSize);
       (newState as any).randomEventsEnabled = enableRandomEvents;
       resetState(newState);
-      
+
       toast.success('Game started!');
       return true;
     }
@@ -160,15 +167,15 @@ const GamePage = () => {
   }
 
   // Prepare connected players for UI (simulated for local mode)
-  const connectedPlayers = gameMode === 'local' 
+  const connectedPlayers = gameMode === 'local'
     ? Array.from({ length: maxPlayers }, (_, i) => ({
-        username: i === 0 ? profile.username || 'Player 1' : `Player ${i + 1}`,
-        color: playerColors[i]
-      }))
-    : [{ 
-        username: profile.username || 'Host',
-        color: playerColors[0]
-      }];
+      username: i === 0 ? profile.username || 'Player 1' : `Player ${i + 1}`,
+      color: playerColors[i]
+    }))
+    : [{
+      username: profile.username || 'Host',
+      color: playerColors[0]
+    }];
 
   return (
     <>
@@ -202,9 +209,9 @@ const GamePage = () => {
       )}
 
       {showCombatHistory && (
-        <CombatHistory 
-          gameState={gameState} 
-          onClose={() => setShowCombatHistory(false)} 
+        <CombatHistory
+          gameState={gameState}
+          onClose={() => setShowCombatHistory(false)}
         />
       )}
 
