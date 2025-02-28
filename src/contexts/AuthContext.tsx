@@ -1,4 +1,5 @@
-// src/contexts/AuthContext.tsx
+// Authentication Fix: Enhanced AuthContext.tsx
+
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,40 +42,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  // src/contexts/AuthContext.tsx
-  // Fix the refreshSession function to update isInitialized state
-
   const refreshSession = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log('Refreshing session...');
+      
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Session refresh error:', error);
+        throw error;
+      }
 
       if (currentSession?.user) {
+        console.log('Session found:', currentSession.user.email);
         setSession(currentSession);
         setUser(currentSession.user);
+        
         const userProfile = await fetchProfile(currentSession.user.id);
-
         if (userProfile) {
+          console.log('Profile found:', userProfile.username);
           setProfile(userProfile);
         } else {
-          console.warn('No profile found during session refresh for user:', currentSession.user.id);
+          console.warn('No profile found for user:', currentSession.user.id);
           setSession(null);
           setUser(null);
           setProfile(null);
         }
       } else {
+        console.log('No active session');
         setSession(null);
         setUser(null);
         setProfile(null);
       }
+      
+      // Use the updated profile variable, not userProfile
+      return;
     } catch (error) {
       console.error('Error refreshing session:', error);
       setError(error instanceof Error ? error : new Error('Session refresh failed'));
       setSession(null);
       setUser(null);
       setProfile(null);
+      return;
     } finally {
       setIsLoading(false);
       setIsInitialized(true);
@@ -89,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       navigate('/auth', { replace: true });
+      toast.success('Signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
@@ -109,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (currentSession?.user) {
-          console.log('Session found, setting user:', currentSession.user.email);
+          console.log('Session found, user:', currentSession.user.email);
           setSession(currentSession);
           setUser(currentSession.user);
 
@@ -117,10 +128,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const userProfile = await fetchProfile(currentSession.user.id);
 
             if (userProfile && mounted) {
-              console.log('Profile found, setting profile');
+              console.log('Profile found:', userProfile.username);
               setProfile(userProfile);
             } else if (mounted) {
-              console.warn('No profile found for user during initialization:', currentSession.user.id);
+              console.warn('No profile found during initialization for user:', currentSession.user.id);
             }
           } catch (profileError) {
             console.error('Error fetching profile during initialization:', profileError);
@@ -140,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setIsLoading(false);
           setIsInitialized(true);
-          console.log('Auth initialization complete');
+          console.log('Auth initialization complete, isInitialized set to true');
         }
       }
     };
@@ -186,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted) {
         setIsLoading(false);
         setIsInitialized(true);
+        console.log('Auth state change complete, isInitialized set to true');
       }
     });
 

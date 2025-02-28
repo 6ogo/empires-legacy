@@ -20,8 +20,8 @@ import LoadingScreen from '@/components/game/LoadingScreen';
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading, isInitialized } = useAuth();
   
-  if (isLoading || !isInitialized) {
-    return <LoadingScreen message="Loading..." />;
+  if (!isInitialized || isLoading) {
+    return <LoadingScreen message="Loading your profile..." />;
   }
   
   if (!user || !profile) {
@@ -34,7 +34,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading, isInitialized } = useAuth();
   
-  if (isLoading || !isInitialized) {
+  if (!isInitialized || isLoading) {
     return <LoadingScreen message="Loading..." />;
   }
   
@@ -46,6 +46,13 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const Router = () => {
+  const { isInitialized } = useAuth();
+  
+  // Show a loading screen until auth is initialized
+  if (!isInitialized) {
+    return <LoadingScreen message="Initializing application..." />;
+  }
+  
   return (
     <Routes>
       {/* Public routes that don't require authentication */}
