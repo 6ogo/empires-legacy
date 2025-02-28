@@ -9,6 +9,8 @@ export const GameWrapper: React.FC = () => {
     boardSize: "medium",
     playerCount: 2,
     gameMode: "local",
+    playerNames: ["Player 1", "Player 2"],
+    playerColors: ["#FF5733", "#33A1FF"]
   });
 
   const startGame = (settings: any) => {

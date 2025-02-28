@@ -8,11 +8,13 @@ export const GameControls: React.FC<{
   onRecruitClick: () => void;
   onEndTurnClick: () => void;
   disabled: boolean;
+  actionTaken: boolean;
 }> = ({ 
   onBuildClick, 
   onRecruitClick, 
   onEndTurnClick, 
-  disabled 
+  disabled,
+  actionTaken
 }) => {
   return (
     <div className="space-y-3 mb-4">
@@ -20,7 +22,7 @@ export const GameControls: React.FC<{
         variant="outline" 
         className="w-full flex items-center justify-between border-gray-700 text-gray-300"
         onClick={onBuildClick}
-        disabled={disabled}
+        disabled={disabled || actionTaken}
       >
         <Building2 className="w-4 h-4 mr-2" />
         <span className="flex-1 text-left">Build</span>
@@ -31,7 +33,7 @@ export const GameControls: React.FC<{
         variant="outline"
         className="w-full flex items-center justify-between border-gray-700 text-gray-300"
         onClick={onRecruitClick}
-        disabled={disabled}
+        disabled={disabled || actionTaken}
       >
         <Users className="w-4 h-4 mr-2" />
         <span className="flex-1 text-left">Recruit</span>

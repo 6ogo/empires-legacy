@@ -7,12 +7,14 @@ export const HexGrid: React.FC<{
   selectedTerritory: number | null;
   onTerritoryClick: (id: number) => void;
   currentPlayer: number;
+  phase: "setup" | "playing";
 }> = ({ 
   territories, 
   players, 
   selectedTerritory, 
   onTerritoryClick,
-  currentPlayer 
+  currentPlayer,
+  phase
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -20,11 +22,11 @@ export const HexGrid: React.FC<{
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
-  // Calculate hex corners
+  // Calculate hex corners for flat-topped hexes
   const hexCorners = (center: { x: number, y: number }, size: number) => {
     const corners = [];
     for (let i = 0; i < 6; i++) {
-      const angleDeg = 60 * i - 30;
+      const angleDeg = 60 * i;
       const angleRad = (Math.PI / 180) * angleDeg;
       corners.push({
         x: center.x + size * Math.cos(angleRad),
@@ -68,6 +70,26 @@ export const HexGrid: React.FC<{
     return 1;
   };
   
+  // Check if territory is selectable in current game phase
+  const isTerritorySelectable = (territory: any) => {
+    if (phase === "setup") {
+      return territory.owner === null;
+    }
+    
+    // In playing phase
+    if (territory.owner === currentPlayer) {
+      return true;
+    }
+    
+    // Check if territory is adjacent to any of current player's territories
+    const isAdjacent = territory.adjacentTerritories.some(adjId => {
+      const adjTerritory = territories.find(t => t.id === adjId);
+      return adjTerritory && adjTerritory.owner === currentPlayer;
+    });
+    
+    return isAdjacent;
+  };
+  
   // Handle container resize
   useEffect(() => {
     if (!containerRef.current) return;
@@ -86,26 +108,28 @@ export const HexGrid: React.FC<{
       let maxY = -Infinity;
       
       territories.forEach(territory => {
-        minX = Math.min(minX, territory.position.x);
-        maxX = Math.max(maxX, territory.position.x);
-        minY = Math.min(minY, territory.position.y);
-        maxY = Math.max(maxY, territory.position.y);
+        // Convert from axial to pixel coordinates
+        const pixelPos = axialToPixel(territory.position, 60);
+        minX = Math.min(minX, pixelPos.x);
+        maxX = Math.max(maxX, pixelPos.x);
+        minY = Math.min(minY, pixelPos.y);
+        maxY = Math.max(maxY, pixelPos.y);
       });
       
-      const mapWidth = maxX - minX + 2; // Add padding
-      const mapHeight = maxY - minY + 2;
+      const mapWidth = maxX - minX + 150; // Add padding
+      const mapHeight = maxY - minY + 150;
       
       // Calculate scale to fit map in container
-      const scaleX = containerWidth / (mapWidth * 100);
-      const scaleY = containerHeight / (mapHeight * 100);
+      const scaleX = containerWidth / mapWidth;
+      const scaleY = containerHeight / mapHeight;
       const newScale = Math.min(scaleX, scaleY, 1);
       
       setScale(newScale);
       
       // Center the map
       setOffset({
-        x: (containerWidth / 2) - ((minX + maxX) / 2 * 100 * newScale),
-        y: (containerHeight / 2) - ((minY + maxY) / 2 * 100 * newScale)
+        x: (containerWidth / 2) - ((minX + maxX) / 2 * newScale),
+        y: (containerHeight / 2) - ((minY + maxY) / 2 * newScale)
       });
     };
     
@@ -116,6 +140,13 @@ export const HexGrid: React.FC<{
       window.removeEventListener("resize", handleResize);
     };
   }, [territories]);
+  
+  // Convert from axial coordinates to pixel coordinates
+  const axialToPixel = (hex: { x: number, y: number }, size: number) => {
+    const x = size * (3/2 * hex.x);
+    const y = size * (Math.sqrt(3)/2 * hex.x + Math.sqrt(3) * hex.y);
+    return { x, y };
+  };
   
   // Handle mouse wheel for zoom
   const handleWheel = (e: React.WheelEvent) => {
@@ -187,14 +218,19 @@ export const HexGrid: React.FC<{
         <g transform={`translate(${offset.x},${offset.y}) scale(${scale})`}>
           {territories.map(territory => {
             const hexSize = 50;
-            const centerX = territory.position.x * 1.5 * hexSize;
-            const centerY = territory.position.y * hexSize;
-            const corners = hexCorners({ x: centerX, y: centerY }, hexSize);
+            const pixelPos = axialToPixel(territory.position, hexSize);
+            const corners = hexCorners(pixelPos, hexSize);
             const color = getTerritoryColor(territory);
             const borderWidth = getTerritoryBorder(territory);
+            const selectable = isTerritorySelectable(territory);
             
             return (
-              <g key={territory.id} onClick={() => onTerritoryClick(territory.id)}>
+              <g 
+                key={territory.id} 
+                onClick={() => onTerritoryClick(territory.id)}
+                style={{ cursor: selectable ? 'pointer' : 'not-allowed' }}
+                opacity={selectable ? 1 : 0.6}
+              >
                 <polygon
                   points={corners.map(p => `${p.x},${p.y}`).join(" ")}
                   fill={color}
@@ -206,8 +242,8 @@ export const HexGrid: React.FC<{
                 
                 {/* Show territory type */}
                 <text
-                  x={centerX}
-                  y={centerY - 10}
+                  x={pixelPos.x}
+                  y={pixelPos.y - 10}
                   textAnchor="middle"
                   fill="#000"
                   fontSize="12"
@@ -219,8 +255,8 @@ export const HexGrid: React.FC<{
                 {/* Show owner indicator */}
                 {territory.owner !== null && (
                   <circle
-                    cx={centerX}
-                    cy={centerY + 10}
+                    cx={pixelPos.x}
+                    cy={pixelPos.y + 10}
                     r={10}
                     fill={players[territory.owner].color}
                     stroke="#000"
@@ -231,8 +267,8 @@ export const HexGrid: React.FC<{
                 {/* Show building count */}
                 {territory.buildings.length > 0 && (
                   <text
-                    x={centerX - 20}
-                    y={centerY + 25}
+                    x={pixelPos.x - 20}
+                    y={pixelPos.y + 25}
                     fill="#FFF"
                     fontSize="12"
                     fontWeight="bold"
@@ -244,8 +280,8 @@ export const HexGrid: React.FC<{
                 {/* Show unit count */}
                 {territory.units.length > 0 && (
                   <text
-                    x={centerX + 20}
-                    y={centerY + 25}
+                    x={pixelPos.x + 20}
+                    y={pixelPos.y + 25}
                     fill="#FFF"
                     fontSize="12"
                     fontWeight="bold"

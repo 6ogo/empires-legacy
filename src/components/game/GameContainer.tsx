@@ -7,8 +7,10 @@ import { BuildingMenu } from "./BuildingMenu";
 import { RecruitmentMenu } from "./RecruitmentMenu";
 import { GameMenus } from "./GameMenus";
 import { ErrorScreen } from "./ErrorScreen";
+import { Button } from "../ui/button";
 
 interface GameState {
+  phase: "setup" | "playing";
   turn: number;
   currentPlayer: number;
   players: Player[];
@@ -16,6 +18,9 @@ interface GameState {
   randomEvents: RandomEvent[];
   gameOver: boolean;
   winner: number | null;
+  setupComplete: boolean;
+  currentAction: "none" | "build" | "expand" | "attack";
+  actionTaken: boolean;
 }
 
 interface Player {
@@ -31,6 +36,7 @@ interface Player {
   territories: number[];
   buildings: Building[];
   units: Unit[];
+  hasSelectedStartingTerritory: boolean;
 }
 
 interface Territory {
@@ -40,6 +46,7 @@ interface Territory {
   buildings: number[];
   units: number[];
   position: { x: number; y: number };
+  adjacentTerritories: number[];
 }
 
 interface Building {
@@ -82,8 +89,8 @@ export const GameContainer: React.FC<{
       
       const players = Array.from({ length: settings.playerCount }, (_, i) => ({
         id: i,
-        name: `Player ${i + 1}`,
-        color: getPlayerColor(i),
+        name: settings.playerNames ? settings.playerNames[i] : `Player ${i + 1}`,
+        color: settings.playerColors ? settings.playerColors[i] : getPlayerColor(i),
         resources: {
           gold: 500,
           wood: 200,
@@ -92,17 +99,22 @@ export const GameContainer: React.FC<{
         },
         territories: [],
         buildings: [],
-        units: []
+        units: [],
+        hasSelectedStartingTerritory: false
       }));
       
       const initialState: GameState = {
+        phase: "setup",
         turn: 1,
         currentPlayer: 0,
         players,
         territories,
         randomEvents: [],
         gameOver: false,
-        winner: null
+        winner: null,
+        setupComplete: false,
+        currentAction: "none",
+        actionTaken: false
       };
       
       setGameState(initialState);
@@ -146,11 +158,33 @@ export const GameContainer: React.FC<{
           buildings: [],
           units: [],
           position: { 
-            x: q * 1.5, 
-            y: (r + q/2) * Math.sqrt(3)
-          }
+            x: q, 
+            y: r
+          },
+          adjacentTerritories: []
         });
         id++;
+      }
+    }
+    
+    for (const territory of territories) {
+      const { x, y } = territory.position;
+      const directions = [
+        { x: 1, y: 0 }, { x: 1, y: -1 }, { x: 0, y: -1 },
+        { x: -1, y: 0 }, { x: -1, y: 1 }, { x: 0, y: 1 }
+      ];
+      
+      for (const dir of directions) {
+        const adjX = x + dir.x;
+        const adjY = y + dir.y;
+        
+        const adjTerritory = territories.find(
+          t => t.position.x === adjX && t.position.y === adjY
+        );
+        
+        if (adjTerritory) {
+          territory.adjacentTerritories.push(adjTerritory.id);
+        }
       }
     }
     
@@ -188,96 +222,188 @@ export const GameContainer: React.FC<{
   };
 
   const handleTerritorySelect = (territoryId: number) => {
-    setSelectedTerritory(territoryId);
+    if (!gameState) return;
+    
+    if (gameState.phase === "setup") {
+      const player = gameState.players[gameState.currentPlayer];
+      if (player.hasSelectedStartingTerritory) return;
+      
+      handleClaimTerritory(territoryId);
+      return;
+    }
+    
+    const territory = gameState.territories.find(t => t.id === territoryId);
+    if (!territory) return;
+    
+    const isAdjacent = gameState.players[gameState.currentPlayer].territories.some(playerTerritoryId => {
+      const playerTerritory = gameState.territories.find(t => t.id === playerTerritoryId);
+      return playerTerritory?.adjacentTerritories.includes(territoryId);
+    });
+    
+    const isOwned = territory.owner === gameState.currentPlayer;
+    
+    if (isOwned || isAdjacent) {
+      setSelectedTerritory(territoryId);
+    }
   };
 
   const handleMenuSelect = (menu: string) => {
+    if (gameState?.actionTaken) return;
     setActiveMenu(menu);
   };
 
-  const handleEndTurn = () => {
+  const collectResources = (playerId: number) => {
     if (!gameState) return;
     
-    const nextPlayerId = (gameState.currentPlayer + 1) % gameState.players.length;
-    const nextTurn = nextPlayerId === 0 ? gameState.turn + 1 : gameState.turn;
-    
     const updatedPlayers = [...gameState.players];
-    const currentPlayer = updatedPlayers[gameState.currentPlayer];
+    const player = updatedPlayers[playerId];
     
-    currentPlayer.territories.forEach(territoryId => {
+    player.territories.forEach(territoryId => {
       const territory = gameState.territories.find(t => t.id === territoryId);
       if (!territory) return;
       
       switch (territory.type) {
         case "plains":
-          currentPlayer.resources.gold += 10;
-          currentPlayer.resources.wood += 5;
-          currentPlayer.resources.stone += 5;
-          currentPlayer.resources.food += 8;
+          player.resources.gold += 10;
+          player.resources.wood += 5;
+          player.resources.stone += 5;
+          player.resources.food += 8;
           break;
         case "mountains":
-          currentPlayer.resources.stone += 15;
-          currentPlayer.resources.gold += 8;
-          currentPlayer.resources.wood += 2;
-          currentPlayer.resources.food += 3;
+          player.resources.stone += 15;
+          player.resources.gold += 8;
+          player.resources.wood += 2;
+          player.resources.food += 3;
           break;
         case "forests":
-          currentPlayer.resources.wood += 15;
-          currentPlayer.resources.food += 5;
-          currentPlayer.resources.gold += 5;
-          currentPlayer.resources.stone += 3;
+          player.resources.wood += 15;
+          player.resources.food += 5;
+          player.resources.gold += 5;
+          player.resources.stone += 3;
           break;
         case "coast":
-          currentPlayer.resources.gold += 15;
-          currentPlayer.resources.food += 10;
-          currentPlayer.resources.wood += 3;
-          currentPlayer.resources.stone += 2;
+          player.resources.gold += 15;
+          player.resources.food += 10;
+          player.resources.wood += 3;
+          player.resources.stone += 2;
           break;
         case "capital":
-          currentPlayer.resources.gold += 20;
-          currentPlayer.resources.wood += 10;
-          currentPlayer.resources.stone += 10;
-          currentPlayer.resources.food += 15;
+          player.resources.gold += 20;
+          player.resources.wood += 10;
+          player.resources.stone += 10;
+          player.resources.food += 15;
           break;
       }
       
       territory.buildings.forEach(buildingId => {
-        const building = currentPlayer.buildings.find(b => b.id === buildingId);
+        const building = player.buildings.find(b => b.id === buildingId);
         if (!building) return;
         
         switch (building.type) {
           case "lumberMill":
-            currentPlayer.resources.wood += 20;
+            player.resources.wood += 20;
             break;
           case "mine":
-            currentPlayer.resources.stone += 20;
+            player.resources.stone += 20;
             break;
           case "market":
-            currentPlayer.resources.gold += 20;
+            player.resources.gold += 20;
             break;
           case "farm":
-            currentPlayer.resources.food += 8;
+            player.resources.food += 8;
             break;
         }
       });
     });
     
-    currentPlayer.units.forEach(unit => {
+    player.units.forEach(unit => {
       switch (unit.type) {
         case "infantry":
-          currentPlayer.resources.food -= 1;
+          player.resources.food -= 1;
           break;
         case "cavalry":
-          currentPlayer.resources.food -= 2;
+          player.resources.food -= 2;
           break;
         case "artillery":
-          currentPlayer.resources.food -= 2;
+          player.resources.food -= 2;
           break;
       }
     });
     
+    return updatedPlayers;
+  };
+
+  const handleEndTurn = () => {
+    if (!gameState) return;
+    
+    if (gameState.phase === "setup") {
+      handleSetupPhaseEndTurn();
+      return;
+    }
+    
+    handlePlayingPhaseEndTurn();
+  };
+
+  const handleSetupPhaseEndTurn = () => {
+    if (!gameState) return;
+    
+    const updatedPlayers = [...gameState.players];
+    updatedPlayers[gameState.currentPlayer].hasSelectedStartingTerritory = true;
+    
+    let nextPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+    let setupComplete = true;
+    
+    for (let i = 0; i < gameState.players.length; i++) {
+      const playerIndex = (nextPlayer + i) % gameState.players.length;
+      if (!updatedPlayers[playerIndex].hasSelectedStartingTerritory) {
+        nextPlayer = playerIndex;
+        setupComplete = false;
+        break;
+      }
+    }
+    
+    if (setupComplete) {
+      setGameState({
+        ...gameState,
+        players: updatedPlayers,
+        phase: "playing",
+        currentPlayer: 0,
+        setupComplete: true,
+        currentAction: "none",
+        actionTaken: false
+      });
+      
+      setTimeout(() => {
+        if (gameState) {
+          const updatedPlayers = collectResources(0);
+          setGameState(prevState => prevState ? {
+            ...prevState,
+            players: updatedPlayers || prevState.players
+          } : null);
+        }
+      }, 500);
+    } else {
+      setGameState({
+        ...gameState,
+        players: updatedPlayers,
+        currentPlayer: nextPlayer
+      });
+    }
+    
+    setSelectedTerritory(null);
+    setActiveMenu(null);
+  };
+
+  const handlePlayingPhaseEndTurn = () => {
+    if (!gameState) return;
+    
+    const nextPlayerId = (gameState.currentPlayer + 1) % gameState.players.length;
+    const nextTurn = nextPlayerId === 0 ? gameState.turn + 1 : gameState.turn;
+    
     let gameOver = false;
     let winner = null;
+    
+    const currentPlayer = gameState.players[gameState.currentPlayer];
     
     const totalTerritories = gameState.territories.length;
     const controlledTerritories = currentPlayer.territories.length;
@@ -296,17 +422,30 @@ export const GameContainer: React.FC<{
       ...gameState,
       turn: nextTurn,
       currentPlayer: nextPlayerId,
-      players: updatedPlayers,
       gameOver,
-      winner
+      winner,
+      currentAction: "none",
+      actionTaken: false
     });
     
     setSelectedTerritory(null);
     setActiveMenu(null);
+    
+    if (!gameOver) {
+      setTimeout(() => {
+        if (gameState) {
+          const updatedPlayers = collectResources(nextPlayerId);
+          setGameState(prevState => prevState ? {
+            ...prevState,
+            players: updatedPlayers || prevState.players
+          } : null);
+        }
+      }, 500);
+    }
   };
 
   const handleBuildStructure = (buildingType: string) => {
-    if (!gameState || selectedTerritory === null) return;
+    if (!gameState || selectedTerritory === null || gameState.actionTaken) return;
     
     const territory = gameState.territories.find(t => t.id === selectedTerritory);
     if (!territory || territory.owner !== gameState.currentPlayer) return;
@@ -387,7 +526,9 @@ export const GameContainer: React.FC<{
       setGameState({
         ...gameState,
         players: updatedPlayers,
-        territories: updatedTerritories
+        territories: updatedTerritories,
+        currentAction: "build",
+        actionTaken: true
       });
       
       setActiveMenu(null);
@@ -395,7 +536,7 @@ export const GameContainer: React.FC<{
   };
 
   const handleRecruitUnit = (unitType: string) => {
-    if (!gameState || selectedTerritory === null) return;
+    if (!gameState || selectedTerritory === null || gameState.actionTaken) return;
     
     const territory = gameState.territories.find(t => t.id === selectedTerritory);
     if (!territory || territory.owner !== gameState.currentPlayer) return;
@@ -455,7 +596,9 @@ export const GameContainer: React.FC<{
       setGameState({
         ...gameState,
         players: updatedPlayers,
-        territories: updatedTerritories
+        territories: updatedTerritories,
+        currentAction: "recruit",
+        actionTaken: true
       });
       
       setActiveMenu(null);
@@ -468,26 +611,97 @@ export const GameContainer: React.FC<{
     const territory = gameState.territories.find(t => t.id === territoryId);
     if (!territory || territory.owner !== null) return;
     
-    const hasAdjacentUnit = false;
-    
-    if (hasAdjacentUnit || gameState.turn <= 2) {
+    if (gameState.phase === "setup") {
       const updatedTerritories = [...gameState.territories];
       const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
       updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
+      updatedTerritories[territoryIndex].type = "capital";
       
       const updatedPlayers = [...gameState.players];
       updatedPlayers[gameState.currentPlayer].territories.push(territoryId);
-      
-      if (updatedPlayers[gameState.currentPlayer].territories.length === 1) {
-        updatedTerritories[territoryIndex].type = "capital";
-      }
       
       setGameState({
         ...gameState,
         players: updatedPlayers,
         territories: updatedTerritories
       });
+      
+      setTimeout(() => handleEndTurn(), 500);
+      return;
     }
+    
+    if (gameState.actionTaken) return;
+    
+    const isAdjacent = gameState.players[gameState.currentPlayer].territories.some(playerTerritoryId => {
+      const playerTerritory = gameState.territories.find(t => t.id === playerTerritoryId);
+      return playerTerritory?.adjacentTerritories.includes(territoryId);
+    });
+    
+    if (isAdjacent) {
+      const currentPlayer = gameState.players[gameState.currentPlayer];
+      const canExpand = currentPlayer.resources.gold >= 100 && currentPlayer.resources.food >= 20;
+      
+      if (canExpand) {
+        currentPlayer.resources.gold -= 100;
+        currentPlayer.resources.food -= 20;
+        
+        const updatedTerritories = [...gameState.territories];
+        const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
+        updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
+        
+        const updatedPlayers = [...gameState.players];
+        updatedPlayers[gameState.currentPlayer].territories.push(territoryId);
+        
+        setGameState({
+          ...gameState,
+          players: updatedPlayers,
+          territories: updatedTerritories,
+          currentAction: "expand",
+          actionTaken: true
+        });
+      }
+    }
+  };
+
+  const handleAttackTerritory = (targetTerritoryId: number) => {
+    if (!gameState || !selectedTerritory || gameState.actionTaken) return;
+    
+    const sourceTerritory = gameState.territories.find(t => t.id === selectedTerritory);
+    const targetTerritory = gameState.territories.find(t => t.id === targetTerritoryId);
+    
+    if (!sourceTerritory || !targetTerritory) return;
+    if (sourceTerritory.owner !== gameState.currentPlayer) return;
+    if (targetTerritory.owner === gameState.currentPlayer) return;
+    if (targetTerritory.owner === null) return;
+    
+    const isAdjacent = sourceTerritory.adjacentTerritories.includes(targetTerritoryId);
+    if (!isAdjacent) return;
+    
+    if (sourceTerritory.units.length === 0) return;
+    
+    const updatedTerritories = [...gameState.territories];
+    const targetIndex = updatedTerritories.findIndex(t => t.id === targetTerritoryId);
+    
+    const previousOwner = targetTerritory.owner;
+    
+    updatedTerritories[targetIndex].owner = gameState.currentPlayer;
+    
+    const updatedPlayers = [...gameState.players];
+    
+    updatedPlayers[gameState.currentPlayer].territories.push(targetTerritoryId);
+    
+    const previousOwnerTerritories = updatedPlayers[previousOwner].territories;
+    updatedPlayers[previousOwner].territories = previousOwnerTerritories.filter(
+      id => id !== targetTerritoryId
+    );
+    
+    setGameState({
+      ...gameState,
+      players: updatedPlayers,
+      territories: updatedTerritories,
+      currentAction: "attack",
+      actionTaken: true
+    });
   };
 
   if (error) {
@@ -498,14 +712,17 @@ export const GameContainer: React.FC<{
     return <div className="flex items-center justify-center h-full">Loading game...</div>;
   }
 
+  const currentPlayer = gameState.players[gameState.currentPlayer];
+
   return (
     <div className="flex flex-col h-full">
       <GameTopBar 
         turn={gameState.turn} 
         currentPlayer={gameState.currentPlayer}
-        playerColor={gameState.players[gameState.currentPlayer].color}
-        playerName={gameState.players[gameState.currentPlayer].name}
+        playerColor={currentPlayer.color}
+        playerName={currentPlayer.name}
         onExitGame={onExitGame}
+        phase={gameState.phase}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -516,28 +733,67 @@ export const GameContainer: React.FC<{
             selectedTerritory={selectedTerritory}
             onTerritorySelect={handleTerritorySelect}
             onClaimTerritory={handleClaimTerritory}
+            onAttackTerritory={handleAttackTerritory}
             currentPlayer={gameState.currentPlayer}
+            phase={gameState.phase}
+            actionTaken={gameState.actionTaken}
           />
+
+          {gameState.phase === "setup" && (
+            <div className="absolute top-4 left-0 right-0 mx-auto text-center">
+              <div className="bg-gray-900 bg-opacity-80 rounded-lg p-4 inline-block">
+                <h3 className="text-white font-bold mb-2">Setup Phase</h3>
+                <p className="text-gray-300 text-sm">
+                  {currentPlayer.name}, select your starting territory.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="w-64 bg-gray-900 p-4 flex flex-col">
           <ResourceDisplay 
-            resources={gameState.players[gameState.currentPlayer].resources} 
+            resources={currentPlayer.resources} 
           />
           
-          <GameControls 
-            onBuildClick={() => handleMenuSelect("build")}
-            onRecruitClick={() => handleMenuSelect("recruit")}
-            onEndTurnClick={handleEndTurn}
-            disabled={selectedTerritory === null}
-          />
-          
-          {activeMenu === "build" && (
-            <BuildingMenu onSelect={handleBuildStructure} />
+          {gameState.phase === "playing" && (
+            <>
+              <div className="mb-2 bg-gray-800 rounded-lg p-2">
+                <h3 className="text-white text-sm font-bold mb-1">Current Action</h3>
+                <p className="text-gray-300 text-xs">
+                  {gameState.actionTaken 
+                    ? `Action taken: ${gameState.currentAction.charAt(0).toUpperCase() + gameState.currentAction.slice(1)}` 
+                    : "No action taken yet"}
+                </p>
+              </div>
+
+              <GameControls 
+                onBuildClick={() => handleMenuSelect("build")}
+                onRecruitClick={() => handleMenuSelect("recruit")}
+                onEndTurnClick={handleEndTurn}
+                disabled={selectedTerritory === null || gameState.actionTaken}
+                actionTaken={gameState.actionTaken}
+              />
+              
+              {activeMenu === "build" && (
+                <BuildingMenu onSelect={handleBuildStructure} />
+              )}
+              
+              {activeMenu === "recruit" && (
+                <RecruitmentMenu onSelect={handleRecruitUnit} />
+              )}
+            </>
           )}
           
-          {activeMenu === "recruit" && (
-            <RecruitmentMenu onSelect={handleRecruitUnit} />
+          {gameState.phase === "setup" && (
+            <div className="mt-4">
+              <Button 
+                className="w-full bg-amber-600 hover:bg-amber-700"
+                onClick={handleEndTurn}
+              >
+                Skip Turn
+              </Button>
+            </div>
           )}
           
           <GameMenus />
@@ -551,7 +807,7 @@ export const GameContainer: React.FC<{
               Game Over!
             </h2>
             <p className="text-xl text-amber-500 mb-6">
-              Player {gameState.winner! + 1} wins!
+              {currentPlayer.name} wins!
             </p>
             <Button onClick={onExitGame}>
               Return to Menu

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "../ui/button";
-import { Crown, ArrowLeft } from "lucide-react";
+import { Crown, ArrowLeft, Flag } from "lucide-react";
 
 export const GameTopBar: React.FC<{
   turn: number;
@@ -9,12 +9,14 @@ export const GameTopBar: React.FC<{
   playerColor: string;
   playerName: string;
   onExitGame: () => void;
+  phase: "setup" | "playing";
 }> = ({ 
   turn, 
   currentPlayer, 
   playerColor, 
   playerName,
-  onExitGame 
+  onExitGame,
+  phase
 }) => {
   return (
     <div className="bg-gray-900 p-3 flex items-center justify-between">
@@ -28,9 +30,18 @@ export const GameTopBar: React.FC<{
         Exit Game
       </Button>
       
-      <div className="flex items-center">
-        <Crown className="w-5 h-5 text-amber-500 mr-2" />
-        <span className="text-white font-bold">Turn: {turn}</span>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center">
+          <Crown className="w-5 h-5 text-amber-500 mr-2" />
+          <span className="text-white font-bold">Turn: {turn}</span>
+        </div>
+        
+        <div className="flex items-center">
+          <Flag className="w-5 h-5 text-amber-500 mr-2" />
+          <span className="text-white font-bold">
+            {phase === "setup" ? "Setup Phase" : "Playing Phase"}
+          </span>
+        </div>
       </div>
       
       <div className="flex items-center">
