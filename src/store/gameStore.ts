@@ -1,83 +1,140 @@
-// src/store/gameStore.ts
+
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { GameState, GameStatus, GameMode, Territory, Player } from '@/types/game';
-import { createInitialGameState } from '@/lib/game-utils';
+import { toast } from 'sonner';
+import { GameState, UIPlayer as Player, Territory, Resources } from '@/types/game';
+
+type ResourceType = 'gold' | 'wood' | 'stone' | 'food';
 
 interface GameStore {
-  // UI State
-  gameStatus: GameStatus;
-  gameMode: GameMode | null;
-  showLeaderboard: boolean;
-  isLoading: boolean;
-  error: Error | null;
-  
-  // Game State
   gameState: GameState | null;
-  selectedTerritory: Territory | null;
-  connectedPlayers: Player[];
+  localGameId: string | null;
+  isLocalGameStarted: boolean;
+  saveLocalGame: (gameState: GameState) => void;
+  startLocalGame: (settings: {
+    boardSize: string;
+    playerCount: number;
+    gameMode: 'local' | 'online';
+  }) => void;
+  updateGameState: (updater: (state: GameState) => GameState) => void;
+  addResources: (playerId: string, resources: Partial<Resources>) => void;
+  deductResources: (playerId: string, resources: Partial<Resources>) => boolean;
+  resetLocalGame: () => void;
   
-  // Actions
-  setGameStatus: (status: GameStatus) => void;
-  setGameMode: (mode: GameMode | null) => void;
-  setShowLeaderboard: (show: boolean) => void;
-  setGameState: (state: GameState | null) => void;
-  setSelectedTerritory: (territory: Territory | null) => void;
-  updateConnectedPlayers: (players: Player[]) => void;
-  resetGame: () => void;
-  initializeGame: (numPlayers: number, boardSize: number) => void;
+  // For online games
+  onlineGameId: string | null;
+  joinOnlineGame: (gameId: string) => void;
+  leaveOnlineGame: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
   devtools(
     persist(
       (set, get) => ({
-        // Initial state
-        gameStatus: 'menu',
-        gameMode: null,
-        showLeaderboard: false,
-        isLoading: false,
-        error: null,
         gameState: null,
-        selectedTerritory: null,
-        connectedPlayers: [],
+        localGameId: null,
+        isLocalGameStarted: false,
+        onlineGameId: null,
         
-        // Actions
-        setGameStatus: (status) => set({ gameStatus: status }),
-        setGameMode: (mode) => set({ gameMode: mode }),
-        setShowLeaderboard: (show) => set({ showLeaderboard: show }),
-        setGameState: (state) => set({ gameState: state }),
-        setSelectedTerritory: (territory) => set({ selectedTerritory: territory }),
-        updateConnectedPlayers: (players) => set({ connectedPlayers: players }),
+        saveLocalGame: (gameState) => {
+          set({ gameState, localGameId: gameState.id });
+        },
         
-        resetGame: () => set({
-          gameStatus: 'menu',
-          gameMode: null,
-          gameState: null,
-          selectedTerritory: null,
-          connectedPlayers: [],
-        }),
+        startLocalGame: (settings) => {
+          // This would generate the initial game state
+          console.log('Starting local game with settings:', settings);
+          set({ isLocalGameStarted: true });
+          // Implementation would create territories, players, etc.
+        },
         
-        initializeGame: (numPlayers, boardSize) => {
-          const initialState = createInitialGameState(numPlayers, boardSize);
-          set({ 
-            gameState: initialState,
-            gameStatus: 'playing',
+        updateGameState: (updater) => {
+          const { gameState } = get();
+          if (!gameState) return;
+          
+          set({ gameState: updater(gameState) });
+        },
+        
+        addResources: (playerId, resources) => {
+          const { gameState } = get();
+          if (!gameState) return;
+          
+          set({
+            gameState: {
+              ...gameState,
+              players: gameState.players.map((player) => {
+                if (player.id !== playerId) return player;
+                
+                const updatedResources = { ...player.resources };
+                (Object.keys(resources) as ResourceType[]).forEach((key) => {
+                  updatedResources[key] += resources[key] || 0;
+                });
+                
+                return {
+                  ...player,
+                  resources: updatedResources
+                };
+              })
+            }
           });
         },
+        
+        deductResources: (playerId, resources) => {
+          const { gameState } = get();
+          if (!gameState) return false;
+          
+          const player = gameState.players.find((p) => p.id === playerId);
+          if (!player) return false;
+          
+          // Check if player has enough resources
+          for (const [key, value] of Object.entries(resources)) {
+            if (player.resources[key as ResourceType] < (value || 0)) {
+              toast.error(`Not enough ${key}`);
+              return false;
+            }
+          }
+          
+          // Deduct resources
+          set({
+            gameState: {
+              ...gameState,
+              players: gameState.players.map((p) => {
+                if (p.id !== playerId) return p;
+                
+                const updatedResources = { ...p.resources };
+                (Object.keys(resources) as ResourceType[]).forEach((key) => {
+                  updatedResources[key] -= resources[key] || 0;
+                });
+                
+                return {
+                  ...p,
+                  resources: updatedResources
+                };
+              })
+            }
+          });
+          
+          return true;
+        },
+        
+        resetLocalGame: () => {
+          set({ gameState: null, localGameId: null, isLocalGameStarted: false });
+        },
+        
+        joinOnlineGame: (gameId) => {
+          set({ onlineGameId: gameId });
+        },
+        
+        leaveOnlineGame: () => {
+          set({ onlineGameId: null });
+        }
       }),
       {
         name: 'game-storage',
-        partialize: (state) => ({
-          gameMode: state.gameMode,
-          gameState: state.gameState,
-        }),
+        partialize: (state) => ({ 
+          localGameId: state.localGameId,
+          gameState: state.gameState
+        })
       }
     )
   )
 );
-
-// Optional: Create selector hooks for specific parts of the state
-export const useGameStatus = () => useGameStore((state) => state.gameStatus);
-export const useGameMode = () => useGameStore((state) => state.gameMode);
-export const useSelectedTerritory = () => useGameStore((state) => state.selectedTerritory);

@@ -1,4 +1,5 @@
-import { GameState, GameAction, GamePhase, Territory, Player, CombatResult, ValidationResult } from '@/types/game';
+
+import { GameState, GameAction, GamePhase, Territory, UIPlayer, CombatResult, ValidationResult } from '@/types/game';
 import { GameStateValidator } from './game-validation';
 
 export class GameStateManager {
@@ -226,7 +227,7 @@ export function createInitialGameState(numPlayers: number, boardSize: number): G
   }
 
   // Create players
-  const players: Player[] = Array.from({ length: numPlayers }, (_, i) => ({
+  const players: UIPlayer[] = Array.from({ length: numPlayers }, (_, i) => ({
     id: `player${i + 1}`,
     resources: {
       gold: 100,

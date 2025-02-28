@@ -1,48 +1,81 @@
-import React from "react";
-import BoardSizeSelect from "./BoardSizeSelect";
-import { Button } from "@/components/ui/button";
+
+import React, { useState } from "react";
+import { BoardSizeSelect } from "./BoardSizeSelect";
+import { Button } from "../ui/button";
 
 interface GameStartMenuProps {
-  gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
-  gameMode: "local" | "online" | null;
-  onSelectMode: (mode: "local" | "online") => void;
-  onCreateGame: (numPlayers: number, boardSize: number, enableRNG?: boolean) => Promise<void>;
-  onJoinGame: () => Promise<void>;
-  joinRoomId: string;
-  onJoinRoomIdChange: (value: string) => void;
-  isHost?: boolean;
-  onStartAnyway?: () => void;
-  connectedPlayers?: { username: string }[];
-  selectedBoardSize?: number;
-  maxPlayers?: number;
-  onShowRandomEventsInfo: () => void;
+  onStartGame: (settings: any) => void;
 }
 
-const GameStartMenu: React.FC<GameStartMenuProps> = ({
-  gameStatus,
-  gameMode,
-  onSelectMode,
-  onCreateGame,
-  onJoinGame,
-  joinRoomId,
-  onJoinRoomIdChange,
-  onShowRandomEventsInfo,
-  connectedPlayers = []
-}) => {
+const GameStartMenu: React.FC<GameStartMenuProps> = ({ onStartGame }) => {
+  const [boardSize, setBoardSize] = useState("medium");
+  const [playerCount, setPlayerCount] = useState(2);
+  const [gameMode, setGameMode] = useState<"local" | "online">("local");
+
+  const handleStart = () => {
+    onStartGame({
+      boardSize,
+      playerCount,
+      gameMode
+    });
+  };
+
   return (
-    <div className="text-center text-white w-full max-w-4xl mx-auto px-4">
-      <h1 className="text-4xl md:text-5xl font-bold text-game-gold mb-8 md:mb-12">Empires' Legacy</h1>
+    <div className="bg-gray-900 rounded-lg p-6 max-w-lg mx-auto">
+      <h2 className="text-2xl font-bold text-white mb-6">Game Setup</h2>
       
-      {gameStatus === "mode_select" && (
-        <BoardSizeSelect
-          onCreateGame={onCreateGame}
-          gameMode={gameMode!}
-          onJoinGame={onJoinGame}
-          joinRoomId={joinRoomId}
-          onJoinRoomIdChange={onJoinRoomIdChange}
-          onShowRandomEventsInfo={onShowRandomEventsInfo}
-        />
-      )}
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <label className="text-gray-300 block">Game Mode</label>
+          <div className="flex gap-2">
+            <Button
+              variant={gameMode === "local" ? "default" : "outline"}
+              className={gameMode === "local" ? "bg-amber-600 hover:bg-amber-700" : "border-gray-700"}
+              onClick={() => setGameMode("local")}
+            >
+              Local
+            </Button>
+            <Button
+              variant={gameMode === "online" ? "default" : "outline"}
+              className={gameMode === "online" ? "bg-amber-600 hover:bg-amber-700" : "border-gray-700"}
+              onClick={() => setGameMode("online")}
+            >
+              Online
+            </Button>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-gray-300 block">Map Size</label>
+          <BoardSizeSelect 
+            value={boardSize} 
+            onChange={setBoardSize} 
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-gray-300 block">Number of Players</label>
+          <div className="flex gap-2 flex-wrap">
+            {[2, 3, 4, 5, 6].map((num) => (
+              <Button
+                key={num}
+                variant={playerCount === num ? "default" : "outline"}
+                className={playerCount === num ? "bg-amber-600 hover:bg-amber-700" : "border-gray-700"}
+                onClick={() => setPlayerCount(num)}
+              >
+                {num}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <Button 
+        className="w-full mt-8 bg-amber-600 hover:bg-amber-700"
+        onClick={handleStart}
+      >
+        Start Game
+      </Button>
     </div>
   );
 };

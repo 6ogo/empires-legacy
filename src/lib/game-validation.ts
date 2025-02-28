@@ -1,5 +1,5 @@
 
-import { GameState, GameAction, Territory, Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
+import { GameState, GameAction, Territory, UIPlayer as Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
 
 export class GameStateValidator {
   private state: GameState;
