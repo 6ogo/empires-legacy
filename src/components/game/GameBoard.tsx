@@ -1,36 +1,42 @@
-import React from 'react';
-import { Territory, Resources } from '@/types/game';
-import HexGrid from './HexGrid';
 
-interface GameBoardProps {
-  territories: Territory[];
-  selectedTerritory: Territory | null;
-  onTerritoryClick: (territory: Territory) => void;
-  currentPlayer: string;
-  playerResources: Resources;
-  phase: string;
-}
+import React from "react";
+import { HexGrid } from "./HexGrid";
 
-const GameBoard: React.FC<GameBoardProps> = ({ 
+export const GameBoard: React.FC<{
+  territories: any[];
+  players: any[];
+  selectedTerritory: number | null;
+  onTerritorySelect: (id: number) => void;
+  onClaimTerritory: (id: number) => void;
+  currentPlayer: number;
+}> = ({ 
   territories, 
-  selectedTerritory,
-  onTerritoryClick,
-  currentPlayer,
-  playerResources,
-  phase
+  players, 
+  selectedTerritory, 
+  onTerritorySelect, 
+  onClaimTerritory,
+  currentPlayer 
 }) => {
+  const handleTerritoryClick = (territoryId: number) => {
+    const territory = territories.find(t => t.id === territoryId);
+    
+    // If territory is unclaimed and in setup phase, claim it
+    if (territory && territory.owner === null) {
+      onClaimTerritory(territoryId);
+    } else {
+      onTerritorySelect(territoryId);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <HexGrid
+    <div className="w-full h-full overflow-hidden">
+      <HexGrid 
         territories={territories}
+        players={players}
         selectedTerritory={selectedTerritory}
-        onTerritoryClick={onTerritoryClick}
+        onTerritoryClick={handleTerritoryClick}
         currentPlayer={currentPlayer}
-        playerResources={playerResources}
-        phase={phase}
       />
     </div>
   );
 };
-
-export default GameBoard;

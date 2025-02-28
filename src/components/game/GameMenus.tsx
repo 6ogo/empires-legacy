@@ -1,40 +1,65 @@
 
 import React from "react";
-import { Territory, Resources } from "@/types/game";
-import BuildingMenu from "./BuildingMenu";
-import RecruitmentMenu from "./RecruitmentMenu";
+import { Button } from "../ui/button";
+import { 
+  Info, 
+  History, 
+  Trophy, 
+  Flame, 
+  Map 
+} from "lucide-react";
 
-interface GameMenusProps {
-  showMenus: boolean;
-  selectedTerritory: Territory | null;
-  onBuild: (buildingType: string) => void;
-  onRecruit: (unitType: string) => void;
-  resources: Resources;
-}
-
-const GameMenus: React.FC<GameMenusProps> = ({
-  showMenus,
-  selectedTerritory,
-  onBuild,
-  onRecruit,
-  resources,
-}) => {
-  if (!showMenus || !selectedTerritory) return null;
-
+export const GameMenus: React.FC = () => {
   return (
-    <div className="absolute top-24 inset-x-4 md:inset-x-auto md:left-4 md:right-4 flex flex-col md:flex-row justify-center gap-4">
-      <BuildingMenu 
-        onBuild={onBuild}
-        selectedTerritory={selectedTerritory}
-        resources={resources}
-      />
-      <RecruitmentMenu 
-        onRecruit={onRecruit}
-        resources={resources}
-        selectedTerritory={selectedTerritory}
-      />
+    <div className="mt-auto">
+      <h3 className="text-white text-sm font-bold mb-2">Game Info</h3>
+      
+      <div className="space-y-1">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+        >
+          <Info className="w-4 h-4 mr-2" />
+          Game Rules
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+        >
+          <History className="w-4 h-4 mr-2" />
+          Combat History
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+        >
+          <Trophy className="w-4 h-4 mr-2" />
+          Victory Conditions
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+        >
+          <Flame className="w-4 h-4 mr-2" />
+          Random Events
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+        >
+          <Map className="w-4 h-4 mr-2" />
+          Full Map View
+        </Button>
+      </div>
     </div>
   );
 };
-
-export default GameMenus;

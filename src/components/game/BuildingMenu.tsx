@@ -1,172 +1,37 @@
+
 import React from "react";
-import { Resources, Territory } from "@/types/game";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { 
-  Store, 
-  Warehouse, 
-  Building2, 
-  Sword,
-  TreeDeciduous,
-  Mountain,
-  GalleryThumbnails,
-  Castle,
-  ArrowUpDown
-} from "lucide-react";
+import { Button } from "../ui/button";
 
-interface BuildingMenuProps {
-  onBuild: (buildingType: string) => void;
-  resources: Resources;
-  selectedTerritory: Territory | null;
-}
-
-const buildings = [
-  {
-    id: "lumber_mill",
-    name: "Lumber Mill",
-    icon: TreeDeciduous,
-    cost: { gold: 50, wood: 20 },
-    description: "+2 wood per turn",
-    requiresResource: "wood",
-  },
-  {
-    id: "mine",
-    name: "Mine",
-    icon: Mountain,
-    cost: { gold: 50, stone: 20 },
-    description: "+2 stone per turn",
-    requiresResource: "stone",
-  },
-  {
-    id: "market",
-    name: "Market",
-    icon: Store,
-    cost: { gold: 100, wood: 30 },
-    description: "+2 gold per turn",
-  },
-  {
-    id: "farm",
-    name: "Farm",
-    icon: GalleryThumbnails,
-    cost: { gold: 50, wood: 20 },
-    description: "+2 food per turn",
-  },
-  {
-    id: "expand",
-    name: "Expand Territory",
-    icon: ArrowUpDown,
-    cost: { wood: 25, stone: 25 },
-    description: "Buy adjacent territory",
-  },
-  {
-    id: "barracks",
-    name: "Barracks",
-    icon: Sword,
-    cost: { gold: 150, wood: 50, stone: 50 },
-    description: "Enables unit training",
-  },
-  {
-    id: "fortress",
-    name: "Fortress",
-    icon: Castle,
-    cost: { gold: 300, stone: 150 },
-    description: "+50% defense",
-  },
-];
-
-const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selectedTerritory }) => {
-  const canAfford = (costs: Partial<Resources>) => {
-    return Object.entries(costs).every(
-      ([resource, cost]) => (resources[resource as keyof Resources] || 0) >= (cost || 0)
-    );
-  };
-
-  const canBuildOnTerritory = (building: typeof buildings[0]) => {
-    if (!selectedTerritory) {
-      toast.error("Please select a territory first!");
-      return false;
-    }
-
-    if (selectedTerritory.owner !== selectedTerritory.owner) {
-      toast.error("You can only build on your own territories!");
-      return false;
-    }
-
-    // Check building count limit (except for expand action)
-    if (building.id !== 'expand') {
-      const buildingCount = selectedTerritory.building ? 1 : 0;
-      if (buildingCount >= 1) {
-        toast.error("Maximum of 1 building per territory reached!");
-        return false;
-      }
-    }
-
-    // Check if territory has required resource for resource buildings
-    if (building.requiresResource) {
-      const hasResource = selectedTerritory.resources[building.requiresResource as keyof Resources] > 0;
-      if (!hasResource) {
-        toast.error(`This territory has no ${building.requiresResource} resources!`);
-        return false;
-      }
-    }
-
-    // Check if player can afford the building
-    if (!canAfford(building.cost)) {
-      toast.error("Insufficient resources!");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleBuildClick = (building: typeof buildings[0]) => {
-    if (canBuildOnTerritory(building)) {
-      onBuild(building.id);
-    }
-  };
+export const BuildingMenu: React.FC<{
+  onSelect: (type: string) => void;
+}> = ({ onSelect }) => {
+  const buildings = [
+    { type: "lumberMill", name: "Lumber Mill", description: "+20 Wood production", cost: "50 Wood, 20 Stone" },
+    { type: "mine", name: "Mine", description: "+20 Stone production", cost: "30 Wood, 50 Stone" },
+    { type: "market", name: "Market", description: "+20 Gold + trade bonuses", cost: "40 Wood, 40 Stone, 100 Gold" },
+    { type: "farm", name: "Farm", description: "+8 Food production", cost: "50 Wood, 50 Gold" },
+    { type: "barracks", name: "Barracks", description: "Enables unit recruitment", cost: "80 Wood, 60 Stone, 150 Gold" },
+    { type: "fortress", name: "Fortress", description: "Provides defensive bonuses", cost: "50 Wood, 150 Stone, 200 Gold" },
+    { type: "road", name: "Road", description: "Improves unit movement", cost: "30 Stone, 50 Gold" }
+  ];
 
   return (
-    <ScrollArea className="h-[300px] bg-white/10 backdrop-blur-sm rounded-lg p-4">
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg text-game-gold">Buildings</h3>
-        <div className="grid gap-3">
-          {buildings.map((building) => (
-            <div
-              key={building.id}
-              className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <building.icon className="w-5 h-5 text-game-gold" />
-                  <div>
-                    <h4 className="font-medium">{building.name}</h4>
-                    <p className="text-sm text-gray-400">{building.description}</p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleBuildClick(building)}
-                  disabled={!selectedTerritory || !canAfford(building.cost)}
-                  className="ml-2"
-                >
-                  Build
-                </Button>
-              </div>
-              <div className="mt-2 text-sm text-gray-400">
-                Cost: {Object.entries(building.cost).map(([resource, amount], i) => (
-                  <span key={resource}>
-                    {i > 0 && ", "}
-                    {amount} {resource}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="bg-gray-800 rounded-lg p-3 mb-4 overflow-y-auto max-h-80">
+      <h3 className="text-white text-sm font-bold mb-2">Build Structure</h3>
+      
+      <div className="space-y-2">
+        {buildings.map((building) => (
+          <div 
+            key={building.type}
+            className="bg-gray-700 rounded p-2 cursor-pointer hover:bg-gray-600"
+            onClick={() => onSelect(building.type)}
+          >
+            <h4 className="text-white text-sm font-bold">{building.name}</h4>
+            <p className="text-gray-300 text-xs">{building.description}</p>
+            <p className="text-gray-400 text-xs">Cost: {building.cost}</p>
+          </div>
+        ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 };
-
-export default BuildingMenu;
