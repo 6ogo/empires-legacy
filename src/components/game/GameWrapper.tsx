@@ -11,20 +11,24 @@ import ErrorScreen from './ErrorScreen';
 import LoadingScreen from './LoadingScreen';
 import { toast } from 'sonner';
 
-const GameWrapper = () => {
-  const navigate = useNavigate();
-  const {
-    gameStatus,
-    gameMode,
-    gameState,
-    isLoading,
-    error,
-    setGameStatus,
-    setGameMode,
-    setGameState,
-    initializeGame,
-    resetGame
-  } = useGameStore();
+interface GameWrapperProps {
+  showLeaderboard: boolean;
+  gameStatus: GameStatus;
+  gameMode: GameMode;
+  onBackToMenu: () => void;
+  onSelectMode: Dispatch<SetStateAction<GameMode>>;
+  onCreateGame: (numPlayers: number, boardSize: number) => Promise<GameState | null>;
+  onJoinGame: () => Promise<boolean>;
+  joinRoomId: string;
+  onJoinRoomIdChange: (id: string) => void;
+  isHost: boolean;
+  onStartAnyway: () => void;
+  onShowLeaderboard: () => void;
+  onShowStats: () => void;
+  onOnlineGame: () => void;
+  connectedPlayers: Player[];
+  playerProfile: UserProfile;
+}
 
   const handleCreateGame = async (numPlayers: number, boardSize: number) => {
     try {

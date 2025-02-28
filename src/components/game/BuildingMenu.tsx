@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Resources, Territory } from "@/types/game";
 import { ScrollArea } from "@/components/ui/scroll-area";

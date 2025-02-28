@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { GameState } from "@/types/game";
@@ -19,15 +18,18 @@ const GameControls: React.FC<GameControlsProps> = ({
   return (
     <div className="flex flex-col gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg">
       <div className="text-lg font-semibold text-white">
-        Turn {gameState.turn} - {gameState.phase.toUpperCase()}
+        Turn {gameState.turn} - Player {gameState.currentPlayer.replace('player', '')}
+      </div>
+      <div className="text-md font-medium text-white">
+        Phase: {gameState.phase.charAt(0).toUpperCase() + gameState.phase.slice(1)}
       </div>
       <div className="flex gap-2">
         <Button
           variant="outline"
           onClick={onEndPhase}
-          className="flex-1 hover:bg-white/10"
+          className="flex-1 hover:bg-white/10 text-white"
         >
-          End {gameState.phase}
+          End Phase
         </Button>
         <Button
           onClick={onEndTurn}

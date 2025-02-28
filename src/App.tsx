@@ -1,13 +1,10 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import AuthPage from '@/pages/Auth';
-import GamePage from '@/pages/GamePage';
 import IndexPage from '@/pages/Index';
-import Leaderboard from '@/components/game/Leaderboard';
+import GamePage from '@/pages/GamePage';
 import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -23,34 +20,15 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider children={undefined}>
+      <ThemeProvider defaultTheme="dark" storageKey="empires-legacy-theme">
+        <BrowserRouter>
           <Routes>
             <Route path="/" element={<IndexPage />} />
-            <Route 
-              path="/auth/*" 
-              element={
-                <ProtectedRoute requireAuth={false} children={undefined}>
-                  <AuthPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/game/*" 
-              element={
-                <ProtectedRoute children={undefined}>
-                  <GamePage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/leaderboard" 
-              element={<Leaderboard />} 
-            />
+            <Route path="/game/*" element={<GamePage />} />
           </Routes>
           <Toaster />
-        </AuthProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

@@ -1,16 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Territory } from "@/types/game";
+import { Territory, Resources } from "@/types/game";
 import { Trees, Mountain, Wheat, Coins, ZoomIn, ZoomOut } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface HexGridProps {
   territories: Territory[];
   selectedTerritory: Territory | null;
   onTerritoryClick: (territory: Territory) => void;
   currentPlayer: string;
-  playerResources: { gold: number; wood: number; stone: number; food: number };
+  playerResources: Resources;
   phase: string;
 }
 
@@ -27,12 +25,71 @@ const HexGrid: React.FC<HexGridProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
+  const isMobile = window.innerWidth < 768;
 
   const hexSize = 40;
   const xSpacing = hexSize * 2;
   const ySpacing = hexSize * 1.8;
 
+  // Handle mouse controls for panning
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) { // Left button
+      setIsDragging(true);
+      setStartPos({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - startPos.x,
+        y: e.clientY - startPos.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Handle touch controls for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setStartPos({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1) {
+      setPosition({
+        x: e.touches[0].clientX - startPos.x,
+        y: e.touches[0].clientY - startPos.y
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Zoom controls
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
+  };
+
+  const zoomIn = () => setScale(prev => Math.min(prev * 1.2, 3));
+  const zoomOut = () => setScale(prev => Math.max(prev * 0.8, 0.5));
+
+  // Utility functions
   const getHexagonPoints = () => {
     const points = [];
     for (let i = 0; i < 6; i++) {
@@ -64,111 +121,44 @@ const HexGrid: React.FC<HexGridProps> = ({
     );
   };
 
-  const canClaimTerritory = (territory: Territory) => {
-    if (phase !== "setup") return false;
-    if (territory.owner) {
-      toast.error("This territory is already claimed!");
-      return false;
-    }
-
-    // Check if current player already has claimed a territory
-    const playerTerritoryCount = territories.filter(
-      t => t.owner === currentPlayer
-    ).length;
-
-    if (playerTerritoryCount >= 1) {
-      toast.error("You can only claim one starting territory!");
-      return false;
-    }
-
-    // Check if territory is adjacent to opponent's territory
-    const hasAdjacentOpponentTerritory = territories.some(t => 
-      t.owner && t.owner !== currentPlayer && isAdjacent(t, territory)
-    );
-
-    if (hasAdjacentOpponentTerritory) {
-      toast.error("Starting territories cannot be adjacent to each other!");
-      return false;
-    }
-
-    return true;
+  // Player colors
+  const playerColors: Record<string, string> = {
+    player1: "fill-purple-500",
+    player2: "fill-orange-500",
+    player3: "fill-blue-500",
+    player4: "fill-green-500",
+    player5: "fill-red-500",
+    player6: "fill-yellow-500",
+    neutral: "fill-gray-700"
   };
+
+  // Resource colors and icons
+  const resourceColors = {
+    wood: "text-game-wood",
+    stone: "text-game-stone",
+    food: "text-game-food",
+    gold: "text-game-gold"
+  };
+
+  const resourceIcons = {
+    wood: Trees,
+    stone: Mountain,
+    food: Wheat,
+    gold: Coins
+  };
+
+  // Calculate the viewbox
+  const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
+  const minX = Math.min(...positions.map(p => p.x));
+  const maxX = Math.max(...positions.map(p => p.x));
+  const minY = Math.min(...positions.map(p => p.y));
+  const maxY = Math.max(...positions.map(p => p.y));
   
-  const validateTerritorySelection = (territory: Territory, phase: string, currentPlayer: string): boolean => {
-  // Setup phase validation
-  if (phase === 'setup') {
-    if (territory.owner !== null) {
-      return false;
-    }
-    
-    // Check if there are any adjacent claimed territories
-    const hasAdjacentClaimed = territories.some(t => 
-      t.owner !== null && isAdjacent(territory, t)
-    );
-    
-    return !hasAdjacentClaimed;
-  }
+  const padding = hexSize * 2;
+  const viewBoxWidth = (maxX - minX) + padding * 2;
+  const viewBoxHeight = (maxY - minY) + padding * 2;
 
-  // Building phase validation
-  if (phase === 'building') {
-    if (territory.owner !== currentPlayer) {
-      return false;
-    }
-    
-    // Can only build in territories adjacent to owned territories
-    return hasAdjacentOwnedTerritory(territory);
-  }
-
-  // Recruitment phase validation
-  if (phase === 'recruitment') {
-    if (territory.owner !== currentPlayer) {
-      return false;
-    }
-    
-    // Can only recruit in territories with barracks
-    return territory.building === 'barracks';
-  }
-
-  // Combat phase validation
-  if (phase === 'combat') {
-    // Can select own territories with units for attack
-    if (territory.owner === currentPlayer) {
-      return territory.militaryUnit !== null;
-    }
-    
-    // Can select enemy territories adjacent to selected territory
-    if (selectedTerritory && territory.owner !== currentPlayer) {
-      return isAdjacent(territory, selectedTerritory);
-    }
-  }
-
-  return false;
-};
-  const canPurchaseTerritory = (territory: Territory) => {
-    if (phase !== "building") return false;
-    if (territory.owner) return false;
-    if (!hasAdjacentOwnedTerritory(territory)) return false;
-    
-    const cost = {
-      gold: 50,
-      wood: 20,
-      stone: 20,
-      food: 20
-    };
-
-    const canAfford = Object.entries(cost).every(
-      ([resource, amount]) => playerResources[resource as keyof typeof playerResources] >= amount
-    );
-
-    return canAfford;
-  };
-
-  const canInteractWithTerritory = (territory: Territory) => {
-    if (phase === "setup") return canClaimTerritory(territory);
-    if (phase === "building") return canPurchaseTerritory(territory);
-    return territory.owner === currentPlayer;
-  };
-
+  // Render a territory's resources as icons
   const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number, total: number) => {
     const IconComponent = resourceIcons[resource];
     const angleStep = (2 * Math.PI) / total;
@@ -195,118 +185,15 @@ const HexGrid: React.FC<HexGridProps> = ({
     );
   };
 
-  const renderRoad = (territory: Territory) => {
-    if (!territory.building || territory.building !== "road") return null;
-    
-    const adjacentTerritories = territories.filter(t => isAdjacent(territory, t));
-    return adjacentTerritories.map(adjTerritory => {
-      if (adjTerritory.owner !== territory.owner) return null;
-      
-      const start = getHexPosition(territory.coordinates.q, territory.coordinates.r);
-      const end = getHexPosition(adjTerritory.coordinates.q, adjTerritory.coordinates.r);
-      
-      return (
-        <line
-          key={`road-${territory.id}-${adjTerritory.id}`}
-          x1={start.x}
-          y1={start.y}
-          x2={end.x}
-          y2={end.y}
-          className="stroke-gray-400 stroke-2"
-          strokeLinecap="round"
-        />
-      );
-    });
-  };
-
-  const playerColors = {
-    player1: "fill-purple-500",
-    player2: "fill-orange-500",
-    neutral: "fill-gray-700"
-  };
-
-  const resourceColors = {
-    wood: "text-game-wood",
-    stone: "text-game-stone",
-    food: "text-game-food",
-    gold: "text-game-gold"
-  };
-
-  const resourceIcons = {
-    wood: Trees,
-    stone: Mountain,
-    food: Wheat,
-    gold: Coins
-  };
-
-  const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
-  const minX = Math.min(...positions.map(p => p.x));
-  const maxX = Math.max(...positions.map(p => p.x));
-  const minY = Math.min(...positions.map(p => p.y));
-  const maxY = Math.max(...positions.map(p => p.y));
-  
-  const padding = hexSize * 2;
-  const viewBoxWidth = (maxX - minX) + padding * 2;
-  const viewBoxHeight = (maxY - minY) + padding * 2;
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      setPinchStart(distance);
-    } else if (e.touches.length === 1) {
-      setIsDragging(true);
-      setStartPos({
-        x: e.touches[0].clientX - position.x,
-        y: e.touches[0].clientY - position.y,
-      });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      const delta = distance / pinchStart;
-      setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
-      setPinchStart(distance);
-    } else if (isDragging) {
-      setPosition({
-        x: e.touches[0].clientX - startPos.x,
-        y: e.touches[0].clientY - startPos.y,
-      });
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    setPinchStart(0);
-  };
-
-  const [pinchStart, setPinchStart] = useState(0);
-
-  const zoomIn = () => setScale(prev => Math.min(prev * 1.2, 3));
-  const zoomOut = () => setScale(prev => Math.max(prev * 0.8, 0.5));
-
   return (
-    <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
+    <div className="relative w-full h-screen bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
       <div
         ref={containerRef}
         className="w-full h-full overflow-hidden touch-none"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -316,11 +203,9 @@ const HexGrid: React.FC<HexGridProps> = ({
           viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
           className="w-full h-full origin-center transition-transform"
           style={{
-            transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+            transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
           }}
         >
-          {territories.map(territory => renderRoad(territory))}
-          
           {territories.map((territory) => {
             const { x, y } = getHexPosition(
               territory.coordinates.q,
@@ -328,7 +213,22 @@ const HexGrid: React.FC<HexGridProps> = ({
             );
             
             const resourceEntries = Object.entries(territory.resources);
-            const isInteractable = canInteractWithTerritory(territory);
+            const isInteractable = true; // We'll implement full logic for this later
+
+            // Determine if this territory is selectable based on game phase
+            let isSelectable = true;
+            
+            if (phase === 'setup') {
+              isSelectable = territory.owner === null;
+              // Add logic for preventing claiming territories adjacent to other players
+            } else if (phase === 'building') {
+              isSelectable = territory.owner === currentPlayer;
+            } else if (phase === 'recruitment') {
+              isSelectable = territory.owner === currentPlayer && territory.building === 'barracks';
+            } else if (phase === 'combat') {
+              isSelectable = territory.owner === currentPlayer || 
+                (selectedTerritory?.militaryUnit && territory.owner !== currentPlayer);
+            }
 
             return (
               <g
@@ -339,7 +239,7 @@ const HexGrid: React.FC<HexGridProps> = ({
               >
                 <g className={`
                   transform-gpu transition-transform duration-200
-                  ${isInteractable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed opacity-75'}
+                  ${isSelectable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed opacity-75'}
                 `}>
                   <polygon
                     points={getHexagonPoints()}
@@ -348,7 +248,7 @@ const HexGrid: React.FC<HexGridProps> = ({
                       stroke-gray-400 stroke-2
                       transition-colors duration-300
                       ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                      ${isInteractable ? "hover:stroke-white" : ""}
+                      ${isSelectable ? "hover:stroke-white" : ""}
                     `}
                   />
                   {territory.building && (

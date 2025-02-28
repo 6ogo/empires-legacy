@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Resources } from "@/types/game";
 import { Coins, Trees, Mountain, Wheat } from "lucide-react";
