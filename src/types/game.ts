@@ -1,3 +1,4 @@
+
 export type ResourceType = "gold" | "wood" | "stone" | "food";
 export type TerritoryType = "plains" | "mountains" | "forests" | "coast" | "capital";
 export type PlayerColor = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";

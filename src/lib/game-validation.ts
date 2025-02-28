@@ -1,5 +1,5 @@
 
-import { GameState, GameAction, Territory, UIPlayer as Player, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
+import { GameState, GameAction, Territory, GamePlayer, Resources, MilitaryUnit, ValidationResult, GamePhase, GameUpdate, GameUpdateType } from '@/types/game';
 
 export class GameStateValidator {
   private state: GameState;
@@ -107,7 +107,7 @@ export class GameStateValidator {
     });
   }
 
-  private validatePlayer(player: Player): ValidationResult {
+  private validatePlayer(player: GamePlayer): ValidationResult {
     const errors: string[] = [];
 
     if (!this.validateResources(player.resources)) {

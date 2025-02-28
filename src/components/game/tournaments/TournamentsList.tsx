@@ -6,30 +6,26 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const TournamentsList = () => {
   const {
-    activeTournaments,
-    playerStatus,
-    signupForTournament,
-    verifyForTournament,
+    tournaments,
+    loading,
+    error,
+    registerForTournament
   } = useTournament();
 
-  if (!activeTournaments) return null;
+  if (!tournaments) return null;
 
   return (
     <ScrollArea className="h-[600px] w-full p-4">
       <div className="space-y-4">
-        {activeTournaments.map((tournament) => {
-          const isSignedUp = playerStatus?.tournamentId === tournament.id;
-          const canSignup = tournament.status === 'signups' && !isSignedUp;
-          const canVerify = tournament.status === 'verification' && isSignedUp && !playerStatus?.verificationTime;
-
+        {tournaments.map((tournament) => {
           return (
             <TournamentCard
               key={tournament.id}
               tournament={tournament}
-              canSignup={canSignup}
-              canVerify={canVerify}
-              onSignup={() => signupForTournament(tournament.id)}
-              onVerify={() => verifyForTournament(tournament.id)}
+              canSignup={tournament.status === 'signups'}
+              canVerify={tournament.status === 'verification'}
+              onSignup={() => registerForTournament(tournament.id)}
+              onVerify={() => registerForTournament(tournament.id)}
             />
           );
         })}

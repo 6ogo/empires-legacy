@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tournament } from '@/types/tournament';
@@ -23,14 +24,14 @@ export function useTournament() {
         id: tournament.id,
         status: tournament.status as "upcoming" | "signups" | "verification" | "in_progress" | "completed",
         stage: tournament.stage as "country" | "regional" | "continental" | "world",
-        region_id: tournament.region_id,
-        start_time: tournament.start_time,
-        signup_start_time: tournament.signup_start_time,
-        verification_start_time: tournament.verification_start_time,
-        max_players: tournament.max_players,
-        current_players: tournament.current_players,
-        created_at: tournament.created_at,
-        updated_at: tournament.updated_at,
+        regionId: tournament.region_id,
+        startTime: tournament.start_time,
+        signupStartTime: tournament.signup_start_time,
+        verificationStartTime: tournament.verification_start_time,
+        maxPlayers: tournament.max_players,
+        currentPlayers: tournament.current_players,
+        createdAt: tournament.created_at,
+        updatedAt: tournament.updated_at,
       }));
       
       setTournaments(formattedTournaments);
