@@ -286,14 +286,64 @@ export const HexGrid: React.FC<{
                 {/* Show territory type */}
                 <text
                   x={pixelPos.x}
-                  y={pixelPos.y - 10}
+                  y={pixelPos.y - 25}
                   textAnchor="middle"
-                  fill="#000"
+                  fill="#FFF"
                   fontSize="12"
                   fontWeight="bold"
+                  stroke="#000"
+                  strokeWidth="0.5"
                 >
                   {territory.type.charAt(0).toUpperCase() + territory.type.slice(1)}
                 </text>
+                
+                {/* Show resources */}
+                <g transform={`translate(${pixelPos.x - 30}, ${pixelPos.y - 10})`}>
+                  <text 
+                    x="0" 
+                    y="0" 
+                    fill="#FFD700" 
+                    fontSize="10" 
+                    fontWeight="bold"
+                    stroke="#000"
+                    strokeWidth="0.5"
+                  >
+                    G:{territory.resources.gold}
+                  </text>
+                  <text 
+                    x="20" 
+                    y="0" 
+                    fill="#8BC34A" 
+                    fontSize="10" 
+                    fontWeight="bold"
+                    stroke="#000" 
+                    strokeWidth="0.5"
+                  >
+                    W:{territory.resources.wood}
+                  </text>
+                  <text 
+                    x="0" 
+                    y="12" 
+                    fill="#9E9E9E" 
+                    fontSize="10" 
+                    fontWeight="bold"
+                    stroke="#000" 
+                    strokeWidth="0.5"
+                  >
+                    S:{territory.resources.stone}
+                  </text>
+                  <text 
+                    x="20" 
+                    y="12" 
+                    fill="#EF5350" 
+                    fontSize="10" 
+                    fontWeight="bold"
+                    stroke="#000" 
+                    strokeWidth="0.5"
+                  >
+                    F:{territory.resources.food}
+                  </text>
+                </g>
                 
                 {/* Show owner indicator */}
                 {territory.owner !== null && (
@@ -315,6 +365,8 @@ export const HexGrid: React.FC<{
                     fill="#FFF"
                     fontSize="12"
                     fontWeight="bold"
+                    stroke="#000"
+                    strokeWidth="0.5"
                   >
                     B: {territory.buildings.length}
                   </text>
@@ -328,6 +380,8 @@ export const HexGrid: React.FC<{
                     fill="#FFF"
                     fontSize="12"
                     fontWeight="bold"
+                    stroke="#000"
+                    strokeWidth="0.5"
                   >
                     U: {territory.units.length}
                   </text>

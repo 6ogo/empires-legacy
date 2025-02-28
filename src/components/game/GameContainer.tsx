@@ -9,6 +9,7 @@ import { GameMenus } from "./GameMenus";
 import { ErrorScreen } from "./ErrorScreen";
 import { Button } from "../ui/button";
 import { GameInfoModal } from "./GameInfoModal";
+import { toast } from "sonner";
 
 interface GameState {
   phase: "setup" | "playing";
@@ -23,6 +24,14 @@ interface GameState {
   currentAction: "none" | "build" | "expand" | "attack" | "recruit";
   actionTaken: boolean;
   expandableTerritories: number[];
+  lastResourceGain: ResourceGain | null;
+}
+
+interface ResourceGain {
+  gold: number;
+  wood: number;
+  stone: number;
+  food: number;
 }
 
 interface Player {
@@ -49,6 +58,12 @@ interface Territory {
   units: number[];
   position: { x: number; y: number };
   adjacentTerritories: number[];
+  resources: {
+    gold: number;
+    wood: number;
+    stone: number;
+    food: number;
+  };
 }
 
 interface Building {
@@ -85,20 +100,22 @@ export const GameContainer: React.FC<{
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeInfoModal, setActiveInfoModal] = useState<string | null>(null);
+  const [showResourceGain, setShowResourceGain] = useState<boolean>(false);
 
   useEffect(() => {
     try {
-      const territories = generateTerritories(settings.boardSize);
+      const boardSize = getBoardSize(settings.playerCount, settings.boardSize);
+      const territories = generateTerritories(boardSize);
       
       const players = Array.from({ length: settings.playerCount }, (_, i) => ({
         id: i,
         name: settings.playerNames ? settings.playerNames[i] : `Player ${i + 1}`,
         color: settings.playerColors ? settings.playerColors[i] : getPlayerColor(i),
         resources: {
-          gold: 500,
-          wood: 200,
+          gold: 300,
+          wood: 100,
           stone: 100,
-          food: 50
+          food: 100
         },
         territories: [],
         buildings: [],
@@ -118,7 +135,8 @@ export const GameContainer: React.FC<{
         setupComplete: false,
         currentAction: "none",
         actionTaken: false,
-        expandableTerritories: []
+        expandableTerritories: [],
+        lastResourceGain: null
       };
       
       setGameState(initialState);
@@ -130,31 +148,40 @@ export const GameContainer: React.FC<{
     }
   }, [settings]);
 
-  const generateTerritories = (boardSize: string): Territory[] => {
-    let gridSize;
-    switch (boardSize) {
-      case "small":
-        gridSize = 5;
-        break;
-      case "medium":
-        gridSize = 7;
-        break;
-      case "large":
-        gridSize = 10;
-        break;
-      default:
-        gridSize = 7;
-    }
+  const getBoardSize = (playerCount: number, sizePreference: string): number => {
+    const baseSizes = {
+      small: 5,
+      medium: 7,
+      large: 9
+    };
     
+    let playerAdjustment = 0;
+    if (playerCount > 2) playerAdjustment = playerCount - 2;
+    
+    let finalSize = baseSizes[sizePreference as keyof typeof baseSizes] || 7;
+    finalSize += playerAdjustment;
+    
+    return Math.min(finalSize, 13);
+  };
+
+  const generateTerritories = (boardSize: number): Territory[] => {
     const territories: Territory[] = [];
     let id = 0;
     
-    for (let q = -Math.floor(gridSize/2); q <= Math.floor(gridSize/2); q++) {
-      const r1 = Math.max(-Math.floor(gridSize/2), -q - Math.floor(gridSize/2));
-      const r2 = Math.min(Math.floor(gridSize/2), -q + Math.floor(gridSize/2));
+    const radius = Math.floor(boardSize / 2);
+    
+    for (let q = -radius; q <= radius; q++) {
+      const r1 = Math.max(-radius, -q - radius);
+      const r2 = Math.min(radius, -q + radius);
       
       for (let r = r1; r <= r2; r++) {
+        if (Math.random() < 0.1 && Math.abs(q) > 1 && Math.abs(r) > 1 && Math.abs(-q-r) > 1) {
+          continue;
+        }
+        
         const type = getRandomTerritoryType();
+        const resources = generateResourcesForType(type);
+        
         territories.push({
           id,
           type,
@@ -165,7 +192,8 @@ export const GameContainer: React.FC<{
             x: q, 
             y: r
           },
-          adjacentTerritories: []
+          adjacentTerritories: [],
+          resources
         });
         id++;
       }
@@ -197,7 +225,7 @@ export const GameContainer: React.FC<{
 
   const getRandomTerritoryType = (): "plains" | "mountains" | "forests" | "coast" | "capital" => {
     const types = ["plains", "mountains", "forests", "coast"];
-    const weights = [0.4, 0.2, 0.3, 0.1];
+    const weights = [0.40, 0.25, 0.25, 0.10];
     
     const random = Math.random();
     let cumulativeWeight = 0;
@@ -212,6 +240,52 @@ export const GameContainer: React.FC<{
     return "plains";
   };
 
+  const generateResourcesForType = (type: string): { gold: number; wood: number; stone: number; food: number } => {
+    const baseResources = {
+      gold: 0,
+      wood: 0,
+      stone: 0,
+      food: 0
+    };
+    
+    const randomFactor = 0.8 + Math.random() * 0.4;
+    
+    switch (type) {
+      case "plains":
+        baseResources.food = Math.floor(10 * randomFactor);
+        baseResources.wood = Math.floor(5 * randomFactor);
+        baseResources.stone = Math.floor(3 * randomFactor);
+        baseResources.gold = Math.floor(5 * randomFactor);
+        break;
+      case "mountains":
+        baseResources.stone = Math.floor(15 * randomFactor);
+        baseResources.gold = Math.floor(8 * randomFactor);
+        baseResources.wood = Math.floor(3 * randomFactor);
+        baseResources.food = Math.floor(2 * randomFactor);
+        break;
+      case "forests":
+        baseResources.wood = Math.floor(15 * randomFactor);
+        baseResources.food = Math.floor(7 * randomFactor);
+        baseResources.stone = Math.floor(3 * randomFactor);
+        baseResources.gold = Math.floor(3 * randomFactor);
+        break;
+      case "coast":
+        baseResources.food = Math.floor(12 * randomFactor);
+        baseResources.gold = Math.floor(10 * randomFactor);
+        baseResources.wood = Math.floor(3 * randomFactor);
+        baseResources.stone = Math.floor(2 * randomFactor);
+        break;
+      case "capital":
+        baseResources.gold = 20;
+        baseResources.wood = Math.floor(10 * randomFactor);
+        baseResources.stone = Math.floor(10 * randomFactor);
+        baseResources.food = Math.floor(10 * randomFactor);
+        break;
+    }
+    
+    return baseResources;
+  };
+
   const getPlayerColor = (index: number): string => {
     const colors = [
       "#FF5733",
@@ -223,6 +297,59 @@ export const GameContainer: React.FC<{
     ];
     
     return colors[index % colors.length];
+  };
+
+  const canBuildOnTerritory = (territoryId: number): boolean => {
+    if (!gameState) return false;
+    
+    const territory = gameState.territories.find(t => t.id === territoryId);
+    if (!territory || territory.owner !== gameState.currentPlayer) return false;
+    
+    return territory.buildings.length === 0;
+  };
+
+  const canRecruitInTerritory = (territoryId: number): boolean => {
+    if (!gameState) return false;
+    
+    const territory = gameState.territories.find(t => t.id === territoryId);
+    if (!territory || territory.owner !== gameState.currentPlayer) return false;
+    
+    const hasBarracks = territory.buildings.some(buildingId => {
+      const building = gameState.players[gameState.currentPlayer].buildings.find(b => b.id === buildingId);
+      return building && building.type === "barracks";
+    });
+    
+    const hasUnits = territory.units.length > 0;
+    
+    return hasBarracks && !hasUnits;
+  };
+
+  const canAttackFromTerritory = (territoryId: number): boolean => {
+    if (!gameState) return false;
+    
+    const territory = gameState.territories.find(t => t.id === territoryId);
+    if (!territory || territory.owner !== gameState.currentPlayer) return false;
+    
+    if (territory.units.length === 0) return false;
+    
+    return territory.adjacentTerritories.some(adjId => {
+      const adjTerritory = gameState.territories.find(t => t.id === adjId);
+      return adjTerritory && adjTerritory.owner !== null && adjTerritory.owner !== gameState.currentPlayer;
+    });
+  };
+
+  const hasEnemyAdjacentTerritories = (): boolean => {
+    if (!gameState) return false;
+    
+    return gameState.players[gameState.currentPlayer].territories.some(territoryId => {
+      const territory = gameState.territories.find(t => t.id === territoryId);
+      if (!territory) return false;
+      
+      return territory.adjacentTerritories.some(adjId => {
+        const adjTerritory = gameState.territories.find(t => t.id === adjId);
+        return adjTerritory && adjTerritory.owner !== null && adjTerritory.owner !== gameState.currentPlayer;
+      });
+    });
   };
 
   const handleTerritorySelect = (territoryId: number) => {
@@ -255,14 +382,64 @@ export const GameContainer: React.FC<{
     if (menu === "expand") {
       const expandableTerritories = getExpandableTerritories();
       
+      if (expandableTerritories.length === 0) {
+        toast.error("No available territories to expand to!");
+        return;
+      }
+      
+      const canExpand = hasResourcesForExpansion();
+      if (!canExpand) {
+        toast.error("Not enough resources to expand! Need 100 Gold and 20 Food.");
+        return;
+      }
+      
       setGameState({
         ...gameState,
         currentAction: "expand",
         expandableTerritories
       });
+    } else if (menu === "build") {
+      const canBuildAnywhere = gameState.players[gameState.currentPlayer].territories.some(
+        territoryId => canBuildOnTerritory(territoryId)
+      );
+      
+      if (!canBuildAnywhere) {
+        toast.error("No available territories to build on!");
+        return;
+      }
+      
+      if (selectedTerritory !== null && !canBuildOnTerritory(selectedTerritory)) {
+        toast.error("Cannot build on this territory!");
+        return;
+      }
+      
+      setActiveMenu(menu);
+    } else if (menu === "recruit") {
+      const canRecruitAnywhere = gameState.players[gameState.currentPlayer].territories.some(
+        territoryId => canRecruitInTerritory(territoryId)
+      );
+      
+      if (!canRecruitAnywhere) {
+        toast.error("No barracks available to recruit units! Build a barracks first.");
+        return;
+      }
+      
+      if (selectedTerritory !== null && !canRecruitInTerritory(selectedTerritory)) {
+        toast.error("Cannot recruit in this territory! Need a barracks with no existing units.");
+        return;
+      }
+      
+      setActiveMenu(menu);
     } else {
       setActiveMenu(menu);
     }
+  };
+  
+  const hasResourcesForExpansion = (): boolean => {
+    if (!gameState) return false;
+    
+    const currentPlayer = gameState.players[gameState.currentPlayer];
+    return currentPlayer.resources.gold >= 100 && currentPlayer.resources.food >= 20;
   };
   
   const getExpandableTerritories = () => {
@@ -312,6 +489,10 @@ export const GameContainer: React.FC<{
         actionTaken: true,
         expandableTerritories: []
       });
+      
+      toast.success("Territory expanded successfully!");
+    } else {
+      toast.error("Not enough resources to expand! Need 100 Gold and 20 Food.");
     }
   };
 
@@ -321,41 +502,26 @@ export const GameContainer: React.FC<{
     const updatedPlayers = [...gameState.players];
     const player = updatedPlayers[playerId];
     
+    const resourceGain = {
+      gold: 0,
+      wood: 0,
+      stone: 0,
+      food: 0
+    };
+    
+    let capitalCount = 0;
+    
     player.territories.forEach(territoryId => {
       const territory = gameState.territories.find(t => t.id === territoryId);
       if (!territory) return;
       
-      switch (territory.type) {
-        case "plains":
-          player.resources.gold += 10;
-          player.resources.wood += 5;
-          player.resources.stone += 5;
-          player.resources.food += 8;
-          break;
-        case "mountains":
-          player.resources.stone += 15;
-          player.resources.gold += 8;
-          player.resources.wood += 2;
-          player.resources.food += 3;
-          break;
-        case "forests":
-          player.resources.wood += 15;
-          player.resources.food += 5;
-          player.resources.gold += 5;
-          player.resources.stone += 3;
-          break;
-        case "coast":
-          player.resources.gold += 15;
-          player.resources.food += 10;
-          player.resources.wood += 3;
-          player.resources.stone += 2;
-          break;
-        case "capital":
-          player.resources.gold += 20;
-          player.resources.wood += 10;
-          player.resources.stone += 10;
-          player.resources.food += 15;
-          break;
+      resourceGain.gold += territory.resources.gold;
+      resourceGain.wood += territory.resources.wood;
+      resourceGain.stone += territory.resources.stone;
+      resourceGain.food += territory.resources.food;
+      
+      if (territory.type === "capital") {
+        capitalCount++;
       }
       
       territory.buildings.forEach(buildingId => {
@@ -364,36 +530,51 @@ export const GameContainer: React.FC<{
         
         switch (building.type) {
           case "lumberMill":
-            player.resources.wood += 20;
+            resourceGain.wood += 20;
             break;
           case "mine":
-            player.resources.stone += 20;
+            resourceGain.stone += 20;
             break;
           case "market":
-            player.resources.gold += 20;
+            resourceGain.gold += 20;
             break;
           case "farm":
-            player.resources.food += 8;
+            resourceGain.food += 8;
             break;
         }
       });
     });
     
+    resourceGain.gold += capitalCount * 20;
+    
+    let foodUpkeep = 0;
     player.units.forEach(unit => {
       switch (unit.type) {
         case "infantry":
-          player.resources.food -= 1;
+          foodUpkeep += 1;
           break;
         case "cavalry":
-          player.resources.food -= 2;
+          foodUpkeep += 2;
           break;
         case "artillery":
-          player.resources.food -= 2;
+          foodUpkeep += 2;
           break;
       }
     });
     
-    return updatedPlayers;
+    resourceGain.food -= foodUpkeep;
+    
+    player.resources.gold += resourceGain.gold;
+    player.resources.wood += resourceGain.wood;
+    player.resources.stone += resourceGain.stone;
+    player.resources.food += resourceGain.food;
+    
+    player.resources.food = Math.max(0, player.resources.food);
+    
+    return {
+      updatedPlayers,
+      resourceGain
+    };
   };
 
   const handleEndTurn = () => {
@@ -438,11 +619,17 @@ export const GameContainer: React.FC<{
       
       setTimeout(() => {
         if (gameState) {
-          const updatedPlayers = collectResources(0);
+          const { updatedPlayers, resourceGain } = collectResources(0) || { updatedPlayers: gameState.players, resourceGain: null };
           setGameState(prevState => prevState ? {
             ...prevState,
-            players: updatedPlayers || prevState.players
+            players: updatedPlayers,
+            lastResourceGain: resourceGain
           } : null);
+          
+          if (resourceGain) {
+            setShowResourceGain(true);
+            setTimeout(() => setShowResourceGain(false), 3000);
+          }
         }
       }, 500);
     } else {
@@ -498,11 +685,17 @@ export const GameContainer: React.FC<{
     if (!gameOver) {
       setTimeout(() => {
         if (gameState) {
-          const updatedPlayers = collectResources(nextPlayerId);
+          const { updatedPlayers, resourceGain } = collectResources(nextPlayerId) || { updatedPlayers: gameState.players, resourceGain: null };
           setGameState(prevState => prevState ? {
             ...prevState,
-            players: updatedPlayers || prevState.players
+            players: updatedPlayers,
+            lastResourceGain: resourceGain
           } : null);
+          
+          if (resourceGain) {
+            setShowResourceGain(true);
+            setTimeout(() => setShowResourceGain(false), 3000);
+          }
         }
       }, 500);
     }
@@ -514,11 +707,18 @@ export const GameContainer: React.FC<{
     const territory = gameState.territories.find(t => t.id === selectedTerritory);
     if (!territory || territory.owner !== gameState.currentPlayer) return;
     
+    if (territory.buildings.length > 0) {
+      toast.error("This territory already has a building!");
+      return;
+    }
+    
     const currentPlayer = gameState.players[gameState.currentPlayer];
     let canBuild = false;
+    let costMessage = "";
     
     switch (buildingType) {
       case "lumberMill":
+        costMessage = "50 Wood, 20 Stone";
         canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.stone >= 20;
         if (canBuild) {
           currentPlayer.resources.wood -= 50;
@@ -526,6 +726,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "mine":
+        costMessage = "30 Wood, 50 Stone";
         canBuild = currentPlayer.resources.wood >= 30 && currentPlayer.resources.stone >= 50;
         if (canBuild) {
           currentPlayer.resources.wood -= 30;
@@ -533,6 +734,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "market":
+        costMessage = "40 Wood, 40 Stone, 100 Gold";
         canBuild = currentPlayer.resources.wood >= 40 && currentPlayer.resources.stone >= 40 && currentPlayer.resources.gold >= 100;
         if (canBuild) {
           currentPlayer.resources.wood -= 40;
@@ -541,6 +743,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "farm":
+        costMessage = "50 Wood, 50 Gold";
         canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.gold >= 50;
         if (canBuild) {
           currentPlayer.resources.wood -= 50;
@@ -548,6 +751,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "barracks":
+        costMessage = "80 Wood, 60 Stone, 150 Gold";
         canBuild = currentPlayer.resources.wood >= 80 && currentPlayer.resources.stone >= 60 && currentPlayer.resources.gold >= 150;
         if (canBuild) {
           currentPlayer.resources.wood -= 80;
@@ -556,6 +760,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "fortress":
+        costMessage = "50 Wood, 150 Stone, 200 Gold";
         canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.stone >= 150 && currentPlayer.resources.gold >= 200;
         if (canBuild) {
           currentPlayer.resources.wood -= 50;
@@ -589,6 +794,9 @@ export const GameContainer: React.FC<{
       });
       
       setActiveMenu(null);
+      toast.success(`Built ${buildingType} successfully!`);
+    } else {
+      toast.error(`Not enough resources to build! Needs ${costMessage}.`);
     }
   };
 
@@ -603,13 +811,18 @@ export const GameContainer: React.FC<{
       return building && building.type === "barracks";
     });
     
-    if (!hasBarracks) return;
+    if (!hasBarracks) {
+      toast.error("Cannot recruit in this territory! Need a barracks first.");
+      return;
+    }
     
     const currentPlayer = gameState.players[gameState.currentPlayer];
     let canRecruit = false;
+    let costMessage = "";
     
     switch (unitType) {
       case "infantry":
+        costMessage = "100 Gold, 10 Food";
         canRecruit = currentPlayer.resources.gold >= 100 && currentPlayer.resources.food >= 10;
         if (canRecruit) {
           currentPlayer.resources.gold -= 100;
@@ -617,6 +830,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "cavalry":
+        costMessage = "200 Gold, 20 Food";
         canRecruit = currentPlayer.resources.gold >= 200 && currentPlayer.resources.food >= 20;
         if (canRecruit) {
           currentPlayer.resources.gold -= 200;
@@ -624,6 +838,7 @@ export const GameContainer: React.FC<{
         }
         break;
       case "artillery":
+        costMessage = "300 Gold, 50 Stone, 20 Food";
         canRecruit = currentPlayer.resources.gold >= 300 && currentPlayer.resources.stone >= 50 && currentPlayer.resources.food >= 20;
         if (canRecruit) {
           currentPlayer.resources.gold -= 300;
@@ -659,6 +874,9 @@ export const GameContainer: React.FC<{
       });
       
       setActiveMenu(null);
+      toast.success(`Recruited ${unitType} successfully!`);
+    } else {
+      toast.error(`Not enough resources to recruit! Needs ${costMessage}.`);
     }
   };
 
@@ -671,6 +889,7 @@ export const GameContainer: React.FC<{
     if (gameState.phase === "setup") {
       const updatedTerritories = [...gameState.territories];
       const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
+      
       updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
       updatedTerritories[territoryIndex].type = "capital";
       
@@ -746,6 +965,8 @@ export const GameContainer: React.FC<{
   }
 
   const currentPlayer = gameState.players[gameState.currentPlayer];
+  const anyEnemyAdjacent = hasEnemyAdjacentTerritories();
+  const hasUnits = currentPlayer.units.length > 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -783,11 +1004,34 @@ export const GameContainer: React.FC<{
               </div>
             </div>
           )}
+          
+          {showResourceGain && gameState.lastResourceGain && (
+            <div className="absolute top-4 left-0 right-0 mx-auto text-center animate-fade-in-out">
+              <div className="bg-gray-900 bg-opacity-80 rounded-lg p-4 inline-block">
+                <h3 className="text-white font-bold mb-2">Resources Gained</h3>
+                <div className="grid grid-cols-4 gap-2 text-sm">
+                  <div className="text-yellow-400">
+                    <span>Gold: +{gameState.lastResourceGain.gold}</span>
+                  </div>
+                  <div className="text-green-500">
+                    <span>Wood: +{gameState.lastResourceGain.wood}</span>
+                  </div>
+                  <div className="text-gray-400">
+                    <span>Stone: +{gameState.lastResourceGain.stone}</span>
+                  </div>
+                  <div className="text-red-500">
+                    <span>Food: +{gameState.lastResourceGain.food}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="w-64 bg-gray-900 p-4 flex flex-col">
           <ResourceDisplay 
-            resources={currentPlayer.resources} 
+            resources={currentPlayer.resources}
+            resourceGain={showResourceGain ? gameState.lastResourceGain : null}
           />
           
           {gameState.phase === "playing" && (
@@ -809,6 +1053,8 @@ export const GameContainer: React.FC<{
                 disabled={selectedTerritory === null}
                 actionTaken={gameState.actionTaken}
                 expandMode={gameState.currentAction === "expand"}
+                canAttack={hasUnits && anyEnemyAdjacent}
+                hasResourcesForExpansion={hasResourcesForExpansion()}
               />
               
               {activeMenu === "build" && (
@@ -843,7 +1089,7 @@ export const GameContainer: React.FC<{
               Game Over!
             </h2>
             <p className="text-xl text-amber-500 mb-6">
-              {currentPlayer.name} wins!
+              {gameState.players[gameState.winner || 0].name} wins!
             </p>
             <Button onClick={onExitGame}>
               Return to Menu
