@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       const userProfile = await fetchProfile(user.id);
       if (userProfile) {
@@ -41,34 +41,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // src/contexts/AuthContext.tsx
+  // Fix the refreshSession function to update isInitialized state
+
   const refreshSession = useCallback(async () => {
     try {
       setIsLoading(true);
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
+
       if (error) throw error;
 
       if (currentSession?.user) {
         setSession(currentSession);
         setUser(currentSession.user);
         const userProfile = await fetchProfile(currentSession.user.id);
-        
+
         if (userProfile) {
           setProfile(userProfile);
         } else {
           console.warn('No profile found during session refresh for user:', currentSession.user.id);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
         }
       } else {
         setSession(null);
         setUser(null);
         setProfile(null);
       }
-      return;
     } catch (error) {
       console.error('Error refreshing session:', error);
       setError(error instanceof Error ? error : new Error('Session refresh failed'));
+      setSession(null);
+      setUser(null);
+      setProfile(null);
     } finally {
       setIsLoading(false);
+      setIsInitialized(true);
     }
   }, []);
 
@@ -96,17 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('Initializing auth state...');
         const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
+
         if (!mounted) return;
 
         if (currentSession?.user) {
           console.log('Session found, setting user:', currentSession.user.email);
           setSession(currentSession);
           setUser(currentSession.user);
-          
+
           try {
             const userProfile = await fetchProfile(currentSession.user.id);
-            
+
             if (userProfile && mounted) {
               console.log('Profile found, setting profile');
               setProfile(userProfile);
@@ -149,10 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Auth state change - user found:', newSession.user.email);
         setSession(newSession);
         setUser(newSession.user);
-        
+
         try {
           const userProfile = await fetchProfile(newSession.user.id);
-          
+
           if (userProfile && mounted) {
             console.log('Auth state change - profile found and set');
             setProfile(userProfile);

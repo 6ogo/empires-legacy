@@ -1,4 +1,3 @@
-// src/Router.tsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +20,6 @@ import LoadingScreen from '@/components/game/LoadingScreen';
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading, isInitialized } = useAuth();
   
-  // Show loading until auth is initialized
   if (isLoading || !isInitialized) {
     return <LoadingScreen message="Loading..." />;
   }
@@ -36,12 +34,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading, isInitialized } = useAuth();
   
-  // Show loading until auth is initialized
   if (isLoading || !isInitialized) {
     return <LoadingScreen message="Loading..." />;
   }
   
-  // Redirect authenticated users to game page
   if (user && profile) {
     return <Navigate to="/game" replace />;
   }
