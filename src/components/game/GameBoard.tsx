@@ -12,6 +12,7 @@ export const GameBoard: React.FC<{
   currentPlayer: number;
   phase: "setup" | "playing";
   actionTaken: boolean;
+  expandableTerritories: number[];
 }> = ({ 
   territories, 
   players, 
@@ -21,7 +22,8 @@ export const GameBoard: React.FC<{
   onAttackTerritory,
   currentPlayer,
   phase,
-  actionTaken
+  actionTaken,
+  expandableTerritories
 }) => {
   const handleTerritoryClick = (territoryId: number) => {
     const territory = territories.find(t => t.id === territoryId);
@@ -30,6 +32,12 @@ export const GameBoard: React.FC<{
     // Setup phase: claim unclaimed territory
     if (phase === "setup" && territory.owner === null) {
       onClaimTerritory(territoryId);
+      return;
+    }
+    
+    // Expanding to territory
+    if (expandableTerritories.includes(territoryId)) {
+      onTerritorySelect(territoryId);
       return;
     }
     
@@ -54,25 +62,12 @@ export const GameBoard: React.FC<{
             return;
           }
         }
-        
-        // If expanding (claiming unclaimed territory)
-        if (
-          selectedTerr && 
-          selectedTerr.owner === currentPlayer && 
-          territory.owner === null &&
-          !actionTaken
-        ) {
-          // Check if territories are adjacent
-          const isAdjacent = selectedTerr.adjacentTerritories.includes(territoryId);
-          if (isAdjacent) {
-            onClaimTerritory(territoryId);
-            return;
-          }
-        }
       }
       
-      // Select owned territory or adjacent territory
-      onTerritorySelect(territoryId);
+      // Select owned territory
+      if (territory.owner === currentPlayer) {
+        onTerritorySelect(territoryId);
+      }
     }
   };
 
@@ -85,6 +80,7 @@ export const GameBoard: React.FC<{
         onTerritoryClick={handleTerritoryClick}
         currentPlayer={currentPlayer}
         phase={phase}
+        expandableTerritories={expandableTerritories}
       />
     </div>
   );

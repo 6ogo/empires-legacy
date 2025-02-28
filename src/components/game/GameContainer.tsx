@@ -8,6 +8,7 @@ import { RecruitmentMenu } from "./RecruitmentMenu";
 import { GameMenus } from "./GameMenus";
 import { ErrorScreen } from "./ErrorScreen";
 import { Button } from "../ui/button";
+import { GameInfoModal } from "./GameInfoModal";
 
 interface GameState {
   phase: "setup" | "playing";
@@ -19,8 +20,9 @@ interface GameState {
   gameOver: boolean;
   winner: number | null;
   setupComplete: boolean;
-  currentAction: "none" | "build" | "expand" | "attack";
+  currentAction: "none" | "build" | "expand" | "attack" | "recruit";
   actionTaken: boolean;
+  expandableTerritories: number[];
 }
 
 interface Player {
@@ -51,7 +53,7 @@ interface Territory {
 
 interface Building {
   id: number;
-  type: "lumberMill" | "mine" | "market" | "farm" | "barracks" | "fortress" | "road";
+  type: "lumberMill" | "mine" | "market" | "farm" | "barracks" | "fortress";
   territoryId: number;
 }
 
@@ -82,6 +84,7 @@ export const GameContainer: React.FC<{
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeInfoModal, setActiveInfoModal] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -114,7 +117,8 @@ export const GameContainer: React.FC<{
         winner: null,
         setupComplete: false,
         currentAction: "none",
-        actionTaken: false
+        actionTaken: false,
+        expandableTerritories: []
       };
       
       setGameState(initialState);
@@ -235,21 +239,80 @@ export const GameContainer: React.FC<{
     const territory = gameState.territories.find(t => t.id === territoryId);
     if (!territory) return;
     
-    const isAdjacent = gameState.players[gameState.currentPlayer].territories.some(playerTerritoryId => {
-      const playerTerritory = gameState.territories.find(t => t.id === playerTerritoryId);
-      return playerTerritory?.adjacentTerritories.includes(territoryId);
-    });
-    
     const isOwned = territory.owner === gameState.currentPlayer;
+    const isExpandable = gameState.expandableTerritories.includes(territoryId);
     
-    if (isOwned || isAdjacent) {
+    if (isOwned) {
       setSelectedTerritory(territoryId);
+    } else if (isExpandable && gameState.currentAction === "expand") {
+      handleExpandTerritory(territoryId);
     }
   };
 
   const handleMenuSelect = (menu: string) => {
-    if (gameState?.actionTaken) return;
-    setActiveMenu(menu);
+    if (!gameState || gameState.actionTaken) return;
+    
+    if (menu === "expand") {
+      const expandableTerritories = getExpandableTerritories();
+      
+      setGameState({
+        ...gameState,
+        currentAction: "expand",
+        expandableTerritories
+      });
+    } else {
+      setActiveMenu(menu);
+    }
+  };
+  
+  const getExpandableTerritories = () => {
+    if (!gameState) return [];
+    
+    const currentPlayer = gameState.players[gameState.currentPlayer];
+    const expandableTerritories: number[] = [];
+    
+    currentPlayer.territories.forEach(territoryId => {
+      const territory = gameState.territories.find(t => t.id === territoryId);
+      if (!territory) return;
+      
+      territory.adjacentTerritories.forEach(adjId => {
+        const adjTerritory = gameState.territories.find(t => t.id === adjId);
+        if (adjTerritory && adjTerritory.owner === null) {
+          if (!expandableTerritories.includes(adjId)) {
+            expandableTerritories.push(adjId);
+          }
+        }
+      });
+    });
+    
+    return expandableTerritories;
+  };
+
+  const handleExpandTerritory = (territoryId: number) => {
+    if (!gameState || !gameState.expandableTerritories.includes(territoryId)) return;
+    
+    const currentPlayer = gameState.players[gameState.currentPlayer];
+    const canExpand = currentPlayer.resources.gold >= 100 && currentPlayer.resources.food >= 20;
+    
+    if (canExpand) {
+      const updatedPlayers = [...gameState.players];
+      updatedPlayers[gameState.currentPlayer].resources.gold -= 100;
+      updatedPlayers[gameState.currentPlayer].resources.food -= 20;
+      updatedPlayers[gameState.currentPlayer].territories.push(territoryId);
+      
+      const updatedTerritories = [...gameState.territories];
+      const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
+      updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
+      
+      setGameState({
+        ...gameState,
+        players: updatedPlayers,
+        territories: updatedTerritories,
+        currentAction: "none",
+        actionTaken: true,
+        expandableTerritories: []
+      });
+    }
   };
 
   const collectResources = (playerId: number) => {
@@ -425,7 +488,8 @@ export const GameContainer: React.FC<{
       gameOver,
       winner,
       currentAction: "none",
-      actionTaken: false
+      actionTaken: false,
+      expandableTerritories: []
     });
     
     setSelectedTerritory(null);
@@ -499,13 +563,6 @@ export const GameContainer: React.FC<{
           currentPlayer.resources.gold -= 200;
         }
         break;
-      case "road":
-        canBuild = currentPlayer.resources.stone >= 30 && currentPlayer.resources.gold >= 50;
-        if (canBuild) {
-          currentPlayer.resources.stone -= 30;
-          currentPlayer.resources.gold -= 50;
-        }
-        break;
     }
     
     if (canBuild) {
@@ -546,7 +603,7 @@ export const GameContainer: React.FC<{
       return building && building.type === "barracks";
     });
     
-    if (!hasBarracks && unitType !== "settler") return;
+    if (!hasBarracks) return;
     
     const currentPlayer = gameState.players[gameState.currentPlayer];
     let canRecruit = false;
@@ -629,38 +686,6 @@ export const GameContainer: React.FC<{
       setTimeout(() => handleEndTurn(), 500);
       return;
     }
-    
-    if (gameState.actionTaken) return;
-    
-    const isAdjacent = gameState.players[gameState.currentPlayer].territories.some(playerTerritoryId => {
-      const playerTerritory = gameState.territories.find(t => t.id === playerTerritoryId);
-      return playerTerritory?.adjacentTerritories.includes(territoryId);
-    });
-    
-    if (isAdjacent) {
-      const currentPlayer = gameState.players[gameState.currentPlayer];
-      const canExpand = currentPlayer.resources.gold >= 100 && currentPlayer.resources.food >= 20;
-      
-      if (canExpand) {
-        currentPlayer.resources.gold -= 100;
-        currentPlayer.resources.food -= 20;
-        
-        const updatedTerritories = [...gameState.territories];
-        const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
-        updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
-        
-        const updatedPlayers = [...gameState.players];
-        updatedPlayers[gameState.currentPlayer].territories.push(territoryId);
-        
-        setGameState({
-          ...gameState,
-          players: updatedPlayers,
-          territories: updatedTerritories,
-          currentAction: "expand",
-          actionTaken: true
-        });
-      }
-    }
   };
 
   const handleAttackTerritory = (targetTerritoryId: number) => {
@@ -703,6 +728,14 @@ export const GameContainer: React.FC<{
       actionTaken: true
     });
   };
+  
+  const handleInfoButtonClick = (infoType: string) => {
+    setActiveInfoModal(infoType);
+  };
+  
+  const closeInfoModal = () => {
+    setActiveInfoModal(null);
+  };
 
   if (error) {
     return <ErrorScreen message={error} onBack={onExitGame} />;
@@ -737,6 +770,7 @@ export const GameContainer: React.FC<{
             currentPlayer={gameState.currentPlayer}
             phase={gameState.phase}
             actionTaken={gameState.actionTaken}
+            expandableTerritories={gameState.expandableTerritories}
           />
 
           {gameState.phase === "setup" && (
@@ -744,7 +778,7 @@ export const GameContainer: React.FC<{
               <div className="bg-gray-900 bg-opacity-80 rounded-lg p-4 inline-block">
                 <h3 className="text-white font-bold mb-2">Setup Phase</h3>
                 <p className="text-gray-300 text-sm">
-                  {currentPlayer.name}, select your starting territory.
+                  {currentPlayer.name}, select your capital location.
                 </p>
               </div>
             </div>
@@ -770,9 +804,11 @@ export const GameContainer: React.FC<{
               <GameControls 
                 onBuildClick={() => handleMenuSelect("build")}
                 onRecruitClick={() => handleMenuSelect("recruit")}
+                onExpandClick={() => handleMenuSelect("expand")}
                 onEndTurnClick={handleEndTurn}
-                disabled={selectedTerritory === null || gameState.actionTaken}
+                disabled={selectedTerritory === null}
                 actionTaken={gameState.actionTaken}
+                expandMode={gameState.currentAction === "expand"}
               />
               
               {activeMenu === "build" && (
@@ -796,7 +832,7 @@ export const GameContainer: React.FC<{
             </div>
           )}
           
-          <GameMenus />
+          <GameMenus onInfoButtonClick={handleInfoButtonClick} />
         </div>
       </div>
       
@@ -814,6 +850,13 @@ export const GameContainer: React.FC<{
             </Button>
           </div>
         </div>
+      )}
+      
+      {activeInfoModal && (
+        <GameInfoModal 
+          type={activeInfoModal} 
+          onClose={closeInfoModal} 
+        />
       )}
     </div>
   );

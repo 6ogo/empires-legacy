@@ -11,8 +11,7 @@ export const BuildingMenu: React.FC<{
     { type: "market", name: "Market", description: "+20 Gold + trade bonuses", cost: "40 Wood, 40 Stone, 100 Gold" },
     { type: "farm", name: "Farm", description: "+8 Food production", cost: "50 Wood, 50 Gold" },
     { type: "barracks", name: "Barracks", description: "Enables unit recruitment", cost: "80 Wood, 60 Stone, 150 Gold" },
-    { type: "fortress", name: "Fortress", description: "Provides defensive bonuses", cost: "50 Wood, 150 Stone, 200 Gold" },
-    { type: "road", name: "Road", description: "Improves unit movement", cost: "30 Stone, 50 Gold" }
+    { type: "fortress", name: "Fortress", description: "Provides defensive bonuses", cost: "50 Wood, 150 Stone, 200 Gold" }
   ];
 
   return (

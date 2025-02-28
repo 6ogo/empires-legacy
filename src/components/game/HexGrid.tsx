@@ -8,13 +8,15 @@ export const HexGrid: React.FC<{
   onTerritoryClick: (id: number) => void;
   currentPlayer: number;
   phase: "setup" | "playing";
+  expandableTerritories: number[];
 }> = ({ 
   territories, 
   players, 
   selectedTerritory, 
   onTerritoryClick,
   currentPlayer,
-  phase
+  phase,
+  expandableTerritories
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -76,18 +78,17 @@ export const HexGrid: React.FC<{
       return territory.owner === null;
     }
     
-    // In playing phase
+    // If territory is expandable
+    if (expandableTerritories.includes(territory.id)) {
+      return true;
+    }
+    
+    // In playing phase, can select own territories
     if (territory.owner === currentPlayer) {
       return true;
     }
     
-    // Check if territory is adjacent to any of current player's territories
-    const isAdjacent = territory.adjacentTerritories.some(adjId => {
-      const adjTerritory = territories.find(t => t.id === adjId);
-      return adjTerritory && adjTerritory.owner === currentPlayer;
-    });
-    
-    return isAdjacent;
+    return false;
   };
   
   // Handle container resize
@@ -215,6 +216,32 @@ export const HexGrid: React.FC<{
       style={{ cursor: dragging ? "grabbing" : "grab" }}
     >
       <svg width="100%" height="100%">
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"
+              result="glow"
+            />
+            <feBlend in="SourceGraphic" in2="glow" mode="normal" />
+          </filter>
+          
+          <radialGradient id="expandableGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </radialGradient>
+          
+          <animate 
+            xlinkHref="#expandablePulse"
+            attributeName="opacity"
+            values="0.7;0.2;0.7"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        </defs>
+        
         <g transform={`translate(${offset.x},${offset.y}) scale(${scale})`}>
           {territories.map(territory => {
             const hexSize = 50;
@@ -223,6 +250,7 @@ export const HexGrid: React.FC<{
             const color = getTerritoryColor(territory);
             const borderWidth = getTerritoryBorder(territory);
             const selectable = isTerritorySelectable(territory);
+            const isExpandable = expandableTerritories.includes(territory.id);
             
             return (
               <g 
@@ -239,6 +267,21 @@ export const HexGrid: React.FC<{
                   strokeOpacity="0.5"
                   fillOpacity="0.7"
                 />
+                
+                {/* Expandable territory highlight */}
+                {isExpandable && (
+                  <g>
+                    <polygon
+                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
+                      fill="url(#expandableGradient)"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeOpacity="0.7"
+                      className="animate-pulse"
+                      filter="url(#glow)"
+                    />
+                  </g>
+                )}
                 
                 {/* Show territory type */}
                 <text

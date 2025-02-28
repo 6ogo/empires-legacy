@@ -9,7 +9,9 @@ import {
   Map 
 } from "lucide-react";
 
-export const GameMenus: React.FC = () => {
+export const GameMenus: React.FC<{
+  onInfoButtonClick: (infoType: string) => void;
+}> = ({ onInfoButtonClick }) => {
   return (
     <div className="mt-auto">
       <h3 className="text-white text-sm font-bold mb-2">Game Info</h3>
@@ -19,6 +21,7 @@ export const GameMenus: React.FC = () => {
           variant="ghost" 
           size="sm"
           className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+          onClick={() => onInfoButtonClick("rules")}
         >
           <Info className="w-4 h-4 mr-2" />
           Game Rules
@@ -28,6 +31,7 @@ export const GameMenus: React.FC = () => {
           variant="ghost" 
           size="sm"
           className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+          onClick={() => onInfoButtonClick("combat")}
         >
           <History className="w-4 h-4 mr-2" />
           Combat History
@@ -37,6 +41,7 @@ export const GameMenus: React.FC = () => {
           variant="ghost" 
           size="sm"
           className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+          onClick={() => onInfoButtonClick("victory")}
         >
           <Trophy className="w-4 h-4 mr-2" />
           Victory Conditions
@@ -46,6 +51,7 @@ export const GameMenus: React.FC = () => {
           variant="ghost" 
           size="sm"
           className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+          onClick={() => onInfoButtonClick("events")}
         >
           <Flame className="w-4 h-4 mr-2" />
           Random Events
@@ -55,6 +61,7 @@ export const GameMenus: React.FC = () => {
           variant="ghost" 
           size="sm"
           className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+          onClick={() => onInfoButtonClick("map")}
         >
           <Map className="w-4 h-4 mr-2" />
           Full Map View
