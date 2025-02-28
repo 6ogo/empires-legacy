@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,24 +28,24 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
   const [enableRNG, setEnableRNG] = useState(false);
 
   useEffect(() => {
-    // Generate random board sizes based on player count
+    // Generate appropriate board sizes based on player count
     const sizes = [];
     if (numPlayers <= 3) {
       sizes.push(
-        20,
-        Math.floor(Math.random() * (40 - 20) + 20),
-        Math.floor(Math.random() * (70 - 40) + 40),
-        Math.floor(Math.random() * (100 - 70) + 70)
+        20,  // Small
+        40,  // Medium
+        60,  // Large
+        80   // Huge
       );
     } else {
       sizes.push(
-        35,
-        Math.floor(Math.random() * (60 - 35) + 35),
-        Math.floor(Math.random() * (90 - 60) + 60),
-        Math.floor(Math.random() * (120 - 90) + 90)
+        40,  // Small for 4+ players
+        60,  // Medium
+        90,  // Large
+        120  // Huge
       );
     }
-    setAvailableSizes(sizes.sort((a, b) => a - b));
+    setAvailableSizes(sizes);
     setSelectedSize(null); // Reset selection when player count changes
   }, [numPlayers]);
 
@@ -106,7 +105,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
 
         <h2 className="text-2xl text-center mb-6 text-white">Select board size</h2>
         <div className="flex flex-wrap gap-4 justify-center mb-8">
-          {availableSizes.map((size) => (
+          {availableSizes.map((size, index) => (
             <Button
               key={size}
               onClick={() => handleSizeSelect(size)}
@@ -118,7 +117,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
                   : 'bg-white/10 hover:bg-white/20 text-white'}
               `}
             >
-              {size} Hexes
+              {size} Hexes {index === 0 ? "(Small)" : index === 1 ? "(Medium)" : index === 2 ? "(Large)" : "(Huge)"}
             </Button>
           ))}
         </div>
@@ -127,7 +126,6 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
           <Button
             onClick={handleStartGame}
             className="px-12 py-6 text-xl bg-green-600 hover:bg-green-700 text-white transition-all"
-            disabled={gameMode === 'online'}
           >
             {gameMode === 'local' ? 'Start Game' : 'Create Room'}
           </Button>
@@ -142,7 +140,7 @@ const BoardSizeSelect: React.FC<BoardSizeSelectProps> = ({
               type="text"
               placeholder="Enter Room ID"
               value={joinRoomId}
-              onChange={(e) => onJoinRoomIdChange(e.target.value)}
+              onChange={(e) => onJoinRoomIdChange(e.target.value.toUpperCase())}
               className="bg-white/10 border-white/20 text-white placeholder:text-white/50 text-lg py-6"
             />
             <Button 

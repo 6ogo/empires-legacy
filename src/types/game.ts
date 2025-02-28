@@ -94,6 +94,7 @@ export interface GameState {
   timeOfDay: TimeOfDay;
   lastUpdated: number;
   version: number;
+  randomEventsEnabled?: boolean;
 }
 
 export interface GameAction {

@@ -11,7 +11,7 @@ interface GameStartMenuProps {
   gameStatus: "menu" | "mode_select" | "creating" | "joining" | "playing" | "waiting" | "stats";
   gameMode: "local" | "online" | null;
   onSelectMode: (mode: "local" | "online") => void;
-  onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
+  onCreateGame: (numPlayers: number, boardSize: number, enableRNG?: boolean) => Promise<void>;
   onJoinGame: () => Promise<void>;
   joinRoomId: string;
   onJoinRoomIdChange: (value: string) => void;
