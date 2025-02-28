@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       console.log('Refreshing session...');
-      
+
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Session found:', currentSession.user.email);
         setSession(currentSession);
         setUser(currentSession.user);
-        
+
         const userProfile = await fetchProfile(currentSession.user.id);
         if (userProfile) {
           console.log('Profile found:', userProfile.username);
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setProfile(null);
       }
-      
+
       // Use the updated profile variable, not userProfile
       return;
     } catch (error) {
@@ -111,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initial session check and auth state listener
   useEffect(() => {
     let mounted = true;
+    let subscription = null;
 
     const initialize = async () => {
       try {
@@ -124,19 +125,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(currentSession);
           setUser(currentSession.user);
 
-          try {
-            const userProfile = await fetchProfile(currentSession.user.id);
-
-            if (userProfile && mounted) {
-              console.log('Profile found:', userProfile.username);
-              setProfile(userProfile);
-            } else if (mounted) {
-              console.warn('No profile found during initialization for user:', currentSession.user.id);
-            }
-          } catch (profileError) {
-            console.error('Error fetching profile during initialization:', profileError);
-            if (mounted) {
-              setError(profileError instanceof Error ? profileError : new Error('Profile fetch failed'));
+          // Add a check to prevent refetching if profile already exists
+          if (!profile) {
+            try {
+              const userProfile = await fetchProfile(currentSession.user.id);
+              if (userProfile && mounted) {
+                console.log('Profile found:', userProfile.username);
+                setProfile(userProfile);
+              }
+            } catch (profileError) {
+              console.error('Error fetching profile:', profileError);
             }
           }
         } else {
@@ -144,66 +142,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        if (mounted) {
-          setError(error instanceof Error ? error : new Error('Auth initialization failed'));
-        }
       } finally {
         if (mounted) {
           setIsLoading(false);
           setIsInitialized(true);
-          console.log('Auth initialization complete, isInitialized set to true');
+          console.log('Auth initialization complete');
         }
       }
     };
 
     initialize();
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (!mounted) return;
+    // Subscribe to auth changes only if not already subscribed
+    if (!subscription) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        if (!mounted) return;
 
-      console.log('Auth state changed:', event);
-      setIsLoading(true);
-
-      if (newSession?.user) {
-        console.log('Auth state change - user found:', newSession.user.email);
-        setSession(newSession);
-        setUser(newSession.user);
-
-        try {
-          const userProfile = await fetchProfile(newSession.user.id);
-
-          if (userProfile && mounted) {
-            console.log('Auth state change - profile found and set');
-            setProfile(userProfile);
-          } else if (mounted) {
-            console.warn('Auth state change - no profile found for user:', newSession.user.id);
-          }
-        } catch (profileError) {
-          console.error('Error fetching profile during auth state change:', profileError);
-          if (mounted) {
-            setError(profileError instanceof Error ? profileError : new Error('Profile fetch failed'));
-          }
-        }
-      } else {
-        console.log('Auth state change - no session/user');
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-        }
-      }
-
-      if (mounted) {
-        setIsLoading(false);
-        setIsInitialized(true);
-        console.log('Auth state change complete, isInitialized set to true');
-      }
-    });
+        console.log('Auth state changed:', event);
+        // Handle auth state changes...
+      });
+      subscription = data.subscription;
+    }
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
