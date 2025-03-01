@@ -1571,6 +1571,7 @@ export const GameContainer: React.FC<{
             buildableTerritories={gameState.buildableTerritories}
             recruitableTerritories={gameState.recruitableTerritories}
             currentAction={gameState.currentAction}
+            actionsPerformed={gameState.actionsPerformed}
           />
           
           {renderPhase()}
