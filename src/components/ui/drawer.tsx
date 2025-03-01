@@ -21,10 +21,10 @@ const DrawerPortal = DrawerPrimitive.Portal as React.FC<React.ComponentProps<typ
 
 const DrawerClose = DrawerPrimitive.Close as React.FC<React.ComponentProps<typeof DrawerPrimitive.Close>>
 
-// Explicitly adding type annotation for DrawerOverlay
+// Use simpler type definition without direct references to internal types
 const DrawerOverlay = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
@@ -34,10 +34,10 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
-// Explicitly adding type annotation for DrawerContent
+// Use simpler type definition without direct references to internal types
 const DrawerContent = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
@@ -78,10 +78,10 @@ const DrawerFooter = ({
 )
 DrawerFooter.displayName = "DrawerFooter"
 
-// Explicitly adding type annotation for DrawerTitle
+// Use simpler type definition without direct references to internal types
 const DrawerTitle = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
@@ -94,10 +94,10 @@ const DrawerTitle = React.forwardRef<
 ))
 DrawerTitle.displayName = DrawerPrimitive.Title.displayName
 
-// Explicitly adding type annotation for DrawerDescription
+// Use simpler type definition without direct references to internal types
 const DrawerDescription = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
