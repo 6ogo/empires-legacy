@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect } from "react";
 import { GameBoard } from "./GameBoard";
 import { GameTopBar } from "./GameTopBar";
@@ -982,4 +982,693 @@ export const GameContainer: React.FC<{
     
     switch (buildingType) {
       case "lumberMill":
-        costMessage = "
+        costMessage = "50 Wood, 20 Stone";
+        canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.stone >= 20;
+        break;
+      case "mine":
+        costMessage = "50 Wood, 20 Stone";
+        canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.stone >= 20;
+        break;
+      case "farm":
+        costMessage = "30 Wood";
+        canBuild = currentPlayer.resources.wood >= 30;
+        break;
+      case "market":
+        costMessage = "50 Wood, 30 Stone, 50 Gold";
+        canBuild = currentPlayer.resources.wood >= 50 && 
+                currentPlayer.resources.stone >= 30 && 
+                currentPlayer.resources.gold >= 50;
+        break;
+      case "barracks":
+        costMessage = "80 Wood, 40 Stone, 100 Gold";
+        canBuild = currentPlayer.resources.wood >= 80 && 
+                currentPlayer.resources.stone >= 40 && 
+                currentPlayer.resources.gold >= 100;
+        break;
+      case "fortress":
+        costMessage = "120 Wood, 160 Stone, 200 Gold";
+        canBuild = currentPlayer.resources.wood >= 120 && 
+                currentPlayer.resources.stone >= 160 && 
+                currentPlayer.resources.gold >= 200;
+        break;
+    }
+    
+    if (!canBuild) {
+      toast.error(`Not enough resources to build! Need ${costMessage}.`);
+      return;
+    }
+    
+    // Deduct resources
+    const updatedPlayers = [...gameState.players];
+    
+    switch (buildingType) {
+      case "lumberMill":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 50;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 20;
+        break;
+      case "mine":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 50;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 20;
+        break;
+      case "farm":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 30;
+        break;
+      case "market":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 50;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 30;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 50;
+        break;
+      case "barracks":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 80;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 40;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 100;
+        break;
+      case "fortress":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 120;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 160;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 200;
+        break;
+    }
+    
+    // Create building
+    const newBuildingId = Math.max(0, ...currentPlayer.buildings.map(b => b.id)) + 1;
+    
+    const newBuilding: Building = {
+      id: newBuildingId,
+      type: buildingType as any,
+      territoryId: selectedTerritory
+    };
+    
+    updatedPlayers[gameState.currentPlayer].buildings.push(newBuilding);
+    
+    // Update territory
+    const updatedTerritories = [...gameState.territories];
+    const territoryIndex = updatedTerritories.findIndex(t => t.id === selectedTerritory);
+    updatedTerritories[territoryIndex].buildings.push(newBuildingId);
+    
+    const updatedActionsPerformed = {
+      ...gameState.actionsPerformed,
+      build: true
+    };
+    
+    setGameState({
+      ...gameState,
+      players: updatedPlayers,
+      territories: updatedTerritories,
+      currentAction: "none",
+      actionsPerformed: updatedActionsPerformed
+    });
+    
+    setActiveMenu(null);
+    toast.success(`${buildingType} built successfully!`);
+  };
+
+  const handleRecruitUnit = (unitType: string) => {
+    if (!gameState || selectedTerritory === null) return;
+    
+    // Check if recruit action has already been performed
+    if (gameState.actionsPerformed.recruit) {
+      toast.error("You've already recruited this turn");
+      return;
+    }
+    
+    const territory = gameState.territories.find(t => t.id === selectedTerritory);
+    if (!territory || territory.owner !== gameState.currentPlayer) return;
+    
+    if (!canRecruitInTerritory(selectedTerritory)) {
+      toast.error("Cannot recruit in this territory - needs a barracks and space for units.");
+      return;
+    }
+    
+    if (!canRecruitUnitTypeInTerritory(selectedTerritory, unitType)) {
+      toast.error("Cannot recruit this unit type - already have 2 different unit types.");
+      return;
+    }
+    
+    const currentPlayer = gameState.players[gameState.currentPlayer];
+    let canRecruit = false;
+    let costMessage = "";
+    
+    switch (unitType) {
+      case "infantry":
+        costMessage = "50 Food, 30 Gold";
+        canRecruit = currentPlayer.resources.food >= 50 && currentPlayer.resources.gold >= 30;
+        break;
+      case "cavalry":
+        costMessage = "80 Food, 70 Gold";
+        canRecruit = currentPlayer.resources.food >= 80 && currentPlayer.resources.gold >= 70;
+        break;
+      case "artillery":
+        costMessage = "60 Food, 50 Gold, 30 Wood, 20 Stone";
+        canRecruit = currentPlayer.resources.food >= 60 && 
+                  currentPlayer.resources.gold >= 50 &&
+                  currentPlayer.resources.wood >= 30 &&
+                  currentPlayer.resources.stone >= 20;
+        break;
+    }
+    
+    if (!canRecruit) {
+      toast.error(`Not enough resources to recruit! Need ${costMessage}.`);
+      return;
+    }
+    
+    // Deduct resources
+    const updatedPlayers = [...gameState.players];
+    
+    switch (unitType) {
+      case "infantry":
+        updatedPlayers[gameState.currentPlayer].resources.food -= 50;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 30;
+        break;
+      case "cavalry":
+        updatedPlayers[gameState.currentPlayer].resources.food -= 80;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 70;
+        break;
+      case "artillery":
+        updatedPlayers[gameState.currentPlayer].resources.food -= 60;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 50;
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 30;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 20;
+        break;
+    }
+    
+    // Create unit
+    const newUnitId = Math.max(0, ...currentPlayer.units.map(u => u.id)) + 1;
+    
+    const newUnit: Unit = {
+      id: newUnitId,
+      type: unitType as any,
+      territoryId: selectedTerritory,
+      health: 100,
+      experience: 0
+    };
+    
+    updatedPlayers[gameState.currentPlayer].units.push(newUnit);
+    
+    // Update territory
+    const updatedTerritories = [...gameState.territories];
+    const territoryIndex = updatedTerritories.findIndex(t => t.id === selectedTerritory);
+    updatedTerritories[territoryIndex].units.push(newUnitId);
+    
+    const updatedActionsPerformed = {
+      ...gameState.actionsPerformed,
+      recruit: true
+    };
+    
+    setGameState({
+      ...gameState,
+      players: updatedPlayers,
+      territories: updatedTerritories,
+      currentAction: "none",
+      actionsPerformed: updatedActionsPerformed
+    });
+    
+    setActiveMenu(null);
+    toast.success(`${unitType} recruited successfully!`);
+  };
+
+  const handleClaimTerritory = (territoryId: number) => {
+    if (!gameState) return;
+    
+    const territory = gameState.territories.find(t => t.id === territoryId);
+    if (!territory) return;
+    
+    if (gameState.phase === "setup") {
+      // Setup phase: claim an initial territory
+      if (territory.owner !== null) {
+        toast.error("This territory is already claimed");
+        return;
+      }
+      
+      if (territoryClaimInProgress) {
+        toast.error("Territory claim in progress, please wait");
+        return;
+      }
+      
+      setTerritoryClaimInProgress(true);
+      
+      const updatedTerritories = [...gameState.territories];
+      const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
+      updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
+      updatedTerritories[territoryIndex].type = "capital";
+      
+      const updatedPlayers = [...gameState.players];
+      updatedPlayers[gameState.currentPlayer].territories.push(territoryId);
+      
+      setGameState({
+        ...gameState,
+        territories: updatedTerritories,
+        players: updatedPlayers,
+        actionTaken: true
+      });
+      
+      toast.success(`Capital territory claimed by Player ${gameState.currentPlayer + 1}`);
+      
+      setTimeout(() => {
+        handleEndTurn();
+      }, 1000);
+    } else if (gameState.phase === "playing") {
+      // Playing phase: expand to an adjacent territory
+      if (gameState.currentAction === "expand") {
+        handleExpandTerritory(territoryId);
+      }
+    }
+  };
+  
+  const handleAttackTerritory = (defendingTerritoryId: number) => {
+    if (!gameState || !selectedTerritory) return;
+    
+    // Check if attack action has already been performed
+    if (gameState.actionsPerformed.attack) {
+      toast.error("You've already attacked this turn");
+      return;
+    }
+    
+    const attackingTerritory = gameState.territories.find(t => t.id === selectedTerritory);
+    const defendingTerritory = gameState.territories.find(t => t.id === defendingTerritoryId);
+    
+    if (!attackingTerritory || !defendingTerritory) return;
+    
+    if (attackingTerritory.owner !== gameState.currentPlayer) {
+      toast.error("You must attack from your own territory");
+      return;
+    }
+    
+    if (defendingTerritory.owner === gameState.currentPlayer) {
+      toast.error("You cannot attack your own territory");
+      return;
+    }
+    
+    if (attackingTerritory.units.length === 0) {
+      toast.error("You need military units to attack");
+      return;
+    }
+    
+    if (!attackingTerritory.adjacentTerritories.includes(defendingTerritoryId)) {
+      toast.error("You can only attack adjacent territories");
+      return;
+    }
+    
+    // Get attacking units
+    const attackingPlayer = gameState.players[gameState.currentPlayer];
+    const attackingUnits = attackingPlayer.units.filter(unit => 
+      attackingTerritory.units.includes(unit.id)
+    );
+    
+    if (attackingUnits.length === 0) {
+      toast.error("No units available to attack with");
+      return;
+    }
+    
+    // Get defending units
+    const defendingPlayer = gameState.players[defendingTerritory.owner as number];
+    const defendingUnits = defendingPlayer.units.filter(unit => 
+      defendingTerritory.units.includes(unit.id)
+    );
+    
+    // Calculate attack strength
+    let attackStrength = 0;
+    attackingUnits.forEach(unit => {
+      let baseStrength = 0;
+      switch (unit.type) {
+        case "infantry":
+          baseStrength = 10;
+          break;
+        case "cavalry":
+          baseStrength = 15;
+          break;
+        case "artillery":
+          baseStrength = 20;
+          break;
+      }
+      
+      // Adjust for health and experience
+      const healthFactor = unit.health / 100;
+      const experienceFactor = 1 + (unit.experience / 1000);
+      
+      attackStrength += baseStrength * healthFactor * experienceFactor;
+    });
+    
+    // Calculate defense strength
+    let defenseStrength = 5; // Base defense for territory
+    
+    // Add fortress defense if present
+    const hasFortress = defendingTerritory.buildings.some(buildingId => {
+      const building = defendingPlayer.buildings.find(b => b.id === buildingId);
+      return building && building.type === "fortress";
+    });
+    
+    if (hasFortress) {
+      defenseStrength += 15;
+    }
+    
+    defendingUnits.forEach(unit => {
+      let baseStrength = 0;
+      switch (unit.type) {
+        case "infantry":
+          baseStrength = 12; // Better on defense
+          break;
+        case "cavalry":
+          baseStrength = 10; // Worse on defense
+          break;
+        case "artillery":
+          baseStrength = 18; // Good on defense
+          break;
+      }
+      
+      // Adjust for health and experience
+      const healthFactor = unit.health / 100;
+      const experienceFactor = 1 + (unit.experience / 1000);
+      
+      defenseStrength += baseStrength * healthFactor * experienceFactor;
+    });
+    
+    // Combat resolution
+    const attackRoll = Math.random() * attackStrength;
+    const defenseRoll = Math.random() * defenseStrength;
+    
+    const attackerWins = attackRoll > defenseRoll;
+    
+    // Update units' health and experience based on combat
+    const updatedPlayers = [...gameState.players];
+    const attackerIndex = gameState.currentPlayer;
+    const defenderIndex = defendingTerritory.owner as number;
+    
+    // Both sides gain experience
+    const attackerExperienceGain = 10;
+    const defenderExperienceGain = 8;
+    
+    // Damage is proportional to strength difference
+    const strengthDifference = Math.abs(attackRoll - defenseRoll) / 5;
+    
+    // Apply damage to units
+    let updatedAttackingUnits = attackingUnits.map(unit => ({
+      ...unit,
+      health: Math.max(0, attackerWins ? unit.health - 5 : unit.health - (10 + strengthDifference)),
+      experience: unit.experience + attackerExperienceGain
+    }));
+    
+    let updatedDefendingUnits = defendingUnits.map(unit => ({
+      ...unit,
+      health: Math.max(0, attackerWins ? unit.health - (15 + strengthDifference) : unit.health - 5),
+      experience: unit.experience + defenderExperienceGain
+    }));
+    
+    // Filter out dead units
+    updatedAttackingUnits = updatedAttackingUnits.filter(unit => unit.health > 0);
+    updatedDefendingUnits = updatedDefendingUnits.filter(unit => unit.health > 0);
+    
+    // Update territories
+    let updatedTerritories = [...gameState.territories];
+    
+    // Update attacking territory
+    const attackingTerritoryIndex = updatedTerritories.findIndex(t => t.id === selectedTerritory);
+    updatedTerritories[attackingTerritoryIndex].units = updatedAttackingUnits.map(u => u.id);
+    
+    // Update defending territory
+    const defendingTerritoryIndex = updatedTerritories.findIndex(t => t.id === defendingTerritoryId);
+    updatedTerritories[defendingTerritoryIndex].units = updatedDefendingUnits.map(u => u.id);
+    
+    // Update player units
+    const attackerUnitIds = new Set(updatedAttackingUnits.map(u => u.id));
+    const defenderUnitIds = new Set(updatedDefendingUnits.map(u => u.id));
+    
+    updatedPlayers[attackerIndex].units = updatedPlayers[attackerIndex].units.filter(u => 
+      attackerUnitIds.has(u.id) || u.territoryId !== selectedTerritory
+    );
+    
+    for (const unit of updatedAttackingUnits) {
+      const existingUnitIndex = updatedPlayers[attackerIndex].units.findIndex(u => u.id === unit.id);
+      if (existingUnitIndex >= 0) {
+        updatedPlayers[attackerIndex].units[existingUnitIndex] = unit;
+      } else {
+        updatedPlayers[attackerIndex].units.push(unit);
+      }
+    }
+    
+    updatedPlayers[defenderIndex].units = updatedPlayers[defenderIndex].units.filter(u => 
+      defenderUnitIds.has(u.id) || u.territoryId !== defendingTerritoryId
+    );
+    
+    for (const unit of updatedDefendingUnits) {
+      const existingUnitIndex = updatedPlayers[defenderIndex].units.findIndex(u => u.id === unit.id);
+      if (existingUnitIndex >= 0) {
+        updatedPlayers[defenderIndex].units[existingUnitIndex] = unit;
+      } else {
+        updatedPlayers[defenderIndex].units.push(unit);
+      }
+    }
+    
+    // If attacker wins and defender has no units left, territory is captured
+    if (attackerWins && updatedDefendingUnits.length === 0) {
+      // Transfer territory ownership
+      updatedTerritories[defendingTerritoryIndex].owner = attackerIndex;
+      
+      // Update player territories lists
+      updatedPlayers[attackerIndex].territories.push(defendingTerritoryId);
+      updatedPlayers[defenderIndex].territories = updatedPlayers[defenderIndex].territories.filter(
+        t => t !== defendingTerritoryId
+      );
+      
+      // Handle captured buildings
+      // Buildings stay in place but ownership transfers
+      updatedTerritories[defendingTerritoryIndex].buildings.forEach(buildingId => {
+        const building = updatedPlayers[defenderIndex].buildings.find(b => b.id === buildingId);
+        if (building) {
+          // Remove from defender's building list
+          updatedPlayers[defenderIndex].buildings = updatedPlayers[defenderIndex].buildings.filter(
+            b => b.id !== buildingId
+          );
+          
+          // Add to attacker's building list with new ID
+          const newBuildingId = Math.max(0, ...updatedPlayers[attackerIndex].buildings.map(b => b.id)) + 1;
+          
+          updatedPlayers[attackerIndex].buildings.push({
+            id: newBuildingId,
+            type: building.type,
+            territoryId: defendingTerritoryId
+          });
+          
+          // Update territory building reference
+          const buildingIndex = updatedTerritories[defendingTerritoryIndex].buildings.indexOf(buildingId);
+          if (buildingIndex >= 0) {
+            updatedTerritories[defendingTerritoryIndex].buildings[buildingIndex] = newBuildingId;
+          }
+        }
+      });
+      
+      toast.success(`You captured territory ${defendingTerritoryId}!`);
+    } else if (attackerWins) {
+      toast.success(`Attack successful! Enemy units damaged.`);
+    } else {
+      toast.error(`Attack repelled! Your units suffered casualties.`);
+    }
+    
+    const updatedActionsPerformed = {
+      ...gameState.actionsPerformed,
+      attack: true
+    };
+    
+    setGameState({
+      ...gameState,
+      players: updatedPlayers,
+      territories: updatedTerritories,
+      currentAction: "none",
+      actionsPerformed: updatedActionsPerformed
+    });
+    
+    setSelectedTerritory(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <ErrorScreen message={error} onRetry={() => window.location.reload()} />;
+  }
+
+  if (!gameState) {
+    return <ErrorScreen message="Failed to initialize game state" onRetry={() => window.location.reload()} />;
+  }
+
+  const renderPhase = () => {
+    if (gameState.phase === "setup") {
+      return (
+        <div className="absolute top-0 left-0 w-full p-4 bg-gray-800 bg-opacity-75 text-white text-center z-10">
+          <h2 className="text-xl font-bold">Setup Phase</h2>
+          <p>Player {gameState.currentPlayer + 1}: Select a starting territory</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderGameOver = () => {
+    if (gameState.gameOver) {
+      return (
+        <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
+          <div className="bg-white p-8 rounded-lg max-w-md text-center">
+            <h2 className="text-2xl font-bold mb-4">Game Over!</h2>
+            <p className="text-xl mb-6">
+              Player {gameState.winner !== null ? gameState.winner + 1 : "unknown"} wins!
+            </p>
+            <Button onClick={onExitGame}>Return to Menu</Button>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderResourceGainToast = () => {
+    if (showResourceGain && gameState.lastResourceGain) {
+      const gain = gameState.lastResourceGain;
+      return (
+        <div className="absolute top-16 right-4 bg-gray-800 bg-opacity-90 text-white p-4 rounded-lg shadow-lg z-30 animate-fadeIn">
+          <h3 className="text-lg font-bold mb-2">Resources Collected</h3>
+          <ul>
+            <li>Gold: +{gain.gold}</li>
+            <li>Wood: +{gain.wood}</li>
+            <li>Stone: +{gain.stone}</li>
+            <li>Food: +{gain.food}</li>
+          </ul>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="relative h-full w-full flex flex-col">
+      <GameTopBar 
+        turn={gameState.turn}
+        currentPlayer={gameState.currentPlayer}
+        playerName={gameState.players[gameState.currentPlayer].name}
+        playerColor={gameState.players[gameState.currentPlayer].color}
+        onOpenInfoModal={(modalType) => setActiveInfoModal(modalType)}
+        onExitGame={onExitGame}
+      />
+      
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 relative">
+          <GameBoard 
+            territories={gameState.territories}
+            players={gameState.players}
+            selectedTerritory={selectedTerritory}
+            onTerritorySelect={handleTerritorySelect}
+            onClaimTerritory={handleClaimTerritory}
+            onAttackTerritory={handleAttackTerritory}
+            currentPlayer={gameState.currentPlayer}
+            phase={gameState.phase}
+            actionTaken={gameState.actionTaken}
+            expandableTerritories={gameState.expandableTerritories}
+            attackableTerritories={gameState.attackableTerritories}
+            buildableTerritories={gameState.buildableTerritories}
+            recruitableTerritories={gameState.recruitableTerritories}
+            currentAction={gameState.currentAction}
+            actionsPerformed={gameState.actionsPerformed}
+          />
+          
+          {renderPhase()}
+          {renderGameOver()}
+          {renderResourceGainToast()}
+        </div>
+        
+        {!isMobile && (
+          <div className="w-64 bg-gray-100 p-4 flex flex-col">
+            <ResourceDisplay 
+              resources={gameState.players[gameState.currentPlayer].resources}
+              territories={gameState.players[gameState.currentPlayer].territories.length}
+              units={gameState.players[gameState.currentPlayer].units.length}
+              buildings={gameState.players[gameState.currentPlayer].buildings.length}
+            />
+            
+            {gameState.phase === "playing" && (
+              <GameControls 
+                onBuildClick={() => handleMenuSelect("build")}
+                onRecruitClick={() => handleMenuSelect("recruit")}
+                onExpandClick={() => handleMenuSelect("expand")}
+                onAttackClick={() => handleMenuSelect("attack")}
+                onEndTurnClick={handleEndTurn}
+                disabled={gameState.actionTaken}
+                actionTaken={gameState.actionTaken}
+                expandMode={gameState.currentAction === "expand"}
+                attackMode={gameState.currentAction === "attack"}
+                buildMode={gameState.currentAction === "build"}
+                recruitMode={gameState.currentAction === "recruit"}
+                canAttack={gameState.players[gameState.currentPlayer].units.length > 0 && hasEnemyAdjacentTerritories()}
+                hasResourcesForExpansion={hasResourcesForExpansion()}
+                canRecruit={gameState.players[gameState.currentPlayer].territories.some(territoryId => canRecruitInTerritory(territoryId))}
+                canBuild={gameState.players[gameState.currentPlayer].territories.length > 0}
+                actionsPerformed={gameState.actionsPerformed}
+                errorMessages={errorMessages}
+              />
+            )}
+            
+            {activeMenu === "build" && selectedTerritory !== null && (
+              <BuildingMenu 
+                onSelectBuilding={handleBuildStructure}
+                resources={gameState.players[gameState.currentPlayer].resources}
+                onClose={() => setActiveMenu(null)}
+              />
+            )}
+            
+            {activeMenu === "recruit" && selectedTerritory !== null && (
+              <RecruitmentMenu 
+                onSelectUnit={handleRecruitUnit}
+                resources={gameState.players[gameState.currentPlayer].resources}
+                onClose={() => setActiveMenu(null)}
+              />
+            )}
+          </div>
+        )}
+      </div>
+      
+      {isMobile && gameState.phase === "playing" && (
+        <div className="bg-gray-100 p-2">
+          <GameControls 
+            onBuildClick={() => handleMenuSelect("build")}
+            onRecruitClick={() => handleMenuSelect("recruit")}
+            onExpandClick={() => handleMenuSelect("expand")}
+            onAttackClick={() => handleMenuSelect("attack")}
+            onEndTurnClick={handleEndTurn}
+            disabled={gameState.actionTaken}
+            actionTaken={gameState.actionTaken}
+            expandMode={gameState.currentAction === "expand"}
+            attackMode={gameState.currentAction === "attack"}
+            buildMode={gameState.currentAction === "build"}
+            recruitMode={gameState.currentAction === "recruit"}
+            canAttack={gameState.players[gameState.currentPlayer].units.length > 0 && hasEnemyAdjacentTerritories()}
+            hasResourcesForExpansion={hasResourcesForExpansion()}
+            canRecruit={gameState.players[gameState.currentPlayer].territories.some(territoryId => canRecruitInTerritory(territoryId))}
+            canBuild={gameState.players[gameState.currentPlayer].territories.length > 0}
+            actionsPerformed={gameState.actionsPerformed}
+            errorMessages={errorMessages}
+          />
+        </div>
+      )}
+      
+      <GameMenus 
+        isMobile={isMobile}
+        activeMenu={activeMenu}
+        selectedTerritory={selectedTerritory}
+        onClose={() => setActiveMenu(null)}
+        resources={gameState.players[gameState.currentPlayer].resources}
+        onBuildStructure={handleBuildStructure}
+        onRecruitUnit={handleRecruitUnit}
+      />
+      
+      {activeInfoModal && (
+        <GameInfoModal 
+          type={activeInfoModal}
+          onClose={() => setActiveInfoModal(null)}
+        />
+      )}
+    </div>
+  );
+};
