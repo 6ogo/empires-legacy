@@ -1,3 +1,4 @@
+<lov-code>
 import React, { useState, useEffect } from "react";
 import { GameBoard } from "./GameBoard";
 import { GameTopBar } from "./GameTopBar";
@@ -981,4 +982,4 @@ export const GameContainer: React.FC<{
     
     switch (buildingType) {
       case "lumberMill":
-        costMessage = "50 Wood
+        costMessage = "
