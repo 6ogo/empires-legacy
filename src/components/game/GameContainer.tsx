@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { GameBoard } from "./GameBoard";
 import { GameTopBar } from "./GameTopBar";
@@ -10,6 +11,7 @@ import { ErrorScreen } from "./ErrorScreen";
 import { Button } from "../ui/button";
 import { GameInfoModal } from "./GameInfoModal";
 import { toast } from "sonner";
+import { useMediaQuery } from "../../hooks/use-media-query";
 
 interface GameState {
   phase: "setup" | "playing";
@@ -24,7 +26,16 @@ interface GameState {
   currentAction: "none" | "build" | "expand" | "attack" | "recruit";
   actionTaken: boolean;
   expandableTerritories: number[];
+  attackableTerritories: number[];
+  buildableTerritories: number[];
+  recruitableTerritories: number[];
   lastResourceGain: ResourceGain | null;
+  actionsPerformed: {
+    build: boolean;
+    recruit: boolean;
+    expand: boolean;
+    attack: boolean;
+  };
 }
 
 interface ResourceGain {
@@ -101,6 +112,16 @@ export const GameContainer: React.FC<{
   const [loading, setLoading] = useState(true);
   const [activeInfoModal, setActiveInfoModal] = useState<string | null>(null);
   const [showResourceGain, setShowResourceGain] = useState<boolean>(false);
+  const [territoryClaimInProgress, setTerritoryClaimInProgress] = useState<boolean>(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // Error messages for why actions can't be performed
+  const [errorMessages, setErrorMessages] = useState({
+    attack: "No valid targets",
+    recruit: "Need barracks",
+    build: "No territory selected",
+    expand: "Need resources"
+  });
 
   useEffect(() => {
     try {
@@ -136,7 +157,16 @@ export const GameContainer: React.FC<{
         currentAction: "none",
         actionTaken: false,
         expandableTerritories: [],
-        lastResourceGain: null
+        attackableTerritories: [],
+        buildableTerritories: [],
+        recruitableTerritories: [],
+        lastResourceGain: null,
+        actionsPerformed: {
+          build: false,
+          recruit: false,
+          expand: false,
+          attack: false
+        }
       };
       
       setGameState(initialState);
@@ -147,6 +177,64 @@ export const GameContainer: React.FC<{
       setLoading(false);
     }
   }, [settings]);
+
+  // Update available territories for current action when selectedTerritory changes
+  useEffect(() => {
+    if (!gameState || gameState.phase !== "playing") return;
+    
+    // Update buildable and recruitable territories based on selection
+    updateActionableTerritories();
+  }, [selectedTerritory, gameState?.currentAction]);
+
+  const updateActionableTerritories = () => {
+    if (!gameState) return;
+    
+    // Generate lists of territories where actions can be performed
+    const expandableTerritories = getExpandableTerritories();
+    const attackableTerritories = getAttackableTerritories();
+    
+    // Get territories where buildings can be placed (owned and no existing buildings)
+    const buildableTerritories = gameState.players[gameState.currentPlayer].territories.filter(
+      territoryId => canBuildOnTerritory(territoryId)
+    );
+    
+    // Get territories where units can be recruited (owned, has barracks, has fewer than 2 unit types)
+    const recruitableTerritories = gameState.players[gameState.currentPlayer].territories.filter(
+      territoryId => canRecruitInTerritory(territoryId)
+    );
+    
+    setGameState(prevState => {
+      if (!prevState) return null;
+      return {
+        ...prevState,
+        expandableTerritories,
+        attackableTerritories,
+        buildableTerritories,
+        recruitableTerritories
+      };
+    });
+    
+    // Update error messages based on available territories
+    const newErrorMessages = {
+      attack: hasEnemyAdjacentTerritories() ? 
+        (gameState.players[gameState.currentPlayer].units.length > 0 ? 
+          "Select your territory first" : "No military units") : 
+        "No enemy territories nearby",
+      recruit: recruitableTerritories.length > 0 ? 
+        "Select territory with barracks" : 
+        "Need barracks with space for units",
+      build: buildableTerritories.length > 0 ? 
+        "Select territory to build on" : 
+        "No available territories",
+      expand: hasResourcesForExpansion() ? 
+        (expandableTerritories.length > 0 ? 
+          "Select territory to expand to" : 
+          "No available territories") : 
+        "Need 100 Gold and 20 Food"
+    };
+    
+    setErrorMessages(newErrorMessages);
+  };
 
   const getBoardSize = (playerCount: number, sizePreference: string): number => {
     const baseSizes = {
@@ -308,6 +396,25 @@ export const GameContainer: React.FC<{
     return territory.buildings.length === 0;
   };
 
+  const getUnitTypesInTerritory = (territoryId: number): string[] => {
+    if (!gameState) return [];
+    
+    const territory = gameState.territories.find(t => t.id === territoryId);
+    if (!territory || territory.owner !== gameState.currentPlayer) return [];
+    
+    const currentPlayer = gameState.players[gameState.currentPlayer];
+    const unitTypes = new Set<string>();
+    
+    territory.units.forEach(unitId => {
+      const unit = currentPlayer.units.find(u => u.id === unitId);
+      if (unit) {
+        unitTypes.add(unit.type);
+      }
+    });
+    
+    return Array.from(unitTypes);
+  };
+
   const canRecruitInTerritory = (territoryId: number): boolean => {
     if (!gameState) return false;
     
@@ -319,9 +426,28 @@ export const GameContainer: React.FC<{
       return building && building.type === "barracks";
     });
     
-    const hasUnits = territory.units.length > 0;
+    // Check if there's less than 2 unit types already
+    const unitTypes = getUnitTypesInTerritory(territoryId);
+    const hasSpaceForNewUnitType = unitTypes.length < 2;
     
-    return hasBarracks && !hasUnits;
+    return hasBarracks && hasSpaceForNewUnitType;
+  };
+
+  const canRecruitUnitTypeInTerritory = (territoryId: number, unitType: string): boolean => {
+    if (!gameState) return false;
+    
+    const unitTypes = getUnitTypesInTerritory(territoryId);
+    
+    // If no units, can recruit any type
+    if (unitTypes.length === 0) return true;
+    
+    // If one unit type, can only recruit that same type or a new type if less than 2
+    if (unitTypes.length === 1) {
+      return unitTypes[0] === unitType || unitTypes.length < 2;
+    }
+    
+    // If already 2 types, can only recruit those same types
+    return unitTypes.includes(unitType);
   };
 
   const canAttackFromTerritory = (territoryId: number): boolean => {
@@ -333,6 +459,19 @@ export const GameContainer: React.FC<{
     if (territory.units.length === 0) return false;
     
     return territory.adjacentTerritories.some(adjId => {
+      const adjTerritory = gameState.territories.find(t => t.id === adjId);
+      return adjTerritory && adjTerritory.owner !== null && adjTerritory.owner !== gameState.currentPlayer;
+    });
+  };
+
+  const getAttackableTerritories = (): number[] => {
+    if (!gameState || !selectedTerritory) return [];
+    
+    const territory = gameState.territories.find(t => t.id === selectedTerritory);
+    if (!territory || territory.owner !== gameState.currentPlayer || territory.units.length === 0) return [];
+    
+    // Return adjacent enemy territories
+    return territory.adjacentTerritories.filter(adjId => {
       const adjTerritory = gameState.territories.find(t => t.id === adjId);
       return adjTerritory && adjTerritory.owner !== null && adjTerritory.owner !== gameState.currentPlayer;
     });
@@ -366,18 +505,18 @@ export const GameContainer: React.FC<{
     const territory = gameState.territories.find(t => t.id === territoryId);
     if (!territory) return;
     
-    const isOwned = territory.owner === gameState.currentPlayer;
-    const isExpandable = gameState.expandableTerritories.includes(territoryId);
-    
-    if (isOwned) {
-      setSelectedTerritory(territoryId);
-    } else if (isExpandable && gameState.currentAction === "expand") {
-      handleExpandTerritory(territoryId);
-    }
+    // Update selected territory based on current action
+    setSelectedTerritory(territoryId);
   };
 
   const handleMenuSelect = (menu: string) => {
     if (!gameState || gameState.actionTaken) return;
+    
+    // Check if action has already been performed
+    if (gameState.actionsPerformed[menu as keyof typeof gameState.actionsPerformed]) {
+      toast.error(`You've already performed a ${menu} action this turn`);
+      return;
+    }
     
     if (menu === "expand") {
       const expandableTerritories = getExpandableTerritories();
@@ -393,43 +532,78 @@ export const GameContainer: React.FC<{
         return;
       }
       
-      setGameState({
-        ...gameState,
-        currentAction: "expand",
-        expandableTerritories
+      setGameState(prevState => {
+        if (!prevState) return null;
+        return {
+          ...prevState,
+          currentAction: "expand",
+          expandableTerritories
+        };
       });
     } else if (menu === "build") {
-      const canBuildAnywhere = gameState.players[gameState.currentPlayer].territories.some(
+      const buildableTerritories = gameState.players[gameState.currentPlayer].territories.filter(
         territoryId => canBuildOnTerritory(territoryId)
       );
       
-      if (!canBuildAnywhere) {
+      if (buildableTerritories.length === 0) {
         toast.error("No available territories to build on!");
         return;
       }
       
-      if (selectedTerritory !== null && !canBuildOnTerritory(selectedTerritory)) {
-        toast.error("Cannot build on this territory!");
-        return;
-      }
+      setGameState(prevState => {
+        if (!prevState) return null;
+        return {
+          ...prevState,
+          currentAction: "build",
+          buildableTerritories
+        };
+      });
       
-      setActiveMenu(menu);
+      setActiveMenu("build");
     } else if (menu === "recruit") {
-      const canRecruitAnywhere = gameState.players[gameState.currentPlayer].territories.some(
+      const recruitableTerritories = gameState.players[gameState.currentPlayer].territories.filter(
         territoryId => canRecruitInTerritory(territoryId)
       );
       
-      if (!canRecruitAnywhere) {
+      if (recruitableTerritories.length === 0) {
         toast.error("No barracks available to recruit units! Build a barracks first.");
         return;
       }
       
-      if (selectedTerritory !== null && !canRecruitInTerritory(selectedTerritory)) {
-        toast.error("Cannot recruit in this territory! Need a barracks with no existing units.");
+      setGameState(prevState => {
+        if (!prevState) return null;
+        return {
+          ...prevState,
+          currentAction: "recruit",
+          recruitableTerritories
+        };
+      });
+      
+      setActiveMenu("recruit");
+    } else if (menu === "attack") {
+      // For attack, we first need to select a territory that has military units
+      const territoriesWithUnits = gameState.players[gameState.currentPlayer].territories.filter(territoryId => {
+        const territory = gameState.territories.find(t => t.id === territoryId);
+        return territory && territory.units.length > 0;
+      });
+      
+      if (territoriesWithUnits.length === 0) {
+        toast.error("No military units available! Recruit units first.");
         return;
       }
       
-      setActiveMenu(menu);
+      if (!hasEnemyAdjacentTerritories()) {
+        toast.error("No enemy territories nearby to attack!");
+        return;
+      }
+      
+      setGameState(prevState => {
+        if (!prevState) return null;
+        return {
+          ...prevState,
+          currentAction: "attack"
+        };
+      });
     } else {
       setActiveMenu(menu);
     }
@@ -468,6 +642,12 @@ export const GameContainer: React.FC<{
   const handleExpandTerritory = (territoryId: number) => {
     if (!gameState || !gameState.expandableTerritories.includes(territoryId)) return;
     
+    // Check if expand action has already been performed
+    if (gameState.actionsPerformed.expand) {
+      toast.error("You've already expanded this turn");
+      return;
+    }
+    
     const currentPlayer = gameState.players[gameState.currentPlayer];
     const canExpand = currentPlayer.resources.gold >= 100 && currentPlayer.resources.food >= 20;
     
@@ -481,15 +661,21 @@ export const GameContainer: React.FC<{
       const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
       updatedTerritories[territoryIndex].owner = gameState.currentPlayer;
       
+      const updatedActionsPerformed = {
+        ...gameState.actionsPerformed,
+        expand: true
+      };
+      
       setGameState({
         ...gameState,
         players: updatedPlayers,
         territories: updatedTerritories,
         currentAction: "none",
-        actionTaken: true,
+        actionsPerformed: updatedActionsPerformed,
         expandableTerritories: []
       });
       
+      setSelectedTerritory(null);
       toast.success("Territory expanded successfully!");
     } else {
       toast.error("Not enough resources to expand! Need 100 Gold and 20 Food.");
@@ -569,7 +755,49 @@ export const GameContainer: React.FC<{
     player.resources.stone += resourceGain.stone;
     player.resources.food += resourceGain.food;
     
+    // Record if food was negative for unit health reduction
+    const foodDeficit = player.resources.food < 0;
+    
+    // Ensure resources don't go below 0
     player.resources.food = Math.max(0, player.resources.food);
+    
+    // If food was negative, reduce unit health by 20
+    if (foodDeficit) {
+      // Apply food shortage penalties to units
+      const updatedUnits = player.units.map(unit => ({
+        ...unit,
+        health: Math.max(0, unit.health - 20)
+      }));
+      
+      // Filter out dead units
+      const aliveUnits = updatedUnits.filter(unit => unit.health > 0);
+      
+      // Update territories to remove dead units
+      if (aliveUnits.length < player.units.length) {
+        toast.error(`Player ${player.name} lost units due to food shortage!`);
+        
+        // Update territories
+        const updatedTerritories = [...gameState.territories];
+        updatedTerritories.forEach(territory => {
+          if (territory.owner === player.id) {
+            territory.units = territory.units.filter(unitId => {
+              const unit = aliveUnits.find(u => u.id === unitId);
+              return unit !== undefined;
+            });
+          }
+        });
+        
+        player.units = aliveUnits;
+        
+        return {
+          updatedPlayers,
+          updatedTerritories,
+          resourceGain
+        };
+      }
+      
+      player.units = updatedUnits;
+    }
     
     return {
       updatedPlayers,
@@ -614,21 +842,35 @@ export const GameContainer: React.FC<{
         currentPlayer: 0,
         setupComplete: true,
         currentAction: "none",
-        actionTaken: false
+        actionTaken: false,
+        actionsPerformed: {
+          build: false,
+          recruit: false,
+          expand: false,
+          attack: false
+        }
       });
       
       setTimeout(() => {
         if (gameState) {
-          const { updatedPlayers, resourceGain } = collectResources(0) || { updatedPlayers: gameState.players, resourceGain: null };
-          setGameState(prevState => prevState ? {
-            ...prevState,
-            players: updatedPlayers,
-            lastResourceGain: resourceGain
-          } : null);
-          
-          if (resourceGain) {
-            setShowResourceGain(true);
-            setTimeout(() => setShowResourceGain(false), 3000);
+          const result = collectResources(0);
+          if (result) {
+            const { updatedPlayers, updatedTerritories, resourceGain } = result;
+            
+            setGameState(prevState => {
+              if (!prevState) return null;
+              return {
+                ...prevState,
+                players: updatedPlayers,
+                territories: updatedTerritories || prevState.territories,
+                lastResourceGain: resourceGain
+              };
+            });
+            
+            if (resourceGain) {
+              setShowResourceGain(true);
+              setTimeout(() => setShowResourceGain(false), 3000);
+            }
           }
         }
       }, 500);
@@ -636,12 +878,14 @@ export const GameContainer: React.FC<{
       setGameState({
         ...gameState,
         players: updatedPlayers,
-        currentPlayer: nextPlayer
+        currentPlayer: nextPlayer,
+        actionTaken: false
       });
     }
     
     setSelectedTerritory(null);
     setActiveMenu(null);
+    setTerritoryClaimInProgress(false);
   };
 
   const handlePlayingPhaseEndTurn = () => {
@@ -676,7 +920,16 @@ export const GameContainer: React.FC<{
       winner,
       currentAction: "none",
       actionTaken: false,
-      expandableTerritories: []
+      expandableTerritories: [],
+      attackableTerritories: [],
+      buildableTerritories: [],
+      recruitableTerritories: [],
+      actionsPerformed: {
+        build: false,
+        recruit: false,
+        expand: false,
+        attack: false
+      }
     });
     
     setSelectedTerritory(null);
@@ -685,16 +938,24 @@ export const GameContainer: React.FC<{
     if (!gameOver) {
       setTimeout(() => {
         if (gameState) {
-          const { updatedPlayers, resourceGain } = collectResources(nextPlayerId) || { updatedPlayers: gameState.players, resourceGain: null };
-          setGameState(prevState => prevState ? {
-            ...prevState,
-            players: updatedPlayers,
-            lastResourceGain: resourceGain
-          } : null);
-          
-          if (resourceGain) {
-            setShowResourceGain(true);
-            setTimeout(() => setShowResourceGain(false), 3000);
+          const result = collectResources(nextPlayerId);
+          if (result) {
+            const { updatedPlayers, updatedTerritories, resourceGain } = result;
+            
+            setGameState(prevState => {
+              if (!prevState) return null;
+              return {
+                ...prevState,
+                players: updatedPlayers,
+                territories: updatedTerritories || prevState.territories,
+                lastResourceGain: resourceGain
+              };
+            });
+            
+            if (resourceGain) {
+              setShowResourceGain(true);
+              setTimeout(() => setShowResourceGain(false), 3000);
+            }
           }
         }
       }, 500);
@@ -702,7 +963,13 @@ export const GameContainer: React.FC<{
   };
 
   const handleBuildStructure = (buildingType: string) => {
-    if (!gameState || selectedTerritory === null || gameState.actionTaken) return;
+    if (!gameState || selectedTerritory === null) return;
+    
+    // Check if build action has already been performed
+    if (gameState.actionsPerformed.build) {
+      toast.error("You've already built this turn");
+      return;
+    }
     
     const territory = gameState.territories.find(t => t.id === selectedTerritory);
     if (!territory || territory.owner !== gameState.currentPlayer) return;
@@ -785,15 +1052,22 @@ export const GameContainer: React.FC<{
       const territoryIndex = updatedTerritories.findIndex(t => t.id === selectedTerritory);
       updatedTerritories[territoryIndex].buildings.push(buildingId);
       
+      const updatedActionsPerformed = {
+        ...gameState.actionsPerformed,
+        build: true
+      };
+      
       setGameState({
         ...gameState,
         players: updatedPlayers,
         territories: updatedTerritories,
-        currentAction: "build",
-        actionTaken: true
+        currentAction: "none",
+        actionsPerformed: updatedActionsPerformed,
+        buildableTerritories: []
       });
       
       setActiveMenu(null);
+      setSelectedTerritory(null);
       toast.success(`Built ${buildingType} successfully!`);
     } else {
       toast.error(`Not enough resources to build! Needs ${costMessage}.`);
@@ -801,7 +1075,13 @@ export const GameContainer: React.FC<{
   };
 
   const handleRecruitUnit = (unitType: string) => {
-    if (!gameState || selectedTerritory === null || gameState.actionTaken) return;
+    if (!gameState || selectedTerritory === null) return;
+    
+    // Check if recruit action has already been performed
+    if (gameState.actionsPerformed.recruit) {
+      toast.error("You've already recruited this turn");
+      return;
+    }
     
     const territory = gameState.territories.find(t => t.id === selectedTerritory);
     if (!territory || territory.owner !== gameState.currentPlayer) return;
@@ -813,6 +1093,13 @@ export const GameContainer: React.FC<{
     
     if (!hasBarracks) {
       toast.error("Cannot recruit in this territory! Need a barracks first.");
+      return;
+    }
+    
+    // Check unit type constraints
+    const unitTypes = getUnitTypesInTerritory(selectedTerritory);
+    if (unitTypes.length >= 2 && !unitTypes.includes(unitType)) {
+      toast.error("Cannot recruit more than 2 different unit types in a territory.");
       return;
     }
     
@@ -865,15 +1152,22 @@ export const GameContainer: React.FC<{
       const territoryIndex = updatedTerritories.findIndex(t => t.id === selectedTerritory);
       updatedTerritories[territoryIndex].units.push(unitId);
       
+      const updatedActionsPerformed = {
+        ...gameState.actionsPerformed,
+        recruit: true
+      };
+      
       setGameState({
         ...gameState,
         players: updatedPlayers,
         territories: updatedTerritories,
-        currentAction: "recruit",
-        actionTaken: true
+        currentAction: "none",
+        actionsPerformed: updatedActionsPerformed,
+        recruitableTerritories: []
       });
       
       setActiveMenu(null);
+      setSelectedTerritory(null);
       toast.success(`Recruited ${unitType} successfully!`);
     } else {
       toast.error(`Not enough resources to recruit! Needs ${costMessage}.`);
@@ -881,12 +1175,15 @@ export const GameContainer: React.FC<{
   };
 
   const handleClaimTerritory = (territoryId: number) => {
-    if (!gameState) return;
+    if (!gameState || territoryClaimInProgress) return;
     
     const territory = gameState.territories.find(t => t.id === territoryId);
     if (!territory || territory.owner !== null) return;
     
     if (gameState.phase === "setup") {
+      // Set flag to prevent double-clicking
+      setTerritoryClaimInProgress(true);
+      
       const updatedTerritories = [...gameState.territories];
       const territoryIndex = updatedTerritories.findIndex(t => t.id === territoryId);
       
@@ -899,7 +1196,8 @@ export const GameContainer: React.FC<{
       setGameState({
         ...gameState,
         players: updatedPlayers,
-        territories: updatedTerritories
+        territories: updatedTerritories,
+        actionTaken: true
       });
       
       setTimeout(() => handleEndTurn(), 500);
@@ -908,7 +1206,13 @@ export const GameContainer: React.FC<{
   };
 
   const handleAttackTerritory = (targetTerritoryId: number) => {
-    if (!gameState || !selectedTerritory || gameState.actionTaken) return;
+    if (!gameState || !selectedTerritory) return;
+    
+    // Check if attack action has already been performed
+    if (gameState.actionsPerformed.attack) {
+      toast.error("You've already attacked this turn");
+      return;
+    }
     
     const sourceTerritory = gameState.territories.find(t => t.id === selectedTerritory);
     const targetTerritory = gameState.territories.find(t => t.id === targetTerritoryId);
@@ -919,33 +1223,124 @@ export const GameContainer: React.FC<{
     if (targetTerritory.owner === null) return;
     
     const isAdjacent = sourceTerritory.adjacentTerritories.includes(targetTerritoryId);
-    if (!isAdjacent) return;
+    if (!isAdjacent) {
+      toast.error("Can only attack adjacent territories!");
+      return;
+    }
     
-    if (sourceTerritory.units.length === 0) return;
+    if (sourceTerritory.units.length === 0) {
+      toast.error("Need military units to attack!");
+      return;
+    }
     
+    // Calculate attack power from source territory
+    let attackPower = 0;
+    const attacker = gameState.players[gameState.currentPlayer];
+    
+    sourceTerritory.units.forEach(unitId => {
+      const unit = attacker.units.find(u => u.id === unitId);
+      if (!unit) return;
+      
+      switch(unit.type) {
+        case "infantry": 
+          attackPower += 10;
+          break;
+        case "cavalry": 
+          attackPower += 15;
+          break;
+        case "artillery": 
+          attackPower += 25;
+          break;
+      }
+    });
+    
+    // Calculate defense power from target territory
+    let defenseHealth = 0;
+    const defenderId = targetTerritory.owner;
+    const defender = gameState.players[defenderId];
+    
+    targetTerritory.units.forEach(unitId => {
+      const unit = defender.units.find(u => u.id === unitId);
+      if (!unit) return;
+      defenseHealth += unit.health;
+    });
+    
+    // Add fortress bonus if present
+    const hasFortress = targetTerritory.buildings.some(buildingId => {
+      const building = defender.buildings.find(b => b.id === buildingId);
+      return building && building.type === "fortress";
+    });
+    
+    if (hasFortress) {
+      defenseHealth += 50; // Fortress bonus
+    }
+    
+    // Resolve combat
     const updatedTerritories = [...gameState.territories];
     const targetIndex = updatedTerritories.findIndex(t => t.id === targetTerritoryId);
-    
-    const previousOwner = targetTerritory.owner;
-    
-    updatedTerritories[targetIndex].owner = gameState.currentPlayer;
-    
     const updatedPlayers = [...gameState.players];
     
-    updatedPlayers[gameState.currentPlayer].territories.push(targetTerritoryId);
+    if (attackPower > defenseHealth) {
+      // Attacker wins
+      // Transfer territory ownership
+      updatedTerritories[targetIndex].owner = gameState.currentPlayer;
+      
+      // Remove defender's units from this territory
+      updatedTerritories[targetIndex].units = [];
+      
+      // Update player territory lists
+      updatedPlayers[gameState.currentPlayer].territories.push(targetTerritoryId);
+      updatedPlayers[defenderId].territories = updatedPlayers[defenderId].territories.filter(
+        id => id !== targetTerritoryId
+      );
+      
+      // Remove defender's units tied to this territory
+      updatedPlayers[defenderId].units = updatedPlayers[defenderId].units.filter(
+        unit => unit.territoryId !== targetTerritoryId
+      );
+      
+      toast.success(`Attack successful! Territory captured.`);
+    } else {
+      // Defender wins or tie (defender has advantage)
+      // Reduce defender units' health
+      targetTerritory.units.forEach(unitId => {
+        const unitIndex = updatedPlayers[defenderId].units.findIndex(u => u.id === unitId);
+        if (unitIndex === -1) return;
+        
+        // Distribute damage proportionally
+        const unit = updatedPlayers[defenderId].units[unitIndex];
+        const damageRatio = attackPower / defenseHealth;
+        const damage = Math.floor(unit.health * damageRatio);
+        unit.health -= damage;
+        
+        // Remove dead units
+        if (unit.health <= 0) {
+          updatedPlayers[defenderId].units.splice(unitIndex, 1);
+          updatedTerritories[targetIndex].units = updatedTerritories[targetIndex].units.filter(
+            id => id !== unitId
+          );
+        }
+      });
+      
+      toast.error(`Attack failed! Defender maintains control.`);
+    }
     
-    const previousOwnerTerritories = updatedPlayers[previousOwner].territories;
-    updatedPlayers[previousOwner].territories = previousOwnerTerritories.filter(
-      id => id !== targetTerritoryId
-    );
+    // Mark attack action as performed
+    const updatedActionsPerformed = {
+      ...gameState.actionsPerformed,
+      attack: true
+    };
     
     setGameState({
       ...gameState,
       players: updatedPlayers,
       territories: updatedTerritories,
-      currentAction: "attack",
-      actionTaken: true
+      currentAction: "none",
+      actionsPerformed: updatedActionsPerformed,
+      attackableTerritories: []
     });
+    
+    setSelectedTerritory(null);
   };
   
   const handleInfoButtonClick = (infoType: string) => {
@@ -954,6 +1349,10 @@ export const GameContainer: React.FC<{
   
   const closeInfoModal = () => {
     setActiveInfoModal(null);
+  };
+  
+  const handleAttackClick = () => {
+    handleMenuSelect("attack");
   };
 
   if (error) {
@@ -967,9 +1366,15 @@ export const GameContainer: React.FC<{
   const currentPlayer = gameState.players[gameState.currentPlayer];
   const anyEnemyAdjacent = hasEnemyAdjacentTerritories();
   const hasUnits = currentPlayer.units.length > 0;
+  const canRecruit = gameState.players[gameState.currentPlayer].territories.some(
+    territoryId => canRecruitInTerritory(territoryId)
+  );
+  const canBuild = gameState.players[gameState.currentPlayer].territories.some(
+    territoryId => canBuildOnTerritory(territoryId)
+  );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full ${isMobile ? "text-sm" : ""}`}>
       <GameTopBar 
         turn={gameState.turn} 
         currentPlayer={gameState.currentPlayer}
@@ -992,6 +1397,11 @@ export const GameContainer: React.FC<{
             phase={gameState.phase}
             actionTaken={gameState.actionTaken}
             expandableTerritories={gameState.expandableTerritories}
+            attackableTerritories={gameState.attackableTerritories}
+            buildableTerritories={gameState.buildableTerritories}
+            recruitableTerritories={gameState.recruitableTerritories}
+            currentAction={gameState.currentAction}
+            actionsPerformed={gameState.actionsPerformed}
           />
 
           {gameState.phase === "setup" && (
@@ -1028,7 +1438,7 @@ export const GameContainer: React.FC<{
           )}
         </div>
         
-        <div className="w-64 bg-gray-900 p-4 flex flex-col">
+        <div className={`${isMobile ? "w-48" : "w-64"} bg-gray-900 p-4 flex flex-col`}>
           <ResourceDisplay 
             resources={currentPlayer.resources}
             resourceGain={showResourceGain ? gameState.lastResourceGain : null}
@@ -1039,9 +1449,12 @@ export const GameContainer: React.FC<{
               <div className="mb-2 bg-gray-800 rounded-lg p-2">
                 <h3 className="text-white text-sm font-bold mb-1">Current Action</h3>
                 <p className="text-gray-300 text-xs">
-                  {gameState.actionTaken 
-                    ? `Action taken: ${gameState.currentAction.charAt(0).toUpperCase() + gameState.currentAction.slice(1)}` 
-                    : "No action taken yet"}
+                  {Object.values(gameState.actionsPerformed).some(Boolean) ? 
+                    `Actions performed: ${Object.entries(gameState.actionsPerformed)
+                      .filter(([_, performed]) => performed)
+                      .map(([action]) => action.charAt(0).toUpperCase() + action.slice(1))
+                      .join(', ')}` : 
+                    "No actions taken yet"}
                 </p>
               </div>
 
@@ -1049,12 +1462,18 @@ export const GameContainer: React.FC<{
                 onBuildClick={() => handleMenuSelect("build")}
                 onRecruitClick={() => handleMenuSelect("recruit")}
                 onExpandClick={() => handleMenuSelect("expand")}
+                onAttackClick={handleAttackClick}
                 onEndTurnClick={handleEndTurn}
                 disabled={selectedTerritory === null}
                 actionTaken={gameState.actionTaken}
                 expandMode={gameState.currentAction === "expand"}
+                attackMode={gameState.currentAction === "attack"}
                 canAttack={hasUnits && anyEnemyAdjacent}
                 hasResourcesForExpansion={hasResourcesForExpansion()}
+                canRecruit={canRecruit}
+                canBuild={canBuild}
+                actionsPerformed={gameState.actionsPerformed}
+                errorMessages={errorMessages}
               />
               
               {activeMenu === "build" && (
@@ -1072,6 +1491,7 @@ export const GameContainer: React.FC<{
               <Button 
                 className="w-full bg-amber-600 hover:bg-amber-700"
                 onClick={handleEndTurn}
+                disabled={territoryClaimInProgress}
               >
                 Skip Turn
               </Button>

@@ -1,5 +1,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { useMediaQuery } from "../../hooks/use-media-query";
 
 export const HexGrid: React.FC<{
   territories: any[];
@@ -9,6 +11,10 @@ export const HexGrid: React.FC<{
   currentPlayer: number;
   phase: "setup" | "playing";
   expandableTerritories: number[];
+  attackableTerritories: number[];
+  buildableTerritories: number[];
+  recruitableTerritories: number[];
+  currentAction: "none" | "build" | "expand" | "attack" | "recruit";
 }> = ({ 
   territories, 
   players, 
@@ -16,13 +22,18 @@ export const HexGrid: React.FC<{
   onTerritoryClick,
   currentPlayer,
   phase,
-  expandableTerritories
+  expandableTerritories,
+  attackableTerritories,
+  buildableTerritories,
+  recruitableTerritories,
+  currentAction
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const isMobile = useMediaQuery("(max-width: 768px)");
   
   // Calculate hex corners for flat-topped hexes
   const hexCorners = (center: { x: number, y: number }, size: number) => {
@@ -38,10 +49,27 @@ export const HexGrid: React.FC<{
     return corners;
   };
   
-  // Get territory color based on owner
+  // Get territory color based on owner and interaction status
   const getTerritoryColor = (territory: any) => {
     if (territory.id === selectedTerritory) {
       return "#FFFFFF";
+    }
+    
+    // For territories that can be interacted with based on current action
+    if (currentAction === "expand" && expandableTerritories.includes(territory.id)) {
+      return "#4CAF50"; // Green highlight for expandable
+    }
+    
+    if (currentAction === "attack" && attackableTerritories.includes(territory.id)) {
+      return "#F44336"; // Red highlight for attackable
+    }
+    
+    if (currentAction === "build" && buildableTerritories.includes(territory.id)) {
+      return "#2196F3"; // Blue highlight for buildable
+    }
+    
+    if (currentAction === "recruit" && recruitableTerritories.includes(territory.id)) {
+      return "#9C27B0"; // Purple highlight for recruitable
     }
     
     if (territory.owner !== null) {
@@ -59,7 +87,7 @@ export const HexGrid: React.FC<{
     }
   };
   
-  // Get territory border color
+  // Get territory border color and width
   const getTerritoryBorder = (territory: any) => {
     if (territory.id === selectedTerritory) {
       return 3;
@@ -72,23 +100,26 @@ export const HexGrid: React.FC<{
     return 1;
   };
   
-  // Check if territory is selectable in current game phase
+  // Check if territory is selectable in current game phase and action
   const isTerritorySelectable = (territory: any) => {
     if (phase === "setup") {
       return territory.owner === null;
     }
     
-    // If territory is expandable
-    if (expandableTerritories.includes(territory.id)) {
-      return true;
+    // Based on current action
+    switch (currentAction) {
+      case "expand":
+        return expandableTerritories.includes(territory.id);
+      case "attack":
+        return attackableTerritories.includes(territory.id);
+      case "build":
+        return buildableTerritories.includes(territory.id);
+      case "recruit":
+        return recruitableTerritories.includes(territory.id);
+      default:
+        // In playing phase with no specific action, can select own territories
+        return territory.owner === currentPlayer;
     }
-    
-    // In playing phase, can select own territories
-    if (territory.owner === currentPlayer) {
-      return true;
-    }
-    
-    return false;
   };
   
   // Handle container resize
@@ -123,7 +154,10 @@ export const HexGrid: React.FC<{
       // Calculate scale to fit map in container
       const scaleX = containerWidth / mapWidth;
       const scaleY = containerHeight / mapHeight;
-      const newScale = Math.min(scaleX, scaleY, 1);
+      
+      // On mobile, use a slightly smaller default scale for better overview
+      const baseScale = isMobile ? 0.7 : 1;
+      const newScale = Math.min(scaleX, scaleY, baseScale);
       
       setScale(newScale);
       
@@ -140,7 +174,7 @@ export const HexGrid: React.FC<{
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [territories]);
+  }, [territories, isMobile]);
   
   // Convert from axial coordinates to pixel coordinates
   const axialToPixel = (hex: { x: number, y: number }, size: number) => {
@@ -172,15 +206,15 @@ export const HexGrid: React.FC<{
     }
   };
   
-  // Handle mouse down for dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Handle mouse/touch down for dragging
+  const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
     setDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
   };
   
-  // Handle mouse move for dragging
-  const handleMouseMove = (e: React.MouseEvent) => {
+  // Handle mouse/touch move for dragging
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging) return;
     
     const dx = e.clientX - dragStart.x;
@@ -194,26 +228,89 @@ export const HexGrid: React.FC<{
     setDragStart({ x: e.clientX, y: e.clientY });
   };
   
-  // Handle mouse up for dragging
-  const handleMouseUp = () => {
+  // Handle mouse/touch up for dragging
+  const handlePointerUp = () => {
     setDragging(false);
   };
   
-  // Handle mouse leave for dragging
-  const handleMouseLeave = () => {
-    setDragging(false);
+  // Get military unit stats display
+  const getUnitStatsDisplay = (territory: any, players: any[]) => {
+    if (!territory.units || territory.units.length === 0) return null;
+    
+    let unitStats = [];
+    let totalAttackPower = 0;
+    let totalHealth = 0;
+    
+    // Get player to access the unit details
+    const player = territory.owner !== null ? players[territory.owner] : null;
+    if (!player) return null;
+    
+    // Calculate stats from units
+    territory.units.forEach((unitId: number) => {
+      const unit = player.units.find((u: any) => u.id === unitId);
+      if (!unit) return;
+      
+      // For each unit type, calculate attack power
+      let attackPower = 0;
+      switch(unit.type) {
+        case "infantry": 
+          attackPower = 10; 
+          break;
+        case "cavalry": 
+          attackPower = 15; 
+          break;
+        case "artillery": 
+          attackPower = 25; 
+          break;
+      }
+      
+      totalAttackPower += attackPower;
+      totalHealth += unit.health;
+      
+      // Check if we already have this unit type in our stats
+      const existingUnitIndex = unitStats.findIndex(u => u.type === unit.type);
+      if (existingUnitIndex >= 0) {
+        unitStats[existingUnitIndex].count += 1;
+        unitStats[existingUnitIndex].health += unit.health;
+        unitStats[existingUnitIndex].attack += attackPower;
+      } else {
+        unitStats.push({
+          type: unit.type,
+          count: 1,
+          health: unit.health,
+          attack: attackPower
+        });
+      }
+    });
+    
+    return {
+      units: unitStats,
+      totalAttackPower,
+      totalHealth
+    };
   };
+  
+  // Mobile-specific pinch zoom handler
+  // const handleTouchMove = (e: React.TouchEvent) => {
+  //   if (e.touches.length === 2) {
+  //     // Handle pinch zoom
+  //     // Implement pinch zoom logic here
+  //   }
+  // };
   
   return (
     <div 
       ref={containerRef} 
       className="w-full h-full overflow-hidden bg-gray-800"
       onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      style={{ cursor: dragging ? "grabbing" : "grab" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      style={{ 
+        cursor: dragging ? "grabbing" : "grab",
+        touchAction: "none" // Disable browser handling of touch events
+      }}
     >
       <svg width="100%" height="100%">
         <defs>
@@ -251,8 +348,19 @@ export const HexGrid: React.FC<{
             const borderWidth = getTerritoryBorder(territory);
             const selectable = isTerritorySelectable(territory);
             const isExpandable = expandableTerritories.includes(territory.id);
+            const isAttackable = attackableTerritories.includes(territory.id);
+            const isBuildable = buildableTerritories.includes(territory.id);
+            const isRecruitable = recruitableTerritories.includes(territory.id);
+            const unitStats = getUnitStatsDisplay(territory, players);
             
-            return (
+            // Determine the interaction state for visual cues
+            let interactionState = "";
+            if (isExpandable && currentAction === "expand") interactionState = "expand";
+            if (isAttackable && currentAction === "attack") interactionState = "attack";
+            if (isBuildable && currentAction === "build") interactionState = "build";
+            if (isRecruitable && currentAction === "recruit") interactionState = "recruit";
+            
+            const hexElement = (
               <g 
                 key={territory.id} 
                 onClick={() => onTerritoryClick(territory.id)}
@@ -268,17 +376,57 @@ export const HexGrid: React.FC<{
                   fillOpacity="0.7"
                 />
                 
-                {/* Expandable territory highlight */}
-                {isExpandable && (
+                {/* Interaction state highlights */}
+                {interactionState === "expand" && (
                   <g>
                     <polygon
                       points={corners.map(p => `${p.x},${p.y}`).join(" ")}
                       fill="url(#expandableGradient)"
-                      stroke="white"
+                      stroke="#4CAF50"
                       strokeWidth="2"
                       strokeOpacity="0.7"
                       className="animate-pulse"
                       filter="url(#glow)"
+                    />
+                  </g>
+                )}
+                
+                {interactionState === "attack" && (
+                  <g>
+                    <polygon
+                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
+                      fill="none"
+                      stroke="#F44336"
+                      strokeWidth="3"
+                      strokeOpacity="0.7"
+                      className="animate-pulse"
+                      filter="url(#glow)"
+                    />
+                  </g>
+                )}
+                
+                {interactionState === "build" && (
+                  <g>
+                    <polygon
+                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
+                      fill="none"
+                      stroke="#2196F3"
+                      strokeWidth="2"
+                      strokeOpacity="0.7"
+                      strokeDasharray="5,5"
+                    />
+                  </g>
+                )}
+                
+                {interactionState === "recruit" && (
+                  <g>
+                    <polygon
+                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
+                      fill="none"
+                      stroke="#9C27B0"
+                      strokeWidth="2"
+                      strokeOpacity="0.7"
+                      strokeDasharray="10,5"
                     />
                   </g>
                 )}
@@ -372,22 +520,62 @@ export const HexGrid: React.FC<{
                   </text>
                 )}
                 
-                {/* Show unit count */}
-                {territory.units.length > 0 && (
-                  <text
-                    x={pixelPos.x + 20}
-                    y={pixelPos.y + 25}
-                    fill="#FFF"
-                    fontSize="12"
-                    fontWeight="bold"
-                    stroke="#000"
-                    strokeWidth="0.5"
-                  >
-                    U: {territory.units.length}
-                  </text>
+                {/* Show military units with stats */}
+                {unitStats && (
+                  <g>
+                    <text
+                      x={pixelPos.x + 20}
+                      y={pixelPos.y + 25}
+                      fill="#FFF"
+                      fontSize="12"
+                      fontWeight="bold"
+                      stroke="#000"
+                      strokeWidth="0.5"
+                    >
+                      U: {territory.units.length}
+                    </text>
+                    
+                    {/* Unit power indicator */}
+                    <text
+                      x={pixelPos.x}
+                      y={pixelPos.y + 40}
+                      textAnchor="middle"
+                      fill="#FFF"
+                      fontSize="10"
+                      fontWeight="bold"
+                      stroke="#000"
+                      strokeWidth="0.5"
+                    >
+                      ATK: {unitStats.totalAttackPower} | HP: {unitStats.totalHealth}
+                    </text>
+                  </g>
                 )}
               </g>
             );
+            
+            // Wrap with tooltip for detailed unit info
+            return territory.units && territory.units.length > 0 ? (
+              <TooltipProvider key={territory.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {hexElement}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="p-2">
+                      <h3 className="font-bold text-center mb-1">Military Units</h3>
+                      <div className="space-y-1">
+                        {unitStats?.units.map((unit, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span className="capitalize">{unit.type} x{unit.count}:</span>
+                            <span>ATK: {unit.attack} | HP: {unit.health}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : hexElement;
           })}
         </g>
       </svg>
