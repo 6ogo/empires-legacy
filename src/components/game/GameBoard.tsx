@@ -63,7 +63,7 @@ export const GameBoard: React.FC<{
         case "expand":
           // Expanding to territory
           if (expandableTerritories.includes(territoryId) && !actionsPerformed.expand) {
-            onTerritorySelect(territoryId);
+            onClaimTerritory(territoryId); // Use the same claim function for expansion
           } else if (actionsPerformed.expand) {
             toast.error("You've already expanded this turn");
           } else if (!expandableTerritories.includes(territoryId)) {
