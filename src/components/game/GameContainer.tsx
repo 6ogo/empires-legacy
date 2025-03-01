@@ -1489,11 +1489,11 @@ export const GameContainer: React.FC<{
   }
 
   if (error) {
-    return <ErrorScreen message={error} onRetry={() => window.location.reload()} />;
+    return <ErrorScreen message={error} onBack={() => window.location.reload()} />;
   }
 
   if (!gameState) {
-    return <ErrorScreen message="Failed to initialize game state" onRetry={() => window.location.reload()} />;
+    return <ErrorScreen message="Failed to initialize game state" onBack={() => window.location.reload()} />;
   }
 
   const renderPhase = () => {
@@ -1550,8 +1550,8 @@ export const GameContainer: React.FC<{
         currentPlayer={gameState.currentPlayer}
         playerName={gameState.players[gameState.currentPlayer].name}
         playerColor={gameState.players[gameState.currentPlayer].color}
-        onOpenInfoModal={(modalType) => setActiveInfoModal(modalType)}
         onExitGame={onExitGame}
+        phase={gameState.phase}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -1571,7 +1571,6 @@ export const GameContainer: React.FC<{
             buildableTerritories={gameState.buildableTerritories}
             recruitableTerritories={gameState.recruitableTerritories}
             currentAction={gameState.currentAction}
-            actionsPerformed={gameState.actionsPerformed}
           />
           
           {renderPhase()}
@@ -1583,9 +1582,7 @@ export const GameContainer: React.FC<{
           <div className="w-64 bg-gray-100 p-4 flex flex-col">
             <ResourceDisplay 
               resources={gameState.players[gameState.currentPlayer].resources}
-              territories={gameState.players[gameState.currentPlayer].territories.length}
-              units={gameState.players[gameState.currentPlayer].units.length}
-              buildings={gameState.players[gameState.currentPlayer].buildings.length}
+              resourceGain={gameState.lastResourceGain}
             />
             
             {gameState.phase === "playing" && (
@@ -1599,8 +1596,6 @@ export const GameContainer: React.FC<{
                 actionTaken={gameState.actionTaken}
                 expandMode={gameState.currentAction === "expand"}
                 attackMode={gameState.currentAction === "attack"}
-                buildMode={gameState.currentAction === "build"}
-                recruitMode={gameState.currentAction === "recruit"}
                 canAttack={gameState.players[gameState.currentPlayer].units.length > 0 && hasEnemyAdjacentTerritories()}
                 hasResourcesForExpansion={hasResourcesForExpansion()}
                 canRecruit={gameState.players[gameState.currentPlayer].territories.some(territoryId => canRecruitInTerritory(territoryId))}
@@ -1612,17 +1607,13 @@ export const GameContainer: React.FC<{
             
             {activeMenu === "build" && selectedTerritory !== null && (
               <BuildingMenu 
-                onSelectBuilding={handleBuildStructure}
-                resources={gameState.players[gameState.currentPlayer].resources}
-                onClose={() => setActiveMenu(null)}
+                onSelect={handleBuildStructure}
               />
             )}
             
             {activeMenu === "recruit" && selectedTerritory !== null && (
               <RecruitmentMenu 
-                onSelectUnit={handleRecruitUnit}
-                resources={gameState.players[gameState.currentPlayer].resources}
-                onClose={() => setActiveMenu(null)}
+                onSelect={handleRecruitUnit}
               />
             )}
           </div>
@@ -1641,8 +1632,6 @@ export const GameContainer: React.FC<{
             actionTaken={gameState.actionTaken}
             expandMode={gameState.currentAction === "expand"}
             attackMode={gameState.currentAction === "attack"}
-            buildMode={gameState.currentAction === "build"}
-            recruitMode={gameState.currentAction === "recruit"}
             canAttack={gameState.players[gameState.currentPlayer].units.length > 0 && hasEnemyAdjacentTerritories()}
             hasResourcesForExpansion={hasResourcesForExpansion()}
             canRecruit={gameState.players[gameState.currentPlayer].territories.some(territoryId => canRecruitInTerritory(territoryId))}
@@ -1652,16 +1641,6 @@ export const GameContainer: React.FC<{
           />
         </div>
       )}
-      
-      <GameMenus 
-        isMobile={isMobile}
-        activeMenu={activeMenu}
-        selectedTerritory={selectedTerritory}
-        onClose={() => setActiveMenu(null)}
-        resources={gameState.players[gameState.currentPlayer].resources}
-        onBuildStructure={handleBuildStructure}
-        onRecruitUnit={handleRecruitUnit}
-      />
       
       {activeInfoModal && (
         <GameInfoModal 
