@@ -15,9 +15,7 @@ const Drawer = ({
 )
 Drawer.displayName = "Drawer"
 
-// Explicitly type all components to avoid the "cannot be named without reference" error
-type DrawerPrimitiveType = typeof DrawerPrimitive;
-
+// Define components properly to avoid TypeScript errors
 const DrawerTrigger = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Trigger>
@@ -26,12 +24,10 @@ const DrawerTrigger = React.forwardRef<
 ))
 DrawerTrigger.displayName = DrawerPrimitive.Trigger.displayName
 
-const DrawerPortal = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Portal>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Portal>
->((props, ref) => (
-  <DrawerPrimitive.Portal ref={ref} {...props} />
-))
+// Portal doesn't accept a ref, so we should not forward it
+const DrawerPortal = (props: React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Portal>) => (
+  <DrawerPrimitive.Portal {...props} />
+)
 DrawerPortal.displayName = DrawerPrimitive.Portal.displayName
 
 const DrawerClose = React.forwardRef<
