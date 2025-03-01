@@ -15,16 +15,15 @@ const Drawer = ({
 )
 Drawer.displayName = "Drawer"
 
-const DrawerTrigger = DrawerPrimitive.Trigger as React.FC<React.ComponentProps<typeof DrawerPrimitive.Trigger>>
+const DrawerTrigger = DrawerPrimitive.Trigger
 
-const DrawerPortal = DrawerPrimitive.Portal as React.FC<React.ComponentProps<typeof DrawerPrimitive.Portal>>
+const DrawerPortal = DrawerPrimitive.Portal
 
-const DrawerClose = DrawerPrimitive.Close as React.FC<React.ComponentProps<typeof DrawerPrimitive.Close>>
+const DrawerClose = DrawerPrimitive.Close
 
-// Cast the components to React.FC to preserve the Vaul component props while satisfying TypeScript
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+  Omit<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>, "ref">
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
@@ -34,10 +33,9 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
-// Use type assertion for DrawerContent
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
+  Omit<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>, "ref">
 >(({ className, children, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
@@ -80,7 +78,7 @@ DrawerFooter.displayName = "DrawerFooter"
 
 const DrawerTitle = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
+  Omit<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>, "ref">
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
@@ -95,7 +93,7 @@ DrawerTitle.displayName = DrawerPrimitive.Title.displayName
 
 const DrawerDescription = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
+  Omit<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>, "ref">
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
