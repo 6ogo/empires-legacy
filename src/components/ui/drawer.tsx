@@ -21,6 +21,7 @@ const DrawerPortal = DrawerPrimitive.Portal as React.FC<React.ComponentProps<typ
 
 const DrawerClose = DrawerPrimitive.Close as React.FC<React.ComponentProps<typeof DrawerPrimitive.Close>>
 
+// Explicitly adding type annotation for DrawerOverlay
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
@@ -33,6 +34,7 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
+// Explicitly adding type annotation for DrawerContent
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
@@ -76,7 +78,7 @@ const DrawerFooter = ({
 )
 DrawerFooter.displayName = "DrawerFooter"
 
-// Explicitly type DrawerTitle with a type annotation
+// Explicitly adding type annotation for DrawerTitle
 const DrawerTitle = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
@@ -92,7 +94,7 @@ const DrawerTitle = React.forwardRef<
 ))
 DrawerTitle.displayName = DrawerPrimitive.Title.displayName
 
-// Explicitly type DrawerDescription with a type annotation
+// Explicitly adding type annotation for DrawerDescription
 const DrawerDescription = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
