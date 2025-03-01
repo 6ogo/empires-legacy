@@ -4,10 +4,12 @@ import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
 
+// Properly type the drawer root component
+type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root>
 const Drawer = ({
   shouldScaleBackground = true,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+}: DrawerProps) => (
   <DrawerPrimitive.Root
     shouldScaleBackground={shouldScaleBackground}
     {...props}
@@ -15,8 +17,15 @@ const Drawer = ({
 )
 Drawer.displayName = "Drawer"
 
-// Define components properly to avoid TypeScript errors
-const DrawerTrigger = React.forwardRef<
+// Define a generic type for the Drawer component forwardRefs
+type DrawerComponent<T = any> = {
+  displayName?: string
+} & React.ForwardRefExoticComponent<
+  React.PropsWithoutRef<T> & React.RefAttributes<HTMLElement>
+>
+
+// Add explicit type annotation for DrawerTrigger
+const DrawerTrigger: DrawerComponent<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Trigger>> = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Trigger>
 >((props, ref) => (
@@ -24,13 +33,14 @@ const DrawerTrigger = React.forwardRef<
 ))
 DrawerTrigger.displayName = DrawerPrimitive.Trigger.displayName
 
-// Portal doesn't accept a ref, so we should not forward it
+// Portal doesn't accept a ref, so use function component declaration
 const DrawerPortal = (props: React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Portal>) => (
   <DrawerPrimitive.Portal {...props} />
 )
 DrawerPortal.displayName = DrawerPrimitive.Portal.displayName
 
-const DrawerClose = React.forwardRef<
+// Add explicit type annotation for DrawerClose
+const DrawerClose: DrawerComponent<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Close>> = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Close>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Close>
 >((props, ref) => (
@@ -38,9 +48,12 @@ const DrawerClose = React.forwardRef<
 ))
 DrawerClose.displayName = DrawerPrimitive.Close.displayName
 
-const DrawerOverlay = React.forwardRef<
+// Add explicit type annotation for DrawerOverlay
+const DrawerOverlay: DrawerComponent<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>> = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay> & {
+    className?: string
+  }
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
@@ -50,9 +63,13 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
-const DrawerContent = React.forwardRef<
+// Add explicit type annotation for DrawerContent
+const DrawerContent: DrawerComponent<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>> = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+    className?: string
+    children?: React.ReactNode
+  }
 >(({ className, children, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
@@ -71,10 +88,15 @@ const DrawerContent = React.forwardRef<
 ))
 DrawerContent.displayName = "DrawerContent"
 
+// Regular div component with better typing
+interface DrawerHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string
+}
+
 const DrawerHeader = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: DrawerHeaderProps) => (
   <div
     className={cn("grid gap-1.5 p-4 text-center sm:text-left", className)}
     {...props}
@@ -82,10 +104,15 @@ const DrawerHeader = ({
 )
 DrawerHeader.displayName = "DrawerHeader"
 
+// Regular div component with better typing
+interface DrawerFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string
+}
+
 const DrawerFooter = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: DrawerFooterProps) => (
   <div
     className={cn("mt-auto flex flex-col gap-2 p-4", className)}
     {...props}
@@ -93,9 +120,12 @@ const DrawerFooter = ({
 )
 DrawerFooter.displayName = "DrawerFooter"
 
-const DrawerTitle = React.forwardRef<
+// Add explicit type annotation for DrawerTitle
+const DrawerTitle: DrawerComponent<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>> = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title> & {
+    className?: string
+  }
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
@@ -108,9 +138,12 @@ const DrawerTitle = React.forwardRef<
 ))
 DrawerTitle.displayName = DrawerPrimitive.Title.displayName
 
-const DrawerDescription = React.forwardRef<
+// Add explicit type annotation for DrawerDescription
+const DrawerDescription: DrawerComponent<React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>> = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description> & {
+    className?: string
+  }
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
