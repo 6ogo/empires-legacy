@@ -23,52 +23,22 @@ export const loadColladaModel = (path: string): Promise<THREE.Group> => {
         // Scale and position adjustment based on model type
         const modelType = path.split('/').pop()?.split('.')[0] || '';
         
-        switch (modelType) {
-          case 'base':
+        // Specific scaling for different model types
+        switch(true) {
+          case modelType.includes('forest'):
+            groupWrapper.scale.set(0.05, 0.05, 0.05);
+            break;
+          case modelType.includes('mountain'):
+            groupWrapper.scale.set(0.07, 0.07, 0.07);
+            break;
+          case modelType === 'farm':
             groupWrapper.scale.set(0.03, 0.03, 0.03);
             break;
-          case 'plains':
-            groupWrapper.scale.set(0.03, 0.03, 0.03);
-            break;
-          case 'mountain':
-            groupWrapper.scale.set(0.03, 0.03, 0.03);
-            break;
-          case 'forest':
-            groupWrapper.scale.set(0.03, 0.03, 0.03);
-            break;
-          case 'coast':
-            groupWrapper.scale.set(0.03, 0.03, 0.03);
-            break;
-          case 'castle':
-            groupWrapper.scale.set(0.015, 0.015, 0.015); // Smaller to fit better
-            groupWrapper.position.y = 0.1;
-            break;
-          case 'lumbermill':
-            groupWrapper.scale.set(0.015, 0.015, 0.015);
-            groupWrapper.position.y = 0.1;
-            break;
-          case 'mine':
-            groupWrapper.scale.set(0.015, 0.015, 0.015);
-            groupWrapper.position.y = 0.1;
-            break;
-          case 'farm':
-            groupWrapper.scale.set(0.015, 0.015, 0.015);
-            groupWrapper.position.y = 0.1;
-            break;
-          case 'market':
-            groupWrapper.scale.set(0.015, 0.015, 0.015);
-            groupWrapper.position.y = 0.1;
-            break;
-          case 'barracks':
-            groupWrapper.scale.set(0.015, 0.015, 0.015);
-            groupWrapper.position.y = 0.1;
-            break;
-          case 'fortress':
-            groupWrapper.scale.set(0.015, 0.015, 0.015);
-            groupWrapper.position.y = 0.1;
+          case modelType.includes('barracks') || modelType.includes('fortress'):
+            groupWrapper.scale.set(0.04, 0.04, 0.04);
             break;
           default:
-            groupWrapper.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.04, 0.04, 0.04);
         }
         
         // Add traversal to enable shadow casting for all meshes
@@ -76,15 +46,6 @@ export const loadColladaModel = (path: string): Promise<THREE.Group> => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
-            
-            // Ensure all materials are MeshPhongMaterial for consistent lighting
-            if (!(child.material instanceof THREE.MeshPhongMaterial)) {
-              const color = child.material.color ? child.material.color : new THREE.Color(0xFFFFFF);
-              child.material = new THREE.MeshPhongMaterial({ 
-                color: color, 
-                shininess: 30
-              });
-            }
           }
         });
         
@@ -99,11 +60,11 @@ export const loadColladaModel = (path: string): Promise<THREE.Group> => {
   });
 };
 
-// Load a Collada model and cache it
+// Load a Collada model with caching
 export const loadColladaModelWithCache = async (modelPath: string): Promise<THREE.Group> => {
   // If model is already cached, return a clone
   if (modelCache.has(modelPath)) {
-    return modelCache.get(modelPath).clone();
+    return modelCache.get(modelPath)!.clone();
   }
   
   try {

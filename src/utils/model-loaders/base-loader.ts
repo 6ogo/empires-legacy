@@ -1,91 +1,43 @@
 
 import * as THREE from 'three';
 
-// Asset cache to prevent loading the same model multiple times
-export const modelCache = new Map();
-export const textureLoader = new THREE.TextureLoader();
+// Create a cache for loaded models to avoid reloading the same model multiple times
+export const modelCache = new Map<string, THREE.Group>();
 
-// Helper function to get the appropriate geometry based on model type
-export const getGeometryForType = (type: string) => {
-  switch (type) {
-    case 'base':
-      return new THREE.CylinderGeometry(1, 1, 0.1, 6);
-    case 'plains':
-      return new THREE.CylinderGeometry(1, 1, 0.1, 6);
-    case 'mountains':
-      return new THREE.ConeGeometry(0.8, 0.8, 6);
-    case 'forests':
-      return new THREE.CylinderGeometry(1, 1, 0.1, 6);
-    case 'coast':
-      return new THREE.CylinderGeometry(1, 1, 0.05, 6);
-    case 'capital':
-      return new THREE.CylinderGeometry(1, 1, 0.15, 6);
-    case 'lumberMill':
-      return new THREE.BoxGeometry(0.3, 0.3, 0.3);
-    case 'mine':
-      return new THREE.ConeGeometry(0.2, 0.4, 4);
-    case 'farm':
-      return new THREE.BoxGeometry(0.4, 0.2, 0.4);
-    case 'market':
-      return new THREE.BoxGeometry(0.3, 0.4, 0.3);
-    case 'barracks':
-      return new THREE.BoxGeometry(0.4, 0.3, 0.3);
-    case 'fortress':
-      return new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    case 'soldier':
-      return new THREE.CapsuleGeometry(0.1, 0.3, 4, 8);
-    default:
-      return new THREE.BoxGeometry(0.2, 0.2, 0.2);
+// Create a placeholder model for when loading fails
+export const createPlaceholderModel = (modelType: string): THREE.Group => {
+  const group = new THREE.Group();
+  
+  // Create a simple colored cube as a placeholder
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  
+  // Choose color based on model type
+  let color = 0xff0000; // Default red
+  
+  if (modelType.includes('forest')) {
+    color = 0x00ff00; // Green for forest-related models
+  } else if (modelType.includes('mountain')) {
+    color = 0x8B4513; // Brown for mountain-related models
+  } else if (modelType.includes('farm') || modelType.includes('mill')) {
+    color = 0xFFD700; // Gold for buildings
+  } else if (modelType.includes('barracks') || modelType.includes('fortress')) {
+    color = 0xA9A9A9; // Gray for military buildings
   }
-};
-
-// Helper function to get the appropriate material based on model type
-export const getMaterialForType = (type: string) => {
-  switch (type) {
-    case 'base':
-      return new THREE.MeshPhongMaterial({ color: 0x666666 });
-    case 'plains':
-      return new THREE.MeshPhongMaterial({ color: 0x90EE90 });
-    case 'mountains':
-      return new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
-    case 'forests':
-      return new THREE.MeshPhongMaterial({ color: 0x228B22 });
-    case 'coast':
-      return new THREE.MeshPhongMaterial({ color: 0x87CEEB });
-    case 'capital':
-      return new THREE.MeshPhongMaterial({ color: 0xFFD700 });
-    case 'lumberMill':
-      return new THREE.MeshPhongMaterial({ color: 0x8B4513 });
-    case 'mine':
-      return new THREE.MeshPhongMaterial({ color: 0x708090 });
-    case 'farm':
-      return new THREE.MeshPhongMaterial({ color: 0xF5DEB3 });
-    case 'market':
-      return new THREE.MeshPhongMaterial({ color: 0xDAA520 });
-    case 'barracks':
-      return new THREE.MeshPhongMaterial({ color: 0x8B0000 });
-    case 'fortress':
-      return new THREE.MeshPhongMaterial({ color: 0x696969 });
-    case 'soldier':
-      return new THREE.MeshPhongMaterial({ color: 0x4682B4 });
-    default:
-      return new THREE.MeshPhongMaterial({ color: 0xFFFFFF });
-  }
-};
-
-// Create placeholder model when actual model can't be loaded
-export const createPlaceholderModel = (type: string): THREE.Group => {
-  const geometry = getGeometryForType(type);
-  const material = getMaterialForType(type);
+  
+  const material = new THREE.MeshBasicMaterial({ color });
   const mesh = new THREE.Mesh(geometry, material);
   
-  // Setup shadow properties
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  // Add a wireframe to make it clear this is a placeholder
+  const wireframe = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry),
+    new THREE.LineBasicMaterial({ color: 0xffffff })
+  );
   
-  // Create a group to match the structure of loaded models
-  const group = new THREE.Group();
+  mesh.add(wireframe);
   group.add(mesh);
   
   return group;
 };
+
+// Export a type for model loaders
+export type ModelLoader = (path: string) => Promise<THREE.Group>;

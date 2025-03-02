@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+// Run the disable-declarations script
+require('./disable-declarations');
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -11,7 +14,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react({
-      // SWC options without any invalid properties
       tsDecorators: true,
     }),
     mode === 'development' &&
@@ -23,12 +25,12 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    // Note: removing tsconfigRaw as it was causing issues
   },
   base: '/',
   build: {
     sourcemap: true,
-    // Add the following configuration to prevent TypeScript from generating declaration files
     rollupOptions: {
       output: {
         manualChunks: {

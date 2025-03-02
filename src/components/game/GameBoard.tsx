@@ -1,12 +1,11 @@
+import React, { useState, useEffect } from 'react';
+import { HexGrid } from './HexGrid';
+import { HexGrid3D } from './HexGrid3D';
+import { Button } from '../ui/button';
+import { LoadingScreen } from './LoadingScreen';
+import { toast } from 'sonner';
+import { Box } from 'lucide-react';
 
-import React, { useState } from "react";
-import { HexGrid } from "./HexGrid";
-import { HexGrid3D } from "./HexGrid3D";
-import { toast } from "sonner";
-import { Button } from "../ui/button";
-import { Cube, Box3D } from "lucide-react";
-
-// Define interface for the component props
 interface GameBoardProps {
   territories: any[];
   players: any[];
@@ -53,9 +52,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     const territory = territories.find(t => t.id === territoryId);
     if (!territory) return;
     
-    // Setup phase: claim unclaimed territory
     if (phase === "setup" && territory.owner === null) {
-      // Check if claim has already been attempted to prevent double-clicks
       if (actionTaken) {
         toast.error("Please wait for your turn to complete");
         return;
@@ -64,9 +61,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       return;
     }
     
-    // Playing phase
     if (phase === "playing") {
-      // Handle different actions based on currentAction
       switch (currentAction) {
         case "expand":
           handleExpandAction(territoryId);
@@ -85,7 +80,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           break;
           
         default:
-          // Select owned territory for default action
           if (territory.owner === currentPlayer) {
             onTerritorySelect(territoryId);
           }
@@ -93,10 +87,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
-  // Handler for expand action
   const handleExpandAction = (territoryId: number) => {
     if (expandableTerritories.includes(territoryId) && !actionsPerformed.expand) {
-      onClaimTerritory(territoryId); // Use the same claim function for expansion
+      onClaimTerritory(territoryId);
     } else if (actionsPerformed.expand) {
       toast.error("You've already expanded this turn");
     } else if (!expandableTerritories.includes(territoryId)) {
@@ -104,7 +97,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
-  // Handler for attack action
   const handleAttackAction = (territoryId: number) => {
     if (attackableTerritories.includes(territoryId) && !actionsPerformed.attack) {
       if (selectedTerritory === null) {
@@ -119,7 +111,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
-  // Handler for build action
   const handleBuildAction = (territoryId: number) => {
     if (buildableTerritories.includes(territoryId) && !actionsPerformed.build) {
       onTerritorySelect(territoryId);
@@ -130,7 +121,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
-  // Handler for recruit action
   const handleRecruitAction = (territoryId: number) => {
     if (recruitableTerritories.includes(territoryId) && !actionsPerformed.recruit) {
       onTerritorySelect(territoryId);
@@ -187,12 +177,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         >
           {use3D ? (
             <>
-              <Cube className="mr-1 h-4 w-4" />
+              <Box className="mr-1 h-4 w-4" />
               2D View
             </>
           ) : (
             <>
-              <Box3D className="mr-1 h-4 w-4" />
+              <Box className="mr-1 h-4 w-4" />
               3D View
             </>
           )}

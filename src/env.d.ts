@@ -1,41 +1,16 @@
 
-// This file helps prevent TypeScript from generating declaration files
+/// <reference types="vite/client" />
 
-declare module '*.svg' {
-  import * as React from 'react';
-  const ReactComponent: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
-  export default ReactComponent;
-}
-
-declare module '*.png' {
-  const src: string;
-  export default src;
-}
-
-declare module '*.jpg' {
-  const src: string;
-  export default src;
-}
-
-declare module '*.jpeg' {
-  const src: string;
-  export default src;
-}
-
-declare module '*.gif' {
-  const src: string;
-  export default src;
-}
-
-// Set environment variables to help control TypeScript behavior
-declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      TS_NODE_EMIT: 'false';
-      TS_NODE_PRETTY: 'false';
-      SKIP_PREFLIGHT_CHECK: 'true';
-      TS_SKIP_DECLARATIONS: 'true';
-    }
+// Add TypeScript compiler disable declaration options
+declare namespace NodeJS {
+  interface ProcessEnv {
+    readonly NODE_ENV: 'development' | 'production' | 'test';
+    readonly PUBLIC_URL: string;
+    readonly TS_SKIP_DECLARATIONS: string;
+    readonly DISABLE_TS_DECLARATION: string;
+    readonly TS_NODE_EMIT: 'false';
+    readonly TS_NODE_PRETTY: 'false';
+    readonly SKIP_PREFLIGHT_CHECK: 'true';
   }
 }
 
@@ -46,3 +21,19 @@ declare const __DISABLE_DECLARATION_FILES__: boolean;
 /// <reference no-default-lib="true"/>
 /// <reference lib="es2020" />
 /// <reference lib="dom" />
+
+// Global TypeScript options to disable declaration files
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __SKIP_DECLARATION_FILES__: boolean;
+    }
+  }
+  
+  interface Window {
+    __TS_DISABLE_DECLARATIONS__: boolean;
+  }
+}
+
+// Special directive to suppress declaration output
+// @ts-nocheck
