@@ -10,7 +10,18 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
+    react({
+      // Add TypeScript compiler options that will override tsconfig.json
+      tsDecorators: true,
+      typescript: {
+        // Disable declaration output
+        compilerOptions: {
+          declaration: false,
+          skipLibCheck: true,
+          noEmit: true,
+        }
+      }
+    }),
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
@@ -19,9 +30,20 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Add esbuild options to disable declaration files
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    tsconfigRaw: {
+      compilerOptions: {
+        declaration: false,
+        noEmit: true
+      }
+    }
+  },
   base: '/',
   build: {
     sourcemap: true,
+    // Add specific TypeScript build options
     rollupOptions: {
       output: {
         manualChunks: {

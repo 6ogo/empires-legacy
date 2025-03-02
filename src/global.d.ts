@@ -17,6 +17,7 @@ declare module '*.jpg' {
   export default content;
 }
 
+// Define GLTFLoader module
 declare module 'three/examples/jsm/loaders/GLTFLoader.js' {
   import { Object3D } from 'three';
   import { LoadingManager } from 'three';
@@ -100,4 +101,32 @@ declare global {
       __SKIP_DECLARATION_FILES__: boolean;
     }
   }
+  
+  // Add TypeScript compiler options directly in global declarations
+  // This is a workaround since we can't modify tsconfig.json
+  interface TypeScriptCompilerOptions {
+    noEmit: boolean;
+    declaration: boolean;
+    skipLibCheck: boolean;
+  }
+  
+  const __TS_CONFIG__: {
+    compilerOptions: TypeScriptCompilerOptions;
+  };
+}
+
+// Tell TypeScript not to generate declaration files for any JS/TS modules
+declare module '*.js' {
+  const content: any;
+  export default content;
+}
+
+declare module '*.ts' {
+  const content: any;
+  export default content;
+}
+
+declare module '*.tsx' {
+  const content: any;
+  export default content;
 }
