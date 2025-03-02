@@ -1,80 +1,160 @@
 
 import * as THREE from 'three';
-import { modelCache, createPlaceholderModel } from './model-loaders/base-loader';
-import { loadColladaModelWithCache } from './model-loaders/collada-loader';
-import { loadGLTFModelWithCache } from './model-loaders/gltf-loader';
-import { createHighlightEffect, createPulsingHighlight, animatePulsingHighlight } from './model-loaders/effects';
+import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { toast } from 'sonner';
 
-// Load a 3D model and cache it
-export const loadModel = async (modelType: string) => {
-  // If model is already cached, return a clone
-  if (modelCache.has(modelType)) {
-    return modelCache.get(modelType).clone();
-  }
-  
-  let model;
-  
-  try {
-    // First try to load actual model files
-    if (modelType === 'base') {
-      model = await loadColladaModelWithCache('/models/base.dae');
-    } else if (modelType === 'plains') {
-      model = await loadColladaModelWithCache('/models/plains.dae');
-    } else if (modelType === 'mountains') {
-      model = await loadColladaModelWithCache('/models/mountain.dae');
-    } else if (modelType === 'forests') {
-      model = await loadColladaModelWithCache('/models/forest.dae');
-    } else if (modelType === 'coast') {
-      model = await loadColladaModelWithCache('/models/coast.dae');
-    } else if (modelType === 'capital') {
-      model = await loadColladaModelWithCache('/models/castle.dae');
-    } else if (modelType === 'lumberMill') {
-      model = await loadColladaModelWithCache('/models/lumbermill.dae');
-    } else if (modelType === 'mine') {
-      model = await loadColladaModelWithCache('/models/mine.dae');
-    } else if (modelType === 'farm') {
-      model = await loadColladaModelWithCache('/models/farm.dae');
-    } else if (modelType === 'market') {
-      model = await loadColladaModelWithCache('/models/market.dae');
-    } else if (modelType === 'barracks') {
-      model = await loadColladaModelWithCache('/models/barracks.dae');
-    } else if (modelType === 'fortress') {
-      model = await loadColladaModelWithCache('/models/fortress.dae');
-    } else if (modelType === 'soldier') {
-      // Add a simple soldier representation if needed
-      model = createPlaceholderModel('soldier');
-    } else {
-      // Fallback to placeholder geometry if model not found
-      model = createPlaceholderModel(modelType);
+// Cache to prevent loading the same model multiple times
+const modelCache = new Map<string, THREE.Object3D>();
+
+/**
+ * Loads a 3D model from the given URL
+ * Supports Collada (.dae) and GLTF/GLB formats
+ */
+export const loadModel = (url: string): Promise<THREE.Object3D> => {
+  return new Promise((resolve, reject) => {
+    // Check cache first
+    if (modelCache.has(url)) {
+      const cachedModel = modelCache.get(url);
+      if (cachedModel) {
+        // Return a clone of the cached model to prevent modifications affecting the cache
+        resolve(cachedModel.clone());
+        return;
+      }
     }
+
+    // Determine loader based on file extension
+    const extension = url.split('.').pop()?.toLowerCase();
+    
+    if (extension === 'dae') {
+      // Load Collada model
+      const loader = new ColladaLoader();
+      
+      loader.load(
+        url,
+        (collada) => {
+          const model = collada.scene;
+          
+          // Apply some standard optimizations
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              
+              // Enable shadows
+              mesh.castShadow = true;
+              mesh.receiveShadow = true;
+              
+              // Ensure materials are properly configured
+              if (mesh.material) {
+                const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                
+                materials.forEach((material) => {
+                  // Enable basic material features
+                  material.side = THREE.DoubleSide;
+                  material.needsUpdate = true;
+                });
+              }
+            }
+          });
+          
+          // Center and normalize the model
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          
+          // Center the model
+          model.position.sub(center);
+          
+          // Scale to a consistent size (1 unit tall)
+          const scale = 1 / Math.max(size.x, size.y, size.z);
+          model.scale.multiplyScalar(scale);
+          
+          // Cache the model for future use
+          modelCache.set(url, model.clone());
+          
+          resolve(model);
+        },
+        (xhr) => {
+          // Progress callback (optional)
+          console.log(`${url}: ${Math.round((xhr.loaded / xhr.total) * 100)}% loaded`);
+        },
+        (error) => {
+          console.error(`Error loading Collada model ${url}:`, error);
+          reject(error);
+        }
+      );
+    } else if (extension === 'gltf' || extension === 'glb') {
+      // Load GLTF model
+      const loader = new GLTFLoader();
+      
+      loader.load(
+        url,
+        (gltf) => {
+          const model = gltf.scene;
+          
+          // Apply standard optimizations (similar to Collada)
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              mesh.castShadow = true;
+              mesh.receiveShadow = true;
+            }
+          });
+          
+          // Center and normalize
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          
+          model.position.sub(center);
+          
+          const scale = 1 / Math.max(size.x, size.y, size.z);
+          model.scale.multiplyScalar(scale);
+          
+          // Cache the model
+          modelCache.set(url, model.clone());
+          
+          resolve(model);
+        },
+        (xhr) => {
+          console.log(`${url}: ${Math.round((xhr.loaded / xhr.total) * 100)}% loaded`);
+        },
+        (error) => {
+          console.error(`Error loading GLTF model ${url}:`, error);
+          reject(error);
+        }
+      );
+    } else {
+      // Unsupported format
+      const error = new Error(`Unsupported model format: ${extension}`);
+      console.error(error);
+      reject(error);
+    }
+  });
+};
+
+/**
+ * Preloads a list of models to have them ready in cache
+ */
+export const preloadModels = async (urls: string[]): Promise<void> => {
+  try {
+    await Promise.all(urls.map(url => 
+      loadModel(url).catch(error => {
+        console.warn(`Failed to preload model ${url}:`, error);
+        return null;
+      })
+    ));
+    console.log('Models preloaded successfully');
   } catch (error) {
-    console.warn(`Failed to load model for ${modelType}, using placeholder:`, error);
-    model = createPlaceholderModel(modelType);
+    console.error('Error preloading models:', error);
+    toast.error('Some game assets could not be loaded');
   }
-  
-  // Cache the model
-  modelCache.set(modelType, model);
-  
-  return model.clone();
 };
 
-// Helper function to determine territory model type
-export const getTerritoryModel = (territory: any) => {
-  return territory.type || 'plains';
+/**
+ * Clears the model cache to free memory
+ */
+export const clearModelCache = (): void => {
+  modelCache.clear();
+  console.log('Model cache cleared');
 };
-
-// Helper function to get building models for a territory
-export const getBuildingModels = (territory: any) => {
-  if (!territory.buildings || territory.buildings.length === 0) {
-    return [];
-  }
-  
-  // In a real implementation, this would map building IDs to actual models
-  return territory.buildings.map((building: any) => ({
-    type: typeof building === 'object' ? building.type : 'lumberMill',
-    position: { x: 0, y: 0.12, z: 0 } // Position on top of the hex
-  }));
-};
-
-// Export all the effects
-export { createHighlightEffect, createPulsingHighlight, animatePulsingHighlight };
