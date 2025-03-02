@@ -1,5 +1,7 @@
+
 import React from "react";
 import { Button } from "../ui/button";
+import { motion } from "framer-motion";
 
 export const BuildingMenu: React.FC<{
   onSelect: (type: string) => void;
@@ -13,21 +15,30 @@ export const BuildingMenu: React.FC<{
     { type: "fortress", name: "Fortress", description: "Provides defensive bonuses", cost: "50 Wood, 150 Stone, 200 Gold" }
   ];
 
+  const handleSelect = (type: string) => {
+    onSelect(type);
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-3 mb-4 overflow-y-auto max-h-80 shadow-lg">
       <h3 className="text-white text-sm font-bold mb-2">Build Structure</h3>
       
       <div className="space-y-2">
         {buildings.map((building) => (
-          <div 
+          <motion.div 
             key={building.type}
             className="bg-gray-700 rounded p-2 cursor-pointer hover:bg-gray-600 transition-colors"
-            onClick={() => onSelect(building.type)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => handleSelect(building.type)}
           >
             <h4 className="text-white text-sm font-bold">{building.name}</h4>
             <p className="text-gray-300 text-xs">{building.description}</p>
             <p className="text-gray-400 text-xs">Cost: {building.cost}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

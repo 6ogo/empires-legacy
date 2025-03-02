@@ -1,6 +1,10 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { HexGrid } from "./HexGrid";
+import { HexGrid3D } from "./HexGrid3D";
 import { toast } from "sonner";
+import { Button } from "../ui/button";
+import { Cube } from "lucide-react";
 
 export const GameBoard: React.FC<{
   territories: any[];
@@ -40,6 +44,8 @@ export const GameBoard: React.FC<{
   currentAction,
   actionsPerformed
 }) => {
+  const [use3D, setUse3D] = useState<boolean>(true);
+  
   const handleTerritoryClick = (territoryId: number) => {
     const territory = territories.find(t => t.id === territoryId);
     if (!territory) return;
@@ -142,21 +148,54 @@ export const GameBoard: React.FC<{
     }
   };
 
+  const toggleViewMode = () => {
+    setUse3D(!use3D);
+    toast.info(`Switched to ${!use3D ? '3D' : '2D'} view`);
+  };
+
   return (
-    <div className="w-full h-full overflow-hidden">
-      <HexGrid 
-        territories={territories}
-        players={players}
-        selectedTerritory={selectedTerritory}
-        onTerritoryClick={handleTerritoryClick}
-        currentPlayer={currentPlayer}
-        phase={phase}
-        expandableTerritories={expandableTerritories}
-        attackableTerritories={attackableTerritories}
-        buildableTerritories={buildableTerritories}
-        recruitableTerritories={recruitableTerritories}
-        currentAction={currentAction}
-      />
+    <div className="w-full h-full overflow-hidden relative">
+      {use3D ? (
+        <HexGrid3D 
+          territories={territories}
+          players={players}
+          selectedTerritory={selectedTerritory}
+          onTerritoryClick={handleTerritoryClick}
+          currentPlayer={currentPlayer}
+          phase={phase}
+          expandableTerritories={expandableTerritories}
+          attackableTerritories={attackableTerritories}
+          buildableTerritories={buildableTerritories}
+          recruitableTerritories={recruitableTerritories}
+          currentAction={currentAction}
+        />
+      ) : (
+        <HexGrid 
+          territories={territories}
+          players={players}
+          selectedTerritory={selectedTerritory}
+          onTerritoryClick={handleTerritoryClick}
+          currentPlayer={currentPlayer}
+          phase={phase}
+          expandableTerritories={expandableTerritories}
+          attackableTerritories={attackableTerritories}
+          buildableTerritories={buildableTerritories}
+          recruitableTerritories={recruitableTerritories}
+          currentAction={currentAction}
+        />
+      )}
+      
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleViewMode}
+          className="bg-gray-800/80 hover:bg-gray-700/80 text-white"
+        >
+          <Cube className="mr-1 h-4 w-4" />
+          {use3D ? '2D View' : '3D View'}
+        </Button>
+      </div>
     </div>
   );
 };
