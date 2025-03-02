@@ -40,13 +40,13 @@ declare module 'three/examples/jsm/loaders/GLTFLoader.js' {
 
 // Define ColladaLoader module
 declare module 'three/examples/jsm/loaders/ColladaLoader.js' {
-  import { Object3D, LoadingManager } from 'three';
+  import { Object3D, Group, LoadingManager } from 'three';
   
   export class ColladaLoader {
     constructor(manager?: LoadingManager);
     load(
       url: string, 
-      onLoad: (collada: { scene: Object3D }) => void, 
+      onLoad: (collada: { scene: Object3D | Group }) => void, 
       onProgress?: (event: ProgressEvent) => void, 
       onError?: (event: ErrorEvent) => void
     ): void;
@@ -85,6 +85,7 @@ declare namespace NodeJS {
     readonly NODE_ENV: 'development' | 'production' | 'test';
     readonly PUBLIC_URL: string;
     readonly TS_SKIP_DECLARATIONS: string;
+    readonly DISABLE_TS_DECLARATION: string;
   }
 }
 

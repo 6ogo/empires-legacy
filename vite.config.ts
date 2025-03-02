@@ -23,15 +23,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    // Add tsconfigRaw to control TS behavior during build
-    tsconfigRaw: {
-      compilerOptions: {
-        declaration: false,
-        noEmit: true,
-        emitDeclarationOnly: false,
-      }
-    }
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },
   base: '/',
   build: {

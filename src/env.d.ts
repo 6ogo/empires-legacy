@@ -34,6 +34,15 @@ declare global {
       TS_NODE_EMIT: 'false';
       TS_NODE_PRETTY: 'false';
       SKIP_PREFLIGHT_CHECK: 'true';
+      TS_SKIP_DECLARATIONS: 'true';
     }
   }
 }
+
+// Tell TypeScript not to generate declaration files
+declare const __DISABLE_DECLARATION_FILES__: boolean;
+
+// Triple-slash directives to control TypeScript behavior
+/// <reference no-default-lib="true"/>
+/// <reference lib="es2020" />
+/// <reference lib="dom" />

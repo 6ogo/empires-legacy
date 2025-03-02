@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
@@ -64,11 +63,15 @@ const loadColladaModel = (path: string): Promise<THREE.Group> => {
     colladaLoader.load(
       path,
       (collada) => {
-        const model = collada.scene;
-        
-        // Create a Group to contain the model - fixing the type issue
+        // Cast scene to any to work around the type error
+        // Create a Group to contain the model
         const groupWrapper = new THREE.Group();
-        groupWrapper.add(model);
+        
+        // Handle the case where the scene might be any type of Object3D
+        if (collada && collada.scene) {
+          // Add the scene to our group wrapper
+          groupWrapper.add(collada.scene);
+        }
         
         // Scale and position adjustment based on model type
         const modelType = path.split('/').pop()?.split('.')[0] || '';

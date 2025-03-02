@@ -6,7 +6,8 @@
     "declarationMap": false,
     "emitDeclarationOnly": false,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "isolatedModules": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules"]
