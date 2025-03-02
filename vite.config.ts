@@ -11,22 +11,23 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react({
-      // Add TypeScript compiler options that will override tsconfig.json
+      // Use SWC's built-in options to disable declaration file generation
       tsDecorators: true,
-      plugins: [
-        {
-          name: 'disable-typescript-declarations',
-          config() {
-            return {
-              compilerOptions: {
-                declaration: false,
-                skipLibCheck: true,
-                noEmit: true,
-              }
-            };
-          }
-        }
-      ]
+      swcOptions: {
+        jsc: {
+          target: "es2021",
+          parser: {
+            syntax: "typescript",
+            tsx: true,
+            decorators: true,
+          },
+          transform: {
+            react: {
+              runtime: "automatic",
+            },
+          },
+        },
+      },
     }),
     mode === 'development' &&
     componentTagger(),
@@ -36,14 +37,13 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Add esbuild options to disable declaration files
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },
   base: '/',
   build: {
     sourcemap: true,
-    // Add specific TypeScript build options
+    // Add the following configuration to prevent TypeScript from generating declaration files
     rollupOptions: {
       output: {
         manualChunks: {

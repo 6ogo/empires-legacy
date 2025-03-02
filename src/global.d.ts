@@ -84,6 +84,7 @@ declare namespace NodeJS {
   interface ProcessEnv {
     readonly NODE_ENV: 'development' | 'production' | 'test';
     readonly PUBLIC_URL: string;
+    readonly TS_SKIP_DECLARATIONS: string;
   }
 }
 
@@ -100,10 +101,14 @@ declare global {
   }
 }
 
-// Disable declaration files for all modules
+// Tell TypeScript not to generate declaration files for these module formats
 declare module '*.js' { const content: any; export default content; }
 declare module '*.ts' { const content: any; export default content; }
 declare module '*.tsx' { const content: any; export default content; }
 
-// The following comment is used to disable TypeScript declaration generation
+// Declare a special triple-slash directive to disable declaration file output
+/// <reference no-default-lib="true"/>
+/// <reference types="node" />
+
+// Add a comment to signal that declaration files should be suppressed
 // @ts-nocheck
