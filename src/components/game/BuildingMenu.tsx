@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "../ui/button";
 
@@ -15,14 +14,14 @@ export const BuildingMenu: React.FC<{
   ];
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 mb-4 overflow-y-auto max-h-80">
+    <div className="bg-gray-800 rounded-lg p-3 mb-4 overflow-y-auto max-h-80 shadow-lg">
       <h3 className="text-white text-sm font-bold mb-2">Build Structure</h3>
       
       <div className="space-y-2">
         {buildings.map((building) => (
           <div 
             key={building.type}
-            className="bg-gray-700 rounded p-2 cursor-pointer hover:bg-gray-600"
+            className="bg-gray-700 rounded p-2 cursor-pointer hover:bg-gray-600 transition-colors"
             onClick={() => onSelect(building.type)}
           >
             <h4 className="text-white text-sm font-bold">{building.name}</h4>
