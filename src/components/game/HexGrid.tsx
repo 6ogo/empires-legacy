@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { useMediaQuery } from "../../hooks/use-media-query";
@@ -33,6 +32,7 @@ export const HexGrid: React.FC<{
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [hoveredTerritory, setHoveredTerritory] = useState<number | null>(null);
   const isMobile = useMediaQuery("(max-width: 768px)");
   
   // Calculate hex corners for flat-topped hexes
@@ -87,10 +87,44 @@ export const HexGrid: React.FC<{
     }
   };
   
-  // Get territory border color and width
+  // Get territory border color
+  const getTerritoryBorderColor = (territory: any) => {
+    if (territory.id === selectedTerritory) {
+      return "#FFFFFF"; // White border for selected territory
+    }
+    
+    // Different border colors for different actions
+    if (currentAction === "expand" && expandableTerritories.includes(territory.id)) {
+      return "#4CAF50"; // Green border for expandable
+    }
+    
+    if (currentAction === "attack" && attackableTerritories.includes(territory.id)) {
+      return "#F44336"; // Red border for attackable
+    }
+    
+    if (currentAction === "build" && buildableTerritories.includes(territory.id)) {
+      return "#2196F3"; // Blue border for buildable
+    }
+    
+    if (currentAction === "recruit" && recruitableTerritories.includes(territory.id)) {
+      return "#9C27B0"; // Purple border for recruitable
+    }
+    
+    return "#000000"; // Default black border
+  };
+  
+  // Get territory border width
   const getTerritoryBorder = (territory: any) => {
     if (territory.id === selectedTerritory) {
       return 3;
+    }
+    
+    // Thicker borders for actionable territories
+    if ((currentAction === "expand" && expandableTerritories.includes(territory.id)) ||
+        (currentAction === "attack" && attackableTerritories.includes(territory.id)) ||
+        (currentAction === "build" && buildableTerritories.includes(territory.id)) ||
+        (currentAction === "recruit" && recruitableTerritories.includes(territory.id))) {
+      return 2.5;
     }
     
     if (territory.owner !== null) {
@@ -232,6 +266,15 @@ export const HexGrid: React.FC<{
   const handlePointerUp = () => {
     setDragging(false);
   };
+
+  // Handle territory hover
+  const handleTerritoryHover = (territoryId: number) => {
+    setHoveredTerritory(territoryId);
+  };
+
+  const handleTerritoryLeave = () => {
+    setHoveredTerritory(null);
+  };
   
   // Get military unit stats display
   const getUnitStatsDisplay = (territory: any, players: any[]) => {
@@ -290,13 +333,41 @@ export const HexGrid: React.FC<{
     };
   };
   
-  // Mobile-specific pinch zoom handler
-  // const handleTouchMove = (e: React.TouchEvent) => {
-  //   if (e.touches.length === 2) {
-  //     // Handle pinch zoom
-  //     // Implement pinch zoom logic here
-  //   }
-  // };
+  // Calculate attack prediction
+  const getAttackPrediction = (attackerTerritory: any, defenderTerritory: any) => {
+    if (!attackerTerritory || !defenderTerritory) return null;
+    if (!attackerTerritory.units || attackerTerritory.units.length === 0) return null;
+    
+    const attackerStats = getUnitStatsDisplay(attackerTerritory, players);
+    const defenderStats = getUnitStatsDisplay(defenderTerritory, players);
+    
+    if (!attackerStats) return null;
+    
+    // If defender has no units, it's an automatic capture
+    if (!defenderStats || defenderStats.totalHealth === 0) {
+      return {
+        attackerDamage: 0,
+        defenderDamage: attackerStats.totalAttackPower,
+        willCapture: true,
+        message: "You will conquer this territory"
+      };
+    }
+    
+    // Simple damage calculation
+    const attackerDamage = Math.min(attackerStats.totalAttackPower, defenderStats.totalHealth);
+    const defenderDamage = Math.min(defenderStats.totalAttackPower * 0.7, attackerStats.totalHealth); // Defender does less damage
+    
+    const willCapture = attackerDamage >= defenderStats.totalHealth;
+    
+    return {
+      attackerDamage: Math.floor(defenderDamage),
+      defenderDamage: Math.floor(attackerDamage),
+      willCapture,
+      message: willCapture 
+        ? "Territory conquest likely" 
+        : `Attack: -${Math.floor(attackerDamage)} HP / Defense: -${Math.floor(defenderDamage)} HP`
+    };
+  };
   
   return (
     <div 
@@ -325,13 +396,33 @@ export const HexGrid: React.FC<{
             <feBlend in="SourceGraphic" in2="glow" mode="normal" />
           </filter>
           
+          {/* Gradient for expandable territories */}
           <radialGradient id="expandableGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-            <stop offset="0%" stopColor="white" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
+            <stop offset="0%" stopColor="#4CAF50" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#4CAF50" stopOpacity="0" />
           </radialGradient>
           
+          {/* Gradient for attack territories */}
+          <radialGradient id="attackGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stopColor="#F44336" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#F44336" stopOpacity="0" />
+          </radialGradient>
+          
+          {/* Gradient for build territories */}
+          <radialGradient id="buildGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stopColor="#2196F3" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#2196F3" stopOpacity="0" />
+          </radialGradient>
+          
+          {/* Gradient for recruit territories */}
+          <radialGradient id="recruitGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stopColor="#9C27B0" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#9C27B0" stopOpacity="0" />
+          </radialGradient>
+          
+          {/* Animation definitions */}
           <animate 
-            xlinkHref="#expandablePulse"
+            id="pulseAnimation"
             attributeName="opacity"
             values="0.7;0.2;0.7"
             dur="2s"
@@ -346,88 +437,95 @@ export const HexGrid: React.FC<{
             const corners = hexCorners(pixelPos, hexSize);
             const color = getTerritoryColor(territory);
             const borderWidth = getTerritoryBorder(territory);
+            const borderColor = getTerritoryBorderColor(territory);
             const selectable = isTerritorySelectable(territory);
-            const isExpandable = expandableTerritories.includes(territory.id);
-            const isAttackable = attackableTerritories.includes(territory.id);
-            const isBuildable = buildableTerritories.includes(territory.id);
-            const isRecruitable = recruitableTerritories.includes(territory.id);
+            const isExpandable = currentAction === "expand" && expandableTerritories.includes(territory.id);
+            const isAttackable = currentAction === "attack" && attackableTerritories.includes(territory.id);
+            const isBuildable = currentAction === "build" && buildableTerritories.includes(territory.id);
+            const isRecruitable = currentAction === "recruit" && recruitableTerritories.includes(territory.id);
+            const isActionable = isExpandable || isAttackable || isBuildable || isRecruitable;
             const unitStats = getUnitStatsDisplay(territory, players);
+            
+            // For attack predictions
+            let attackPrediction = null;
+            if (isAttackable && selectedTerritory !== null) {
+              const attackingTerritory = territories.find(t => t.id === selectedTerritory);
+              attackPrediction = getAttackPrediction(attackingTerritory, territory);
+            }
             
             // Determine the interaction state for visual cues
             let interactionState = "";
-            if (isExpandable && currentAction === "expand") interactionState = "expand";
-            if (isAttackable && currentAction === "attack") interactionState = "attack";
-            if (isBuildable && currentAction === "build") interactionState = "build";
-            if (isRecruitable && currentAction === "recruit") interactionState = "recruit";
+            if (isExpandable) interactionState = "expand";
+            if (isAttackable) interactionState = "attack";
+            if (isBuildable) interactionState = "build";
+            if (isRecruitable) interactionState = "recruit";
+            
+            // Gradient fill for interactive territories
+            let gradientFill = null;
+            if (isExpandable) gradientFill = "url(#expandableGradient)";
+            if (isAttackable) gradientFill = "url(#attackGradient)";
+            if (isBuildable) gradientFill = "url(#buildGradient)";
+            if (isRecruitable) gradientFill = "url(#recruitGradient)";
             
             const hexElement = (
               <g 
                 key={territory.id} 
-                onClick={() => onTerritoryClick(territory.id)}
+                onClick={() => selectable && onTerritoryClick(territory.id)}
+                onMouseEnter={() => handleTerritoryHover(territory.id)}
+                onMouseLeave={handleTerritoryLeave}
                 style={{ cursor: selectable ? 'pointer' : 'not-allowed' }}
                 opacity={selectable ? 1 : 0.6}
               >
+                {/* Base hex */}
                 <polygon
                   points={corners.map(p => `${p.x},${p.y}`).join(" ")}
                   fill={color}
-                  stroke="#000"
+                  stroke={borderColor}
                   strokeWidth={borderWidth}
-                  strokeOpacity="0.5"
+                  strokeOpacity="0.8"
                   fillOpacity="0.7"
                 />
                 
-                {/* Interaction state highlights */}
-                {interactionState === "expand" && (
+                {/* Visual indicators for actionable territories */}
+                {isActionable && (
                   <g>
+                    {/* Pulsating effect */}
                     <polygon
                       points={corners.map(p => `${p.x},${p.y}`).join(" ")}
-                      fill="url(#expandableGradient)"
-                      stroke="#4CAF50"
-                      strokeWidth="2"
-                      strokeOpacity="0.7"
+                      fill={gradientFill}
+                      stroke={borderColor}
+                      strokeWidth={borderWidth + 1}
+                      strokeOpacity="0.9"
+                      fillOpacity="0.5"
                       className="animate-pulse"
                       filter="url(#glow)"
                     />
                   </g>
                 )}
                 
-                {interactionState === "attack" && (
+                {/* Attack prediction tooltip */}
+                {isAttackable && attackPrediction && hoveredTerritory === territory.id && (
                   <g>
-                    <polygon
-                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
-                      fill="none"
+                    <rect
+                      x={pixelPos.x - 60}
+                      y={pixelPos.y - 40}
+                      width="120"
+                      height="30"
+                      rx="5"
+                      ry="5"
+                      fill="rgba(0,0,0,0.8)"
                       stroke="#F44336"
-                      strokeWidth="3"
-                      strokeOpacity="0.7"
-                      className="animate-pulse"
-                      filter="url(#glow)"
                     />
-                  </g>
-                )}
-                
-                {interactionState === "build" && (
-                  <g>
-                    <polygon
-                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
-                      fill="none"
-                      stroke="#2196F3"
-                      strokeWidth="2"
-                      strokeOpacity="0.7"
-                      strokeDasharray="5,5"
-                    />
-                  </g>
-                )}
-                
-                {interactionState === "recruit" && (
-                  <g>
-                    <polygon
-                      points={corners.map(p => `${p.x},${p.y}`).join(" ")}
-                      fill="none"
-                      stroke="#9C27B0"
-                      strokeWidth="2"
-                      strokeOpacity="0.7"
-                      strokeDasharray="10,5"
-                    />
+                    <text
+                      x={pixelPos.x}
+                      y={pixelPos.y - 20}
+                      textAnchor="middle"
+                      fill="#FFFFFF"
+                      fontSize="10"
+                      fontWeight="bold"
+                    >
+                      {attackPrediction.message}
+                    </text>
                   </g>
                 )}
                 
@@ -506,7 +604,7 @@ export const HexGrid: React.FC<{
                 )}
                 
                 {/* Show building count */}
-                {territory.buildings.length > 0 && (
+                {territory.buildings && territory.buildings.length > 0 && (
                   <text
                     x={pixelPos.x - 20}
                     y={pixelPos.y + 25}
