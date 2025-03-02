@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react({
-      // SWC options without the invalid property
+      // SWC options without any invalid properties
       tsDecorators: true,
     }),
     mode === 'development' &&
@@ -23,7 +23,15 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    // Add tsconfigRaw to control TS behavior during build
+    tsconfigRaw: {
+      compilerOptions: {
+        declaration: false,
+        noEmit: true,
+        emitDeclarationOnly: false,
+      }
+    }
   },
   base: '/',
   build: {
