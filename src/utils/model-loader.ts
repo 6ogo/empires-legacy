@@ -66,59 +66,63 @@ const loadColladaModel = (path: string): Promise<THREE.Group> => {
       (collada) => {
         const model = collada.scene;
         
+        // Create a Group to contain the model - fixing the type issue
+        const groupWrapper = new THREE.Group();
+        groupWrapper.add(model);
+        
         // Scale and position adjustment based on model type
         const modelType = path.split('/').pop()?.split('.')[0] || '';
         
         switch (modelType) {
           case 'base':
-            model.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.03, 0.03, 0.03);
             break;
           case 'plains':
-            model.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.03, 0.03, 0.03);
             break;
           case 'mountain':
-            model.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.03, 0.03, 0.03);
             break;
           case 'forest':
-            model.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.03, 0.03, 0.03);
             break;
           case 'coast':
-            model.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.03, 0.03, 0.03);
             break;
           case 'castle':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           case 'lumbermill':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           case 'mine':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           case 'farm':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           case 'market':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           case 'barracks':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           case 'fortress':
-            model.scale.set(0.02, 0.02, 0.02);
-            model.position.y = 0.12;
+            groupWrapper.scale.set(0.02, 0.02, 0.02);
+            groupWrapper.position.y = 0.12;
             break;
           default:
-            model.scale.set(0.03, 0.03, 0.03);
+            groupWrapper.scale.set(0.03, 0.03, 0.03);
         }
         
         // Add traversal to enable shadow casting for all meshes
-        model.traverse((child) => {
+        groupWrapper.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
@@ -134,7 +138,7 @@ const loadColladaModel = (path: string): Promise<THREE.Group> => {
           }
         });
         
-        resolve(model);
+        resolve(groupWrapper);
       },
       undefined, // onProgress callback not needed
       (error) => {

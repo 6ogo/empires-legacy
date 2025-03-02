@@ -11,23 +11,8 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react({
-      // Use SWC's built-in options to disable declaration file generation
+      // SWC options without the invalid property
       tsDecorators: true,
-      swcOptions: {
-        jsc: {
-          target: "es2021",
-          parser: {
-            syntax: "typescript",
-            tsx: true,
-            decorators: true,
-          },
-          transform: {
-            react: {
-              runtime: "automatic",
-            },
-          },
-        },
-      },
     }),
     mode === 'development' &&
     componentTagger(),
