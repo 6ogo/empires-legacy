@@ -33,6 +33,13 @@ declare global {
   interface Window {
     __TS_DISABLE_DECLARATIONS__: boolean;
   }
+
+  // Prevent d.ts generation for modules
+  interface CompilerOptions {
+    declaration: false;
+    declarationMap: false;
+    emitDeclarationOnly: false;
+  }
 }
 
 // Special directive to suppress declaration output

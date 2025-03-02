@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { HexGrid } from './HexGrid';
 import { HexGrid3D } from './HexGrid3D';
 import { Button } from '../ui/button';
-import { LoadingScreen } from './LoadingScreen';
+import LoadingScreen from './LoadingScreen';
 import { toast } from 'sonner';
 import { Box } from 'lucide-react';
 

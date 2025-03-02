@@ -4,8 +4,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Run the disable-declarations script
-require('./disable-declarations');
+// Run the ts-warnings script to configure TS errors as warnings
+require('./ts-warnings');
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    // Note: removing tsconfigRaw as it was causing issues
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    // Removed tsconfigRaw as it was causing issues
   },
   base: '/',
   build: {

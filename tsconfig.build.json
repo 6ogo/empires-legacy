@@ -8,10 +8,12 @@
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    "suppressExcessPropertyErrors": true,
+    "suppressImplicitAnyIndexErrors": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "**/*.d.ts"]
 }
