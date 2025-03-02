@@ -99,6 +99,8 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
     
@@ -109,7 +111,19 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 10, 5);
     directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.left = -15;
+    directionalLight.shadow.camera.right = 15;
+    directionalLight.shadow.camera.top = 15;
+    directionalLight.shadow.camera.bottom = -15;
     scene.add(directionalLight);
+    
+    // Add hemisphere light for ambient
+    const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5);
+    scene.add(hemisphereLight);
     
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -134,11 +148,6 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
     };
     
     controlsRef.current = controls;
-    
-    // Grid helper
-    const gridHelper = new THREE.GridHelper(20, 20);
-    gridHelper.visible = false; // Hide by default
-    scene.add(gridHelper);
     
     // Animation loop
     const animate = () => {
@@ -194,43 +203,64 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
       });
       hexMeshesRef.current.clear();
       
+      // Optimize hex grid display with proper spacing
+      const hexSize = 1.0; // Size of each hex
+      const horizontalSpacing = hexSize * 1.75; // Horizontal spacing between hexes
+      const verticalSpacing = hexSize * 1.5; // Vertical spacing between hexes
+      
+      // Calculate grid center for better positioning
+      const gridCenter = calculateGridCenter(territories);
+      
+      // Determine if this is a small, medium, or large board based on territory count
+      const territoryCount = territories.length;
+      let coastalTerritoryCount = 0;
+      if (territoryCount <= 30) {
+        coastalTerritoryCount = 3; // Small board
+      } else if (territoryCount <= 60) {
+        coastalTerritoryCount = 4; // Medium board
+      } else {
+        coastalTerritoryCount = 4; // Large board
+      }
+      
+      // Find edge territories for potential coastal territories
+      const edgeTerritories = findEdgeTerritories(territories);
+      
+      // If we need to mark some territories as coastal, select random ones from the edge
+      const coastalTerritories = selectCoastalTerritories(edgeTerritories, coastalTerritoryCount);
+      
       // Load and place territory models
       for (const territory of territories) {
-        const hexSize = 1.2; // Size of each hex
-        const spacing = hexSize * 1.8; // Spacing between hexes
-        
         // Convert from axial coordinates to 3D position
-        const x = spacing * (3/2 * territory.position.x);
-        const z = spacing * (Math.sqrt(3)/2 * territory.position.x + Math.sqrt(3) * territory.position.y);
+        const x = horizontalSpacing * (territory.position.x - gridCenter.x);
+        const z = verticalSpacing * (territory.position.y - gridCenter.y);
         
         // Create a group for this territory and all its models
         const territoryGroup = new THREE.Group();
         territoryGroup.position.set(x, 0, z);
         territoryGroup.userData = { territoryId: territory.id };
         
+        // Check if this territory should be coastal
+        let terrainType = territory.type;
+        if (coastalTerritories.includes(territory.id)) {
+          terrainType = 'coast';
+        }
+        
         // Load base terrain model
-        const terrainType = getTerritoryModel(territory);
         const baseModel = await loadModel('base');
         const terrainModel = await loadModel(terrainType);
         
-        if (baseModel) {
-          baseModel.scale.set(0.1, 0.1, 0.1);
-          baseModel.position.y = -0.05;
-          territoryGroup.add(baseModel);
-        }
+        baseModel.position.y = 0;
+        territoryGroup.add(baseModel);
         
-        if (terrainModel) {
-          terrainModel.scale.set(0.1, 0.1, 0.1);
-          territoryGroup.add(terrainModel);
-        }
+        terrainModel.position.y = 0.05; // Slightly elevated from base
+        territoryGroup.add(terrainModel);
         
         // Add buildings if any
-        const buildingTypes = getBuildingModels(territory);
-        
         if (territory.buildings && territory.buildings.length > 0) {
           // Position buildings around the hex
           const buildingPositions = [
-            { x: 0.4, z: 0 },    // Right
+            { x: 0, z: 0 },       // Center
+            { x: 0.4, z: 0 },     // Right
             { x: 0.2, z: 0.35 },  // Top right
             { x: -0.2, z: 0.35 }, // Top left
             { x: -0.4, z: 0 },    // Left
@@ -238,16 +268,21 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
             { x: 0.2, z: -0.35 }   // Bottom right
           ];
           
-          for (let i = 0; i < Math.min(buildingTypes.length, buildingPositions.length); i++) {
-            const buildingModel = await loadModel(territory.buildings[i].type);
-            if (buildingModel) {
-              buildingModel.scale.set(0.08, 0.08, 0.08);
-              buildingModel.position.set(
-                buildingPositions[i].x,
-                0.05, // Slightly elevated
-                buildingPositions[i].z
-              );
-              territoryGroup.add(buildingModel);
+          for (let i = 0; i < Math.min(territory.buildings.length, buildingPositions.length); i++) {
+            const buildingType = typeof territory.buildings[i] === 'object' 
+              ? territory.buildings[i].type 
+              : getBuildingTypeFromId(territory.buildings[i], players[territory.owner || 0].buildings);
+            
+            if (buildingType) {
+              const buildingModel = await loadModel(buildingType);
+              if (buildingModel) {
+                buildingModel.position.set(
+                  buildingPositions[i].x,
+                  0.12, // On top of the terrain
+                  buildingPositions[i].z
+                );
+                territoryGroup.add(buildingModel);
+              }
             }
           }
         }
@@ -255,7 +290,7 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
         // Add highlight or owner marker
         if (territory.owner !== null) {
           const color = players[territory.owner].color;
-          const markerGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.05, 6);
+          const markerGeometry = new THREE.CylinderGeometry(hexSize * 0.5, hexSize * 0.5, 0.05, 6);
           const markerMaterial = new THREE.MeshBasicMaterial({ 
             color: new THREE.Color(color),
             transparent: true,
@@ -264,13 +299,12 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
           
           const marker = new THREE.Mesh(markerGeometry, markerMaterial);
           marker.position.y = -0.04; // Slightly below terrain
-          marker.rotation.x = Math.PI / 2;
           territoryGroup.add(marker);
         }
         
         // Add selection highlight
         if (territory.id === selectedTerritory) {
-          const highlightGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.05, 6);
+          const highlightGeometry = new THREE.CylinderGeometry(hexSize * 0.6, hexSize * 0.6, 0.05, 6);
           const highlightMaterial = new THREE.MeshBasicMaterial({ 
             color: 0xffffff,
             transparent: true,
@@ -280,13 +314,12 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
           
           const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
           highlight.position.y = 0.1; // Above terrain
-          highlight.rotation.x = Math.PI / 2;
           territoryGroup.add(highlight);
         }
         
         // Add special highlights based on current action
         const addActionHighlight = (color: string, opacity: number) => {
-          const actionHighlightGeometry = new THREE.CylinderGeometry(0.55, 0.55, 0.05, 6);
+          const actionHighlightGeometry = new THREE.CylinderGeometry(hexSize * 0.55, hexSize * 0.55, 0.05, 6);
           const actionHighlightMaterial = new THREE.MeshBasicMaterial({ 
             color: new THREE.Color(color),
             transparent: true,
@@ -296,7 +329,6 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
           
           const actionHighlight = new THREE.Mesh(actionHighlightGeometry, actionHighlightMaterial);
           actionHighlight.position.y = 0.08; // Above terrain
-          actionHighlight.rotation.x = Math.PI / 2;
           territoryGroup.add(actionHighlight);
         };
         
@@ -361,6 +393,61 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
     
     loadTerritories();
   }, [territories, players, selectedTerritory, currentAction, expandableTerritories, attackableTerritories, buildableTerritories, recruitableTerritories, isInitialized]);
+  
+  // Helper function to find edge territories (potential coastal territories)
+  const findEdgeTerritories = (territories: Territory[]): number[] => {
+    const result: number[] = [];
+    
+    // Find the minimum and maximum coordinates
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    
+    territories.forEach(territory => {
+      minX = Math.min(minX, territory.position.x);
+      maxX = Math.max(maxX, territory.position.x);
+      minY = Math.min(minY, territory.position.y);
+      maxY = Math.max(maxY, territory.position.y);
+    });
+    
+    // Territories on the edge of the board
+    territories.forEach(territory => {
+      if (territory.position.x === minX || territory.position.x === maxX || 
+          territory.position.y === minY || territory.position.y === maxY) {
+        result.push(territory.id);
+      }
+    });
+    
+    return result;
+  };
+  
+  // Helper function to select random coastal territories from edge territories
+  const selectCoastalTerritories = (edgeTerritories: number[], count: number): number[] => {
+    // Shuffle edge territories
+    const shuffled = [...edgeTerritories].sort(() => 0.5 - Math.random());
+    // Return the first 'count' territories
+    return shuffled.slice(0, Math.min(count, edgeTerritories.length));
+  };
+  
+  // Helper function to calculate center of the grid
+  const calculateGridCenter = (territories: Territory[]): { x: number, y: number } => {
+    if (territories.length === 0) return { x: 0, y: 0 };
+    
+    let sumX = 0, sumY = 0;
+    territories.forEach(territory => {
+      sumX += territory.position.x;
+      sumY += territory.position.y;
+    });
+    
+    return {
+      x: sumX / territories.length,
+      y: sumY / territories.length
+    };
+  };
+  
+  // Helper function to get building type from building ID
+  const getBuildingTypeFromId = (buildingId: number, buildings: any[]): string | null => {
+    const building = buildings.find(b => b.id === buildingId);
+    return building ? building.type : null;
+  };
   
   // Handle mouse interactions
   useEffect(() => {

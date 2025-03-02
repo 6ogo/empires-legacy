@@ -5,24 +5,161 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 
 // Asset cache to prevent loading the same model multiple times
 const modelCache = new Map();
+const textureLoader = new THREE.TextureLoader();
+const colladaLoader = new ColladaLoader();
 
 // Load a 3D model and cache it
 export const loadModel = async (modelType: string) => {
-  // If model is already cached, return it
+  // If model is already cached, return a clone
   if (modelCache.has(modelType)) {
     return modelCache.get(modelType).clone();
   }
   
-  // Placeholder model for testing
-  // In a real implementation, this would load actual model files
-  const geometry = getGeometryForType(modelType);
-  const material = getMaterialForType(modelType);
-  const mesh = new THREE.Mesh(geometry, material);
+  let model;
+  
+  try {
+    // First try to load actual model files
+    if (modelType === 'base') {
+      model = await loadColladaModel('/models/base.dae');
+    } else if (modelType === 'plains') {
+      model = await loadColladaModel('/models/plains.dae');
+    } else if (modelType === 'mountains') {
+      model = await loadColladaModel('/models/mountain.dae');
+    } else if (modelType === 'forests') {
+      model = await loadColladaModel('/models/forest.dae');
+    } else if (modelType === 'coast') {
+      model = await loadColladaModel('/models/coast.dae');
+    } else if (modelType === 'capital') {
+      model = await loadColladaModel('/models/castle.dae');
+    } else if (modelType === 'lumberMill') {
+      model = await loadColladaModel('/models/lumbermill.dae');
+    } else if (modelType === 'mine') {
+      model = await loadColladaModel('/models/mine.dae');
+    } else if (modelType === 'farm') {
+      model = await loadColladaModel('/models/farm.dae');
+    } else if (modelType === 'market') {
+      model = await loadColladaModel('/models/market.dae');
+    } else if (modelType === 'barracks') {
+      model = await loadColladaModel('/models/barracks.dae');
+    } else if (modelType === 'fortress') {
+      model = await loadColladaModel('/models/fortress.dae');
+    } else {
+      // Fallback to placeholder geometry if model not found
+      model = createPlaceholderModel(modelType);
+    }
+  } catch (error) {
+    console.warn(`Failed to load model for ${modelType}, using placeholder:`, error);
+    model = createPlaceholderModel(modelType);
+  }
   
   // Cache the model
-  modelCache.set(modelType, mesh);
+  modelCache.set(modelType, model);
   
-  return mesh;
+  return model;
+};
+
+// Helper function to load Collada models
+const loadColladaModel = (path: string): Promise<THREE.Group> => {
+  return new Promise((resolve, reject) => {
+    colladaLoader.load(
+      path,
+      (collada) => {
+        const model = collada.scene;
+        
+        // Scale and position adjustment based on model type
+        const modelType = path.split('/').pop()?.split('.')[0] || '';
+        
+        switch (modelType) {
+          case 'base':
+            model.scale.set(0.03, 0.03, 0.03);
+            break;
+          case 'plains':
+            model.scale.set(0.03, 0.03, 0.03);
+            break;
+          case 'mountain':
+            model.scale.set(0.03, 0.03, 0.03);
+            break;
+          case 'forest':
+            model.scale.set(0.03, 0.03, 0.03);
+            break;
+          case 'coast':
+            model.scale.set(0.03, 0.03, 0.03);
+            break;
+          case 'castle':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          case 'lumbermill':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          case 'mine':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          case 'farm':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          case 'market':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          case 'barracks':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          case 'fortress':
+            model.scale.set(0.02, 0.02, 0.02);
+            model.position.y = 0.12;
+            break;
+          default:
+            model.scale.set(0.03, 0.03, 0.03);
+        }
+        
+        // Add traversal to enable shadow casting for all meshes
+        model.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            
+            // Ensure all materials are MeshPhongMaterial for consistent lighting
+            if (!(child.material instanceof THREE.MeshPhongMaterial)) {
+              const color = child.material.color ? child.material.color : new THREE.Color(0xFFFFFF);
+              child.material = new THREE.MeshPhongMaterial({ 
+                color: color, 
+                shininess: 30
+              });
+            }
+          }
+        });
+        
+        resolve(model);
+      },
+      undefined, // onProgress callback not needed
+      (error) => {
+        console.error('Error loading Collada model:', error);
+        reject(error);
+      }
+    );
+  });
+};
+
+// Create placeholder model when actual model can't be loaded
+const createPlaceholderModel = (type: string): THREE.Group => {
+  const geometry = getGeometryForType(type);
+  const material = getMaterialForType(type);
+  const mesh = new THREE.Mesh(geometry, material);
+  
+  // Setup shadow properties
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  
+  // Create a group to match the structure of loaded models
+  const group = new THREE.Group();
+  group.add(mesh);
+  
+  return group;
 };
 
 // Get the appropriate geometry based on model type
@@ -103,7 +240,7 @@ export const getBuildingModels = (territory: any) => {
   // In a real implementation, this would map building IDs to actual models
   return territory.buildings.map((building: any) => ({
     type: typeof building === 'object' ? building.type : 'lumberMill',
-    position: { x: 0, y: 0, z: 0 }
+    position: { x: 0, y: 0.12, z: 0 } // Position on top of the hex
   }));
 };
 
