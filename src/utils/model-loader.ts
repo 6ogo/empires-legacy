@@ -1,32 +1,32 @@
 
 import * as THREE from 'three';
-import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 // Model mapping based on territory type and buildings
 const MODEL_MAPPING = {
   // Base territory types
-  base: 'base.dae',
-  plains: 'forest_stone.dae',
-  mountains: 'mountain.dae',
-  forests: 'forest.dae',
-  coast: 'Forest_stone_food.dae',
-  capital: 'castle.dae',
+  base: 'base.gltf',
+  plains: 'forest_stone.gltf',
+  mountains: 'mountain.gltf',
+  forests: 'forest.gltf',
+  coast: 'Forest_stone_food.gltf',
+  capital: 'castle.gltf',
   
   // Buildings
-  lumberMill: 'lumbermill.dae',
-  mine: 'mine.dae',
-  market: 'market.dae',
-  farm: 'farm.dae',
-  barracks: 'barracks.dae',
-  fortress: 'fortress.dae',
-  archery: 'archery.dae',
-  watchtower: 'watchtower.dae',
+  lumberMill: 'lumbermill.gltf',
+  mine: 'mine.gltf',
+  market: 'market.gltf',
+  farm: 'farm.gltf',
+  barracks: 'barracks.gltf',
+  fortress: 'fortress.gltf',
+  archery: 'archery.gltf',
+  watchtower: 'watchtower.gltf',
 };
 
 // Cache loaded models to avoid redundant loading
 const modelCache = new Map<string, THREE.Object3D>();
 
-// Load Collada model
+// Load GLTF model instead of Collada
 export const loadModel = async (modelName: string): Promise<THREE.Object3D | null> => {
   if (!modelName || !MODEL_MAPPING[modelName as keyof typeof MODEL_MAPPING]) {
     console.warn(`Model ${modelName} not found in mapping`);
@@ -41,14 +41,14 @@ export const loadModel = async (modelName: string): Promise<THREE.Object3D | nul
   }
   
   try {
-    const loader = new ColladaLoader();
+    const loader = new GLTFLoader();
     const modelPath = `/models/${fileName}`;
     
     return new Promise((resolve, reject) => {
       loader.load(
         modelPath,
-        (collada) => {
-          const model = collada.scene;
+        (gltf) => {
+          const model = gltf.scene;
           modelCache.set(fileName, model);
           resolve(model.clone());
         },

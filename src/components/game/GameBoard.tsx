@@ -4,7 +4,7 @@ import { HexGrid } from "./HexGrid";
 import { HexGrid3D } from "./HexGrid3D";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import { Cube } from "lucide-react";
+import { Box } from "lucide-react";
 
 export const GameBoard: React.FC<{
   territories: any[];
@@ -192,7 +192,7 @@ export const GameBoard: React.FC<{
           onClick={toggleViewMode}
           className="bg-gray-800/80 hover:bg-gray-700/80 text-white"
         >
-          <Cube className="mr-1 h-4 w-4" />
+          <Box className="mr-1 h-4 w-4" />
           {use3D ? '2D View' : '3D View'}
         </Button>
       </div>
