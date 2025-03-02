@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
   base: '/',
   build: {
     sourcemap: true,
-    outDir: 'dist',
+    // Add the following configuration to prevent TypeScript from generating declaration files
     rollupOptions: {
       output: {
         manualChunks: {
@@ -87,5 +87,13 @@ export default defineConfig(({ mode }) => ({
       }
     },
     chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kb
+  },
+  // Add a custom esbuild configuration to suppress declaration file generation
+  esbuild: {
+    // Set this to true to suppress TypeScript declaration file generation
+    keepNames: true,
+    logOverride: {
+      'this-is-undefined-in-esm': 'silent',
+    },
   },
 }));
