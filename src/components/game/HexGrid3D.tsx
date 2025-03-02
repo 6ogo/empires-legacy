@@ -1,8 +1,10 @@
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { loadModel, getTerritoryModel, getBuildingModels, createHighlightEffect } from '../../utils/model-loader';
+import { loadModel, createHighlightEffect } from '../../utils/model-loader';
+import { createTextSprite } from './3d/TextSprite';
+import { SceneSetup } from './3d/SceneSetup';
 import { toast } from "sonner";
 
 interface Territory {
@@ -48,17 +50,18 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
   currentAction
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const hexMeshesRef = useRef<Map<number, THREE.Group>>(new Map());
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
+  const animationsRef = useRef<Map<number, any>>(new Map());
+  
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const animationFrameRef = useRef<number | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<number | null>(null);
   
   // Check if device is mobile
@@ -75,120 +78,66 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
     };
   }, []);
 
-  // Initialize Three.js scene
-  useEffect(() => {
-    if (!containerRef.current) return;
+  // Helper functions for hex grid calculations
+  const calculateGridCenter = useCallback((territories: Territory[]): { x: number, y: number } => {
+    if (territories.length === 0) return { x: 0, y: 0 };
     
-    // Scene setup
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#1a1a1a');
+    let sumX = 0, sumY = 0;
+    territories.forEach(territory => {
+      sumX += territory.position.x;
+      sumY += territory.position.y;
+    });
+    
+    return {
+      x: sumX / territories.length,
+      y: sumY / territories.length
+    };
+  }, []);
+  
+  const findEdgeTerritories = useCallback((territories: Territory[]): number[] => {
+    const result: number[] = [];
+    
+    // Find the minimum and maximum coordinates
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    
+    territories.forEach(territory => {
+      minX = Math.min(minX, territory.position.x);
+      maxX = Math.max(maxX, territory.position.x);
+      minY = Math.min(minY, territory.position.y);
+      maxY = Math.max(maxY, territory.position.y);
+    });
+    
+    // Territories on the edge of the board
+    territories.forEach(territory => {
+      if (territory.position.x === minX || territory.position.x === maxX || 
+          territory.position.y === minY || territory.position.y === maxY) {
+        result.push(territory.id);
+      }
+    });
+    
+    return result;
+  }, []);
+  
+  const selectCoastalTerritories = useCallback((edgeTerritories: number[], count: number): number[] => {
+    // Shuffle edge territories
+    const shuffled = [...edgeTerritories].sort(() => 0.5 - Math.random());
+    // Return the first 'count' territories
+    return shuffled.slice(0, Math.min(count, edgeTerritories.length));
+  }, []);
+  
+  // Scene initialization callback
+  const handleSceneReady = useCallback((
+    scene: THREE.Scene, 
+    camera: THREE.PerspectiveCamera, 
+    renderer: THREE.WebGLRenderer, 
+    controls: OrbitControls
+  ) => {
     sceneRef.current = scene;
-    
-    // Camera setup
-    const camera = new THREE.PerspectiveCamera(
-      50, 
-      containerRef.current.clientWidth / containerRef.current.clientHeight, 
-      0.1, 
-      1000
-    );
-    camera.position.set(0, 10, 15);
-    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
-    
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
-    
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
-    directionalLight.shadow.camera.near = 0.5;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -15;
-    directionalLight.shadow.camera.right = 15;
-    directionalLight.shadow.camera.top = 15;
-    directionalLight.shadow.camera.bottom = -15;
-    scene.add(directionalLight);
-    
-    // Add hemisphere light for ambient
-    const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5);
-    scene.add(hemisphereLight);
-    
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-    controls.rotateSpeed = 0.5;
-    controls.minDistance = 5;
-    controls.maxDistance = 30;
-    controls.maxPolarAngle = Math.PI / 2.5; // Restrict vertical rotation
-    controls.minPolarAngle = Math.PI / 6; // Minimum angle (prevent looking from below)
-    controls.enableRotate = true; // Allow rotation but we'll configure it for specific behavior
-    controls.mouseButtons = {
-      LEFT: THREE.MOUSE.PAN, // Pan with left mouse button
-      MIDDLE: THREE.MOUSE.DOLLY, // Zoom with middle mouse button
-      RIGHT: THREE.MOUSE.ROTATE // Rotate with right mouse button (limited rotation)
-    };
-    
-    // Adjust touch controls for mobile
-    controls.touches = {
-      ONE: THREE.TOUCH.PAN,
-      TWO: THREE.TOUCH.DOLLY_ROTATE
-    };
-    
     controlsRef.current = controls;
     
-    // Animation loop
-    const animate = () => {
-      if (controlsRef.current) {
-        controlsRef.current.update();
-      }
-      
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-      }
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-    
-    animate();
-    
-    // Handle window resize
-    const handleResize = () => {
-      if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-      
-      cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-      cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
     setIsInitialized(true);
-    
-    // Clean up
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      
-      if (rendererRef.current && containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
-      }
-      
-      window.removeEventListener('resize', handleResize);
-    };
   }, []);
   
   // Handle territories rendering
@@ -203,10 +152,18 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
       });
       hexMeshesRef.current.clear();
       
+      // Stop any ongoing animations
+      animationsRef.current.forEach(animation => {
+        if (animation && animation.stop) {
+          animation.stop();
+        }
+      });
+      animationsRef.current.clear();
+      
       // Optimize hex grid display with proper spacing
       const hexSize = 1.0; // Size of each hex
-      const horizontalSpacing = hexSize * 1.75; // Horizontal spacing between hexes
-      const verticalSpacing = hexSize * 1.5; // Vertical spacing between hexes
+      const horizontalSpacing = hexSize * 1.5; // Reduced horizontal spacing
+      const verticalSpacing = hexSize * 1.3; // Reduced vertical spacing
       
       // Calculate grid center for better positioning
       const gridCenter = calculateGridCenter(territories);
@@ -219,7 +176,7 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
       } else if (territoryCount <= 60) {
         coastalTerritoryCount = 4; // Medium board
       } else {
-        coastalTerritoryCount = 4; // Large board
+        coastalTerritoryCount = 5; // Large board
       }
       
       // Find edge territories for potential coastal territories
@@ -230,7 +187,7 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
       
       // Load and place territory models
       for (const territory of territories) {
-        // Convert from axial coordinates to 3D position
+        // Convert from axial coordinates to 3D position with adjusted spacing
         const x = horizontalSpacing * (territory.position.x - gridCenter.x);
         const z = verticalSpacing * (territory.position.y - gridCenter.y);
         
@@ -257,21 +214,21 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
         
         // Add buildings if any
         if (territory.buildings && territory.buildings.length > 0) {
-          // Position buildings around the hex
+          // Position buildings around the hex - smaller circle to fit within the closer hexes
           const buildingPositions = [
             { x: 0, z: 0 },       // Center
-            { x: 0.4, z: 0 },     // Right
-            { x: 0.2, z: 0.35 },  // Top right
-            { x: -0.2, z: 0.35 }, // Top left
-            { x: -0.4, z: 0 },    // Left
-            { x: -0.2, z: -0.35 }, // Bottom left
-            { x: 0.2, z: -0.35 }   // Bottom right
+            { x: 0.3, z: 0 },     // Right (reduced from 0.4)
+            { x: 0.15, z: 0.25 },  // Top right (reduced from 0.2, 0.35)
+            { x: -0.15, z: 0.25 }, // Top left (reduced from -0.2, 0.35)
+            { x: -0.3, z: 0 },    // Left (reduced from -0.4)
+            { x: -0.15, z: -0.25 }, // Bottom left (reduced from -0.2, -0.35)
+            { x: 0.15, z: -0.25 }   // Bottom right (reduced from 0.2, -0.35)
           ];
           
           for (let i = 0; i < Math.min(territory.buildings.length, buildingPositions.length); i++) {
             const buildingType = typeof territory.buildings[i] === 'object' 
               ? territory.buildings[i].type 
-              : getBuildingTypeFromId(territory.buildings[i], players[territory.owner || 0].buildings);
+              : getBuildingTypeFromId(territory.buildings[i], players[territory.owner || 0]?.buildings || []);
             
             if (buildingType) {
               const buildingModel = await loadModel(buildingType);
@@ -281,14 +238,39 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
                   0.12, // On top of the terrain
                   buildingPositions[i].z
                 );
+                
+                // Scale down buildings slightly to fit better
+                buildingModel.scale.set(0.8, 0.8, 0.8);
+                
                 territoryGroup.add(buildingModel);
               }
             }
           }
         }
         
-        // Add highlight or owner marker
-        if (territory.owner !== null) {
+        // Add units if any
+        if (territory.units && territory.units.length > 0) {
+          // Position units in a circle around the hex
+          const unitCount = territory.units.length;
+          const radius = 0.3;
+          
+          for (let i = 0; i < Math.min(unitCount, 8); i++) {
+            const angle = (i / Math.min(unitCount, 8)) * Math.PI * 2;
+            const unitX = Math.sin(angle) * radius * 0.7; // Reduced radius
+            const unitZ = Math.cos(angle) * radius * 0.7; // Reduced radius
+            
+            // Create a simple unit representation (use a placeholder for now)
+            const unitModel = await loadModel('soldier');
+            if (unitModel) {
+              unitModel.position.set(unitX, 0.15, unitZ);
+              unitModel.scale.set(0.5, 0.5, 0.5);
+              territoryGroup.add(unitModel);
+            }
+          }
+        }
+        
+        // Add owner marker
+        if (territory.owner !== null && players[territory.owner]) {
           const color = players[territory.owner].color;
           const markerGeometry = new THREE.CylinderGeometry(hexSize * 0.5, hexSize * 0.5, 0.05, 6);
           const markerMaterial = new THREE.MeshBasicMaterial({ 
@@ -343,111 +325,56 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
         }
         
         // Add resource display
-        // Create floating text to show resources
-        const createTextSprite = (text: string, offsetY: number) => {
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          if (!context) return null;
-          
-          canvas.width = 64;
-          canvas.height = 32;
-          context.fillStyle = 'rgba(0,0,0,0.7)';
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.font = '24px Arial';
-          context.fillStyle = 'white';
-          context.textAlign = 'center';
-          context.textBaseline = 'middle';
-          context.fillText(text, canvas.width / 2, canvas.height / 2);
-          
-          const texture = new THREE.CanvasTexture(canvas);
-          const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-          const sprite = new THREE.Sprite(spriteMaterial);
-          
-          sprite.scale.set(0.5, 0.25, 1);
-          sprite.position.y = offsetY;
-          
-          return sprite;
-        };
+        // Create text sprite for resources
+        const resourceText = `G:${territory.resources.gold} W:${territory.resources.wood}\nS:${territory.resources.stone} F:${territory.resources.food}`;
+        const resourceSprite = createTextSprite({
+          text: resourceText,
+          position: { x: 0, y: 0.5, z: 0 },
+          scale: { x: 0.5, y: 0.25 }
+        });
         
-        // Add resource counts as floating text
-        const resourceText = `G:${territory.resources.gold} W:${territory.resources.wood} S:${territory.resources.stone} F:${territory.resources.food}`;
-        const resourceSprite = createTextSprite(resourceText, 0.5);
-        if (resourceSprite) {
-          territoryGroup.add(resourceSprite);
-        }
+        territoryGroup.add(resourceSprite);
         
         // Add units count if any
         if (territory.units && territory.units.length > 0) {
-          const unitsText = `Units: ${territory.units.length}`;
-          const unitsSprite = createTextSprite(unitsText, 0.7);
-          if (unitsSprite) {
-            territoryGroup.add(unitsSprite);
-          }
+          const unitsSprite = createTextSprite({
+            text: `Units: ${territory.units.length}`,
+            position: { x: 0, y: 0.7, z: 0 },
+            scale: { x: 0.4, y: 0.2 },
+            backgroundColor: 'rgba(139,0,0,0.7)'
+          });
+          
+          territoryGroup.add(unitsSprite);
         }
         
         // Add to scene and store reference
         scene.add(territoryGroup);
         hexMeshesRef.current.set(territory.id, territoryGroup);
       }
+      
+      // Adjust camera position to see the entire board
+      if (cameraRef.current) {
+        // Find the extents of the board
+        const boardWidth = territories.reduce((max, t) => 
+          Math.max(max, Math.abs(t.position.x - gridCenter.x)), 0) * horizontalSpacing * 2;
+        const boardDepth = territories.reduce((max, t) => 
+          Math.max(max, Math.abs(t.position.y - gridCenter.y)), 0) * verticalSpacing * 2;
+        
+        // Position camera to see the whole board
+        const maxDimension = Math.max(boardWidth, boardDepth);
+        const distance = Math.max(8, maxDimension * 0.7); // Minimum distance of 8 units
+        
+        cameraRef.current.position.set(0, distance * 0.7, distance * 0.7);
+        cameraRef.current.lookAt(0, 0, 0);
+        
+        if (controlsRef.current) {
+          controlsRef.current.update();
+        }
+      }
     };
     
     loadTerritories();
-  }, [territories, players, selectedTerritory, currentAction, expandableTerritories, attackableTerritories, buildableTerritories, recruitableTerritories, isInitialized]);
-  
-  // Helper function to find edge territories (potential coastal territories)
-  const findEdgeTerritories = (territories: Territory[]): number[] => {
-    const result: number[] = [];
-    
-    // Find the minimum and maximum coordinates
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    
-    territories.forEach(territory => {
-      minX = Math.min(minX, territory.position.x);
-      maxX = Math.max(maxX, territory.position.x);
-      minY = Math.min(minY, territory.position.y);
-      maxY = Math.max(maxY, territory.position.y);
-    });
-    
-    // Territories on the edge of the board
-    territories.forEach(territory => {
-      if (territory.position.x === minX || territory.position.x === maxX || 
-          territory.position.y === minY || territory.position.y === maxY) {
-        result.push(territory.id);
-      }
-    });
-    
-    return result;
-  };
-  
-  // Helper function to select random coastal territories from edge territories
-  const selectCoastalTerritories = (edgeTerritories: number[], count: number): number[] => {
-    // Shuffle edge territories
-    const shuffled = [...edgeTerritories].sort(() => 0.5 - Math.random());
-    // Return the first 'count' territories
-    return shuffled.slice(0, Math.min(count, edgeTerritories.length));
-  };
-  
-  // Helper function to calculate center of the grid
-  const calculateGridCenter = (territories: Territory[]): { x: number, y: number } => {
-    if (territories.length === 0) return { x: 0, y: 0 };
-    
-    let sumX = 0, sumY = 0;
-    territories.forEach(territory => {
-      sumX += territory.position.x;
-      sumY += territory.position.y;
-    });
-    
-    return {
-      x: sumX / territories.length,
-      y: sumY / territories.length
-    };
-  };
-  
-  // Helper function to get building type from building ID
-  const getBuildingTypeFromId = (buildingId: number, buildings: any[]): string | null => {
-    const building = buildings.find(b => b.id === buildingId);
-    return building ? building.type : null;
-  };
+  }, [territories, players, selectedTerritory, currentAction, expandableTerritories, attackableTerritories, buildableTerritories, recruitableTerritories, isInitialized, calculateGridCenter, findEdgeTerritories, selectCoastalTerritories]);
   
   // Handle mouse interactions
   useEffect(() => {
@@ -588,17 +515,6 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
       containerRef.current.addEventListener('touchend', handleTouchEnd);
     }
     
-    // Mobile-specific adjustments
-    if (isMobile && controlsRef.current) {
-      controlsRef.current.rotateSpeed = 0.3;
-      controlsRef.current.enableZoom = true;
-      controlsRef.current.zoomSpeed = 1.5;
-      controlsRef.current.touches = {
-        ONE: THREE.TOUCH.PAN,
-        TWO: THREE.TOUCH.DOLLY_ROTATE
-      };
-    }
-    
     return () => {
       if (containerRef.current) {
         containerRef.current.removeEventListener('mousemove', handleMouseMove);
@@ -607,7 +523,7 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
         containerRef.current.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [isInitialized, isMobile, onTerritoryClick, territories, currentAction, expandableTerritories, attackableTerritories, buildableTerritories, recruitableTerritories]);
+  }, [isInitialized, onTerritoryClick, territories, currentAction, expandableTerritories, attackableTerritories, buildableTerritories, recruitableTerritories]);
   
   // Territory hover effect
   useEffect(() => {
@@ -627,6 +543,13 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
     };
   }, [hoveredTerritory]);
   
+  // Helper function to get building type from building ID
+  const getBuildingTypeFromId = (buildingId: number, buildings: any[]): string | null => {
+    if (!buildings) return null;
+    const building = buildings.find(b => b.id === buildingId);
+    return building ? building.type : null;
+  };
+  
   // Display tooltip for hovered territory
   const getTooltipContent = () => {
     if (hoveredTerritory === null) return null;
@@ -643,9 +566,9 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
           <div>Stone: {territory.resources.stone}</div>
           <div>Food: {territory.resources.food}</div>
         </div>
-        {territory.owner !== null && (
+        {territory.owner !== null && players[territory.owner] && (
           <div className="mt-1">
-            Owner: Player {territory.owner + 1}
+            Owner: {players[territory.owner].name || `Player ${territory.owner + 1}`}
           </div>
         )}
         {territory.buildings && territory.buildings.length > 0 && (
@@ -666,7 +589,7 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
   useEffect(() => {
     if (isMobile && isInitialized) {
       toast.info(
-        "Mobile controls: One finger to pan, two fingers to zoom and rotate",
+        "Mobile controls: One finger to rotate, two fingers to zoom and pan",
         { duration: 5000 }
       );
     }
@@ -679,10 +602,16 @@ export const HexGrid3D: React.FC<HexGrid3DProps> = ({
         className="w-full h-full bg-gray-900"
       />
       
+      <SceneSetup 
+        containerRef={containerRef}
+        onSceneReady={handleSceneReady}
+        isMobile={isMobile}
+      />
+      
       {isMobile && (
         <div className="absolute bottom-4 left-0 right-0 flex justify-center">
           <div className="bg-black/70 text-white text-xs p-2 rounded-full">
-            One finger: pan • Two fingers: zoom & rotate
+            One finger: rotate • Two fingers: zoom & pan
           </div>
         </div>
       )}
