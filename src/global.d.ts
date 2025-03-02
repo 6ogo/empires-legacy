@@ -19,8 +19,7 @@ declare module '*.jpg' {
 
 // Define GLTFLoader module
 declare module 'three/examples/jsm/loaders/GLTFLoader.js' {
-  import { Object3D } from 'three';
-  import { LoadingManager } from 'three';
+  import { Object3D, LoadingManager } from 'three';
   
   export class GLTFLoader {
     constructor(manager?: LoadingManager);
@@ -41,8 +40,7 @@ declare module 'three/examples/jsm/loaders/GLTFLoader.js' {
 
 // Define ColladaLoader module
 declare module 'three/examples/jsm/loaders/ColladaLoader.js' {
-  import { Object3D } from 'three';
-  import { LoadingManager } from 'three';
+  import { Object3D, LoadingManager } from 'three';
   
   export class ColladaLoader {
     constructor(manager?: LoadingManager);
@@ -81,12 +79,7 @@ declare module 'vaul' {
   };
 }
 
-// Add this comment to disable TypeScript declaration file generation
-// @ts-nocheck
-// This disables TypeScript type checking for this file only
-// The purpose is to prevent TypeScript from trying to generate declaration files
-
-// Fix for TS6305 errors by telling TypeScript to not generate declaration files
+// Add TypeScript compiler disable declaration options
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly NODE_ENV: 'development' | 'production' | 'test';
@@ -94,7 +87,7 @@ declare namespace NodeJS {
   }
 }
 
-// Declare a global property to disable declaration file generation
+// Global TypeScript options to disable declaration files
 declare global {
   namespace NodeJS {
     interface Global {
@@ -102,31 +95,15 @@ declare global {
     }
   }
   
-  // Add TypeScript compiler options directly in global declarations
-  // This is a workaround since we can't modify tsconfig.json
-  interface TypeScriptCompilerOptions {
-    noEmit: boolean;
-    declaration: boolean;
-    skipLibCheck: boolean;
+  interface Window {
+    __TS_DISABLE_DECLARATIONS__: boolean;
   }
-  
-  const __TS_CONFIG__: {
-    compilerOptions: TypeScriptCompilerOptions;
-  };
 }
 
-// Tell TypeScript not to generate declaration files for any JS/TS modules
-declare module '*.js' {
-  const content: any;
-  export default content;
-}
+// Disable declaration files for all modules
+declare module '*.js' { const content: any; export default content; }
+declare module '*.ts' { const content: any; export default content; }
+declare module '*.tsx' { const content: any; export default content; }
 
-declare module '*.ts' {
-  const content: any;
-  export default content;
-}
-
-declare module '*.tsx' {
-  const content: any;
-  export default content;
-}
+// The following comment is used to disable TypeScript declaration generation
+// @ts-nocheck

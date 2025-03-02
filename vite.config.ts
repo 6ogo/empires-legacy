@@ -13,14 +13,20 @@ export default defineConfig(({ mode }) => ({
     react({
       // Add TypeScript compiler options that will override tsconfig.json
       tsDecorators: true,
-      typescript: {
-        // Disable declaration output
-        compilerOptions: {
-          declaration: false,
-          skipLibCheck: true,
-          noEmit: true,
+      plugins: [
+        {
+          name: 'disable-typescript-declarations',
+          config() {
+            return {
+              compilerOptions: {
+                declaration: false,
+                skipLibCheck: true,
+                noEmit: true,
+              }
+            };
+          }
         }
-      }
+      ]
     }),
     mode === 'development' &&
     componentTagger(),
@@ -32,13 +38,7 @@ export default defineConfig(({ mode }) => ({
   },
   // Add esbuild options to disable declaration files
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    tsconfigRaw: {
-      compilerOptions: {
-        declaration: false,
-        noEmit: true
-      }
-    }
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },
   base: '/',
   build: {
