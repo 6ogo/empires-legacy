@@ -1,0 +1,6 @@
+
+# Ignore TypeScript declaration files
+*.d.ts
+**/*.d.ts
+src/**/*.d.ts
+**/**/*.d.ts

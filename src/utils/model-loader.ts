@@ -1,126 +1,160 @@
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { toast } from 'sonner';
 
-// Model mapping based on territory type and buildings
-const MODEL_MAPPING = {
-  // Base territory types
-  base: 'base.gltf',
-  plains: 'forest_stone.gltf',
-  mountains: 'mountain.gltf',
-  forests: 'forest.gltf',
-  coast: 'Forest_stone_food.gltf',
-  capital: 'castle.gltf',
-  
-  // Buildings
-  lumberMill: 'lumbermill.gltf',
-  mine: 'mine.gltf',
-  market: 'market.gltf',
-  farm: 'farm.gltf',
-  barracks: 'barracks.gltf',
-  fortress: 'fortress.gltf',
-  archery: 'archery.gltf',
-  watchtower: 'watchtower.gltf',
-};
-
-// Cache loaded models to avoid redundant loading
+// Cache to prevent loading the same model multiple times
 const modelCache = new Map<string, THREE.Object3D>();
 
-// Load GLTF model instead of Collada
-export const loadModel = async (modelName: string): Promise<THREE.Object3D | null> => {
-  if (!modelName || !MODEL_MAPPING[modelName as keyof typeof MODEL_MAPPING]) {
-    console.warn(`Model ${modelName} not found in mapping`);
-    return null;
-  }
-  
-  const fileName = MODEL_MAPPING[modelName as keyof typeof MODEL_MAPPING];
-  
-  // Return cached model if available
-  if (modelCache.has(fileName)) {
-    return modelCache.get(fileName)!.clone();
-  }
-  
-  try {
-    const loader = new GLTFLoader();
-    const modelPath = `/models/${fileName}`;
+/**
+ * Loads a 3D model from the given URL
+ * Supports Collada (.dae) and GLTF/GLB formats
+ */
+export const loadModel = (url: string): Promise<THREE.Object3D> => {
+  return new Promise((resolve, reject) => {
+    // Check cache first
+    if (modelCache.has(url)) {
+      const cachedModel = modelCache.get(url);
+      if (cachedModel) {
+        // Return a clone of the cached model to prevent modifications affecting the cache
+        resolve(cachedModel.clone());
+        return;
+      }
+    }
+
+    // Determine loader based on file extension
+    const extension = url.split('.').pop()?.toLowerCase();
     
-    return new Promise((resolve, reject) => {
+    if (extension === 'dae') {
+      // Load Collada model
+      const loader = new ColladaLoader();
+      
       loader.load(
-        modelPath,
-        (gltf) => {
-          const model = gltf.scene;
-          modelCache.set(fileName, model);
-          resolve(model.clone());
+        url,
+        (collada) => {
+          const model = collada.scene;
+          
+          // Apply some standard optimizations
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              
+              // Enable shadows
+              mesh.castShadow = true;
+              mesh.receiveShadow = true;
+              
+              // Ensure materials are properly configured
+              if (mesh.material) {
+                const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                
+                materials.forEach((material) => {
+                  // Enable basic material features
+                  material.side = THREE.DoubleSide;
+                  material.needsUpdate = true;
+                });
+              }
+            }
+          });
+          
+          // Center and normalize the model
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          
+          // Center the model
+          model.position.sub(center);
+          
+          // Scale to a consistent size (1 unit tall)
+          const scale = 1 / Math.max(size.x, size.y, size.z);
+          model.scale.multiplyScalar(scale);
+          
+          // Cache the model for future use
+          modelCache.set(url, model.clone());
+          
+          resolve(model);
         },
-        undefined,
+        (xhr) => {
+          // Progress callback (optional)
+          console.log(`${url}: ${Math.round((xhr.loaded / xhr.total) * 100)}% loaded`);
+        },
         (error) => {
-          console.error(`Error loading model ${modelName}:`, error);
+          console.error(`Error loading Collada model ${url}:`, error);
           reject(error);
         }
       );
-    });
+    } else if (extension === 'gltf' || extension === 'glb') {
+      // Load GLTF model
+      const loader = new GLTFLoader();
+      
+      loader.load(
+        url,
+        (gltf) => {
+          const model = gltf.scene;
+          
+          // Apply standard optimizations (similar to Collada)
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              mesh.castShadow = true;
+              mesh.receiveShadow = true;
+            }
+          });
+          
+          // Center and normalize
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          
+          model.position.sub(center);
+          
+          const scale = 1 / Math.max(size.x, size.y, size.z);
+          model.scale.multiplyScalar(scale);
+          
+          // Cache the model
+          modelCache.set(url, model.clone());
+          
+          resolve(model);
+        },
+        (xhr) => {
+          console.log(`${url}: ${Math.round((xhr.loaded / xhr.total) * 100)}% loaded`);
+        },
+        (error) => {
+          console.error(`Error loading GLTF model ${url}:`, error);
+          reject(error);
+        }
+      );
+    } else {
+      // Unsupported format
+      const error = new Error(`Unsupported model format: ${extension}`);
+      console.error(error);
+      reject(error);
+    }
+  });
+};
+
+/**
+ * Preloads a list of models to have them ready in cache
+ */
+export const preloadModels = async (urls: string[]): Promise<void> => {
+  try {
+    await Promise.all(urls.map(url => 
+      loadModel(url).catch(error => {
+        console.warn(`Failed to preload model ${url}:`, error);
+        return null;
+      })
+    ));
+    console.log('Models preloaded successfully');
   } catch (error) {
-    console.error(`Failed to load model ${modelName}:`, error);
-    return null;
+    console.error('Error preloading models:', error);
+    toast.error('Some game assets could not be loaded');
   }
 };
 
-// Get appropriate model for territory
-export const getTerritoryModel = (territory: any): string => {
-  return territory.type;
-};
-
-// Get building models
-export const getBuildingModels = (territory: any): string[] => {
-  if (!territory.buildings || territory.buildings.length === 0) return [];
-  
-  return territory.buildings.map((building: any) => building.type);
-};
-
-// Animation mixer for handling model animations
-export const createAnimationMixer = (model: THREE.Object3D): THREE.AnimationMixer => {
-  return new THREE.AnimationMixer(model);
-};
-
-// Create a highlight animation effect
-export const createHighlightEffect = (
-  scene: THREE.Scene, 
-  position: THREE.Vector3, 
-  color: string = '#4CAF50', 
-  duration: number = 1
-): void => {
-  // Create a glowing ring
-  const geometry = new THREE.RingGeometry(0.8, 1, 32);
-  const material = new THREE.MeshBasicMaterial({ 
-    color: new THREE.Color(color),
-    transparent: true,
-    opacity: 0.7,
-    side: THREE.DoubleSide
-  });
-  
-  const ring = new THREE.Mesh(geometry, material);
-  ring.position.copy(position);
-  ring.position.y += 0.1;
-  ring.rotation.x = -Math.PI / 2; // Lay flat
-  
-  scene.add(ring);
-  
-  // Animate and remove
-  const startTime = Date.now();
-  const animate = () => {
-    const elapsedTime = (Date.now() - startTime) / 1000;
-    const t = elapsedTime / duration;
-    
-    if (t < 1) {
-      ring.scale.set(1 + t, 1 + t, 1);
-      material.opacity = 0.7 * (1 - t);
-      requestAnimationFrame(animate);
-    } else {
-      scene.remove(ring);
-      material.dispose();
-      geometry.dispose();
-    }
-  };
-  
-  animate();
+/**
+ * Clears the model cache to free memory
+ */
+export const clearModelCache = (): void => {
+  modelCache.clear();
+  console.log('Model cache cleared');
 };

@@ -1,12 +1,13 @@
 
-import React, { useState } from "react";
-import { HexGrid } from "./HexGrid";
-import { HexGrid3D } from "./HexGrid3D";
-import { toast } from "sonner";
-import { Button } from "../ui/button";
-import { Box } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { HexGrid } from './HexGrid';
+import { HexGrid3D } from './HexGrid3D';
+import { Button } from '../ui/button';
+import LoadingScreen from './LoadingScreen';
+import { toast } from 'sonner';
+import { Box } from 'lucide-react';
 
-export const GameBoard: React.FC<{
+interface GameBoardProps {
   territories: any[];
   players: any[];
   selectedTerritory: number | null;
@@ -27,7 +28,9 @@ export const GameBoard: React.FC<{
     expand: boolean;
     attack: boolean;
   };
-}> = ({ 
+}
+
+export const GameBoard: React.FC<GameBoardProps> = ({ 
   territories, 
   players, 
   selectedTerritory, 
@@ -50,9 +53,7 @@ export const GameBoard: React.FC<{
     const territory = territories.find(t => t.id === territoryId);
     if (!territory) return;
     
-    // Setup phase: claim unclaimed territory
     if (phase === "setup" && territory.owner === null) {
-      // Check if claim has already been attempted to prevent double-clicks
       if (actionTaken) {
         toast.error("Please wait for your turn to complete");
         return;
@@ -61,60 +62,25 @@ export const GameBoard: React.FC<{
       return;
     }
     
-    // Playing phase
     if (phase === "playing") {
-      // Handle different actions based on currentAction
       switch (currentAction) {
         case "expand":
-          // Expanding to territory
-          if (expandableTerritories.includes(territoryId) && !actionsPerformed.expand) {
-            onClaimTerritory(territoryId); // Use the same claim function for expansion
-          } else if (actionsPerformed.expand) {
-            toast.error("You've already expanded this turn");
-          } else if (!expandableTerritories.includes(territoryId)) {
-            toast.error("Cannot expand to this territory");
-          }
-          return;
+          handleExpandAction(territoryId);
+          break;
           
         case "attack":
-          // Attacking a territory
-          if (attackableTerritories.includes(territoryId) && !actionsPerformed.attack) {
-            if (selectedTerritory === null) {
-              toast.error("Select your territory first");
-            } else {
-              onAttackTerritory(territoryId);
-            }
-          } else if (actionsPerformed.attack) {
-            toast.error("You've already attacked this turn");
-          } else if (!attackableTerritories.includes(territoryId)) {
-            toast.error("Cannot attack this territory");
-          }
-          return;
+          handleAttackAction(territoryId);
+          break;
           
         case "build":
-          // Building on territory
-          if (buildableTerritories.includes(territoryId) && !actionsPerformed.build) {
-            onTerritorySelect(territoryId);
-          } else if (actionsPerformed.build) {
-            toast.error("You've already built this turn");
-          } else if (!buildableTerritories.includes(territoryId)) {
-            toast.error("Cannot build on this territory");
-          }
-          return;
+          handleBuildAction(territoryId);
+          break;
           
         case "recruit":
-          // Recruiting on territory
-          if (recruitableTerritories.includes(territoryId) && !actionsPerformed.recruit) {
-            onTerritorySelect(territoryId);
-          } else if (actionsPerformed.recruit) {
-            toast.error("You've already recruited this turn");
-          } else if (!recruitableTerritories.includes(territoryId)) {
-            toast.error("Cannot recruit on this territory");
-          }
-          return;
+          handleRecruitAction(territoryId);
+          break;
           
         default:
-          // Select owned territory for default action
           if (territory.owner === currentPlayer) {
             onTerritorySelect(territoryId);
           }
@@ -122,29 +88,47 @@ export const GameBoard: React.FC<{
     }
   };
 
-  const getInteractiveTerritories = () => {
-    if (phase === "setup") {
-      return territories.filter(t => t.owner === null).map(t => t.id);
+  const handleExpandAction = (territoryId: number) => {
+    if (expandableTerritories.includes(territoryId) && !actionsPerformed.expand) {
+      onClaimTerritory(territoryId);
+    } else if (actionsPerformed.expand) {
+      toast.error("You've already expanded this turn");
+    } else if (!expandableTerritories.includes(territoryId)) {
+      toast.error("Cannot expand to this territory");
     }
-    
-    switch (currentAction) {
-      case "expand":
-        return expandableTerritories;
-      case "attack":
-        // If a territory is selected, show possible attack targets
-        if (selectedTerritory !== null) {
-          return attackableTerritories;
-        }
-        // Otherwise, show territories that can be used to attack from
-        return territories
-          .filter(t => t.owner === currentPlayer && t.units.length > 0)
-          .map(t => t.id);
-      case "build":
-        return buildableTerritories;
-      case "recruit":
-        return recruitableTerritories;
-      default:
-        return territories.filter(t => t.owner === currentPlayer).map(t => t.id);
+  };
+
+  const handleAttackAction = (territoryId: number) => {
+    if (attackableTerritories.includes(territoryId) && !actionsPerformed.attack) {
+      if (selectedTerritory === null) {
+        toast.error("Select your territory first");
+      } else {
+        onAttackTerritory(territoryId);
+      }
+    } else if (actionsPerformed.attack) {
+      toast.error("You've already attacked this turn");
+    } else if (!attackableTerritories.includes(territoryId)) {
+      toast.error("Cannot attack this territory");
+    }
+  };
+
+  const handleBuildAction = (territoryId: number) => {
+    if (buildableTerritories.includes(territoryId) && !actionsPerformed.build) {
+      onTerritorySelect(territoryId);
+    } else if (actionsPerformed.build) {
+      toast.error("You've already built this turn");
+    } else if (!buildableTerritories.includes(territoryId)) {
+      toast.error("Cannot build on this territory");
+    }
+  };
+
+  const handleRecruitAction = (territoryId: number) => {
+    if (recruitableTerritories.includes(territoryId) && !actionsPerformed.recruit) {
+      onTerritorySelect(territoryId);
+    } else if (actionsPerformed.recruit) {
+      toast.error("You've already recruited this turn");
+    } else if (!recruitableTerritories.includes(territoryId)) {
+      toast.error("Cannot recruit on this territory");
     }
   };
 
@@ -192,8 +176,17 @@ export const GameBoard: React.FC<{
           onClick={toggleViewMode}
           className="bg-gray-800/80 hover:bg-gray-700/80 text-white"
         >
-          <Box className="mr-1 h-4 w-4" />
-          {use3D ? '2D View' : '3D View'}
+          {use3D ? (
+            <>
+              <Box className="mr-1 h-4 w-4" />
+              2D View
+            </>
+          ) : (
+            <>
+              <Box className="mr-1 h-4 w-4" />
+              3D View
+            </>
+          )}
         </Button>
       </div>
     </div>
