@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { GameBoard } from "./GameBoard";
 import { GameTopBar } from "./GameTopBar";
 import { GameControls } from "./GameControls";
@@ -101,6 +100,13 @@ interface RandomEvent {
   effect: any;
 }
 
+// Interface for rendering positioned menus
+interface PositionedMenu {
+  x: number;
+  y: number;
+  territory: Territory;
+}
+
 export const GameContainer: React.FC<{
   settings: any;
   onExitGame: () => void;
@@ -113,7 +119,11 @@ export const GameContainer: React.FC<{
   const [activeInfoModal, setActiveInfoModal] = useState<string | null>(null);
   const [showResourceGain, setShowResourceGain] = useState<boolean>(false);
   const [territoryClaimInProgress, setTerritoryClaimInProgress] = useState<boolean>(false);
+  const [positionedMenu, setPositionedMenu] = useState<PositionedMenu | null>(null);
   const isMobile = useMediaQuery("(max-width: 768px)");
+  
+  // Reference to the map container to calculate proper menu positioning
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Error messages for why actions can't be performed
   const [errorMessages, setErrorMessages] = useState({
@@ -185,6 +195,51 @@ export const GameContainer: React.FC<{
     // Update buildable and recruitable territories based on selection
     updateActionableTerritories();
   }, [selectedTerritory, gameState?.currentAction]);
+
+  // Update positioned menu when a territory is selected and menu is active
+  useEffect(() => {
+    if (selectedTerritory !== null && activeMenu && gameState) {
+      const territory = gameState.territories.find(t => t.id === selectedTerritory);
+      if (territory) {
+        calculateMenuPosition(territory);
+      }
+    } else {
+      setPositionedMenu(null);
+    }
+  }, [selectedTerritory, activeMenu, gameState]);
+
+  // Calculate the screen position for the menu based on the selected territory
+  const calculateMenuPosition = (territory: Territory) => {
+    if (!mapContainerRef.current) return;
+    
+    const containerRect = mapContainerRef.current.getBoundingClientRect();
+    
+    // Convert hex coordinates to pixel coordinates
+    // These calculations should match those in HexGrid.tsx
+    const hexSize = 50;
+    const pixelX = hexSize * (3/2 * territory.position.x);
+    const pixelY = hexSize * (Math.sqrt(3)/2 * territory.position.x + Math.sqrt(3) * territory.position.y);
+    
+    // Account for container position, scroll, scale, and offset
+    // These values should be passed from the GameBoard/HexGrid if available
+    // For now, using simple estimation
+    const mapCenterX = containerRect.width / 2;
+    const mapCenterY = containerRect.height / 2;
+    
+    // Position menu to the right of the hex
+    const menuX = mapCenterX + pixelX + hexSize * 1.5;
+    const menuY = mapCenterY + pixelY - hexSize; // Position slightly above center
+    
+    // Ensure menu stays within viewport
+    const adjustedX = Math.min(Math.max(menuX, 10), containerRect.width - 310);
+    const adjustedY = Math.min(Math.max(menuY, 10), containerRect.height - 300);
+    
+    setPositionedMenu({
+      x: adjustedX,
+      y: adjustedY,
+      territory
+    });
+  };
 
   const updateActionableTerritories = () => {
     if (!gameState) return;
@@ -980,36 +1035,37 @@ export const GameContainer: React.FC<{
     let canBuild = false;
     let costMessage = "";
     
+    // Updated building costs with correct resource amounts
     switch (buildingType) {
       case "lumberMill":
         costMessage = "50 Wood, 20 Stone";
         canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.stone >= 20;
         break;
       case "mine":
-        costMessage = "50 Wood, 20 Stone";
-        canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.stone >= 20;
+        costMessage = "30 Wood, 50 Stone";
+        canBuild = currentPlayer.resources.wood >= 30 && currentPlayer.resources.stone >= 50;
         break;
       case "farm":
-        costMessage = "30 Wood";
-        canBuild = currentPlayer.resources.wood >= 30;
+        costMessage = "50 Wood, 50 Gold";
+        canBuild = currentPlayer.resources.wood >= 50 && currentPlayer.resources.gold >= 50;
         break;
       case "market":
-        costMessage = "50 Wood, 30 Stone, 50 Gold";
-        canBuild = currentPlayer.resources.wood >= 50 && 
-                currentPlayer.resources.stone >= 30 && 
-                currentPlayer.resources.gold >= 50;
+        costMessage = "40 Wood, 40 Stone, 100 Gold";
+        canBuild = currentPlayer.resources.wood >= 40 && 
+                  currentPlayer.resources.stone >= 40 && 
+                  currentPlayer.resources.gold >= 100;
         break;
       case "barracks":
-        costMessage = "80 Wood, 40 Stone, 100 Gold";
+        costMessage = "80 Wood, 60 Stone, 150 Gold";
         canBuild = currentPlayer.resources.wood >= 80 && 
-                currentPlayer.resources.stone >= 40 && 
-                currentPlayer.resources.gold >= 100;
+                  currentPlayer.resources.stone >= 60 && 
+                  currentPlayer.resources.gold >= 150;
         break;
       case "fortress":
-        costMessage = "120 Wood, 160 Stone, 200 Gold";
-        canBuild = currentPlayer.resources.wood >= 120 && 
-                currentPlayer.resources.stone >= 160 && 
-                currentPlayer.resources.gold >= 200;
+        costMessage = "50 Wood, 150 Stone, 200 Gold";
+        canBuild = currentPlayer.resources.wood >= 50 && 
+                  currentPlayer.resources.stone >= 150 && 
+                  currentPlayer.resources.gold >= 200;
         break;
     }
     
@@ -1018,7 +1074,7 @@ export const GameContainer: React.FC<{
       return;
     }
     
-    // Deduct resources
+    // Deduct resources based on correct costs
     const updatedPlayers = [...gameState.players];
     
     switch (buildingType) {
@@ -1027,25 +1083,26 @@ export const GameContainer: React.FC<{
         updatedPlayers[gameState.currentPlayer].resources.stone -= 20;
         break;
       case "mine":
-        updatedPlayers[gameState.currentPlayer].resources.wood -= 50;
-        updatedPlayers[gameState.currentPlayer].resources.stone -= 20;
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 30;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 50;
         break;
       case "farm":
-        updatedPlayers[gameState.currentPlayer].resources.wood -= 30;
-        break;
-      case "market":
         updatedPlayers[gameState.currentPlayer].resources.wood -= 50;
-        updatedPlayers[gameState.currentPlayer].resources.stone -= 30;
         updatedPlayers[gameState.currentPlayer].resources.gold -= 50;
         break;
-      case "barracks":
-        updatedPlayers[gameState.currentPlayer].resources.wood -= 80;
+      case "market":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 40;
         updatedPlayers[gameState.currentPlayer].resources.stone -= 40;
         updatedPlayers[gameState.currentPlayer].resources.gold -= 100;
         break;
+      case "barracks":
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 80;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 60;
+        updatedPlayers[gameState.currentPlayer].resources.gold -= 150;
+        break;
       case "fortress":
-        updatedPlayers[gameState.currentPlayer].resources.wood -= 120;
-        updatedPlayers[gameState.currentPlayer].resources.stone -= 160;
+        updatedPlayers[gameState.currentPlayer].resources.wood -= 50;
+        updatedPlayers[gameState.currentPlayer].resources.stone -= 150;
         updatedPlayers[gameState.currentPlayer].resources.gold -= 200;
         break;
     }
@@ -1109,6 +1166,7 @@ export const GameContainer: React.FC<{
     let canRecruit = false;
     let costMessage = "";
     
+    // Updated recruitment costs with correct resource amounts
     switch (unitType) {
       case "infantry":
         costMessage = "50 Food, 30 Gold";
@@ -1121,9 +1179,9 @@ export const GameContainer: React.FC<{
       case "artillery":
         costMessage = "60 Food, 50 Gold, 30 Wood, 20 Stone";
         canRecruit = currentPlayer.resources.food >= 60 && 
-                  currentPlayer.resources.gold >= 50 &&
-                  currentPlayer.resources.wood >= 30 &&
-                  currentPlayer.resources.stone >= 20;
+                    currentPlayer.resources.gold >= 50 &&
+                    currentPlayer.resources.wood >= 30 &&
+                    currentPlayer.resources.stone >= 20;
         break;
     }
     
@@ -1480,6 +1538,33 @@ export const GameContainer: React.FC<{
     setSelectedTerritory(null);
   };
 
+  // Render positioned menu over the selected territory
+  const renderPositionedMenu = () => {
+    if (!positionedMenu || !activeMenu) return null;
+    
+    return (
+      <div 
+        className="absolute z-30 pointer-events-auto" 
+        style={{
+          top: positionedMenu.y,
+          left: positionedMenu.x
+        }}
+      >
+        {activeMenu === "build" && (
+          <BuildingMenu 
+            onSelect={handleBuildStructure}
+          />
+        )}
+        
+        {activeMenu === "recruit" && (
+          <RecruitmentMenu 
+            onSelect={handleRecruitUnit}
+          />
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -1555,7 +1640,7 @@ export const GameContainer: React.FC<{
       />
       
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" ref={mapContainerRef}>
           <GameBoard 
             territories={gameState.territories}
             players={gameState.players}
@@ -1577,6 +1662,7 @@ export const GameContainer: React.FC<{
           {renderPhase()}
           {renderGameOver()}
           {renderResourceGainToast()}
+          {renderPositionedMenu()}
         </div>
         
         {!isMobile && (
@@ -1606,17 +1692,7 @@ export const GameContainer: React.FC<{
               />
             )}
             
-            {activeMenu === "build" && selectedTerritory !== null && (
-              <BuildingMenu 
-                onSelect={handleBuildStructure}
-              />
-            )}
-            
-            {activeMenu === "recruit" && selectedTerritory !== null && (
-              <RecruitmentMenu 
-                onSelect={handleRecruitUnit}
-              />
-            )}
+            <GameMenus onInfoButtonClick={(type) => setActiveInfoModal(type)} />
           </div>
         )}
       </div>
@@ -1640,6 +1716,35 @@ export const GameContainer: React.FC<{
             actionsPerformed={gameState.actionsPerformed}
             errorMessages={errorMessages}
           />
+        </div>
+      )}
+      
+      {/* For mobile, make the build/recruit menus appear as modals */}
+      {isMobile && activeMenu && selectedTerritory !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-4 rounded-lg w-11/12 max-w-md">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-white font-bold">
+                {activeMenu === "build" ? "Build Structure" : "Recruit Unit"}
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setActiveMenu(null)}
+                className="text-gray-300 hover:text-white"
+              >
+                ×
+              </Button>
+            </div>
+            
+            {activeMenu === "build" && (
+              <BuildingMenu onSelect={handleBuildStructure} />
+            )}
+            
+            {activeMenu === "recruit" && (
+              <RecruitmentMenu onSelect={handleRecruitUnit} />
+            )}
+          </div>
         </div>
       )}
       

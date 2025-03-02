@@ -1,4 +1,3 @@
-
 import React from "react";
 import { HexGrid } from "./HexGrid";
 import { toast } from "sonner";
@@ -114,6 +113,32 @@ export const GameBoard: React.FC<{
             onTerritorySelect(territoryId);
           }
       }
+    }
+  };
+
+  const getInteractiveTerritories = () => {
+    if (phase === "setup") {
+      return territories.filter(t => t.owner === null).map(t => t.id);
+    }
+    
+    switch (currentAction) {
+      case "expand":
+        return expandableTerritories;
+      case "attack":
+        // If a territory is selected, show possible attack targets
+        if (selectedTerritory !== null) {
+          return attackableTerritories;
+        }
+        // Otherwise, show territories that can be used to attack from
+        return territories
+          .filter(t => t.owner === currentPlayer && t.units.length > 0)
+          .map(t => t.id);
+      case "build":
+        return buildableTerritories;
+      case "recruit":
+        return recruitableTerritories;
+      default:
+        return territories.filter(t => t.owner === currentPlayer).map(t => t.id);
     }
   };
 
