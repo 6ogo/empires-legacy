@@ -5,7 +5,7 @@
  */
 
 // Helper function to suppress TypeScript declaration errors
-function suppressTypeScriptDeclarationErrors() {
+const suppressTypeScriptDeclarationErrors = () => {
   return {
     name: 'suppress-ts-declaration-errors',
     enforce: 'pre',
@@ -57,6 +57,6 @@ function suppressTypeScriptDeclarationErrors() {
       }
     }
   };
-}
+};
 
-module.exports = suppressTypeScriptDeclarationErrors;
+export default suppressTypeScriptDeclarationErrors;

@@ -1,4 +1,3 @@
-
 import React from "react";
 import GameBoard from "./GameBoard";
 import { GameControls } from "./GameControls";
@@ -97,7 +96,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({
     }
   }, [settings, handleError]);
 
-  const handleTerritorySelect = (id: number) => {
+  const handleTerritoryClick = (id: number) => {
     setSelectedTerritory(id);
   };
 
@@ -279,7 +278,6 @@ export const GameContainer: React.FC<GameContainerProps> = ({
     setCurrentAction("none");
   };
 
-  // Handler functions for actions
   const handleBuildClick = () => {
     setCurrentAction(currentAction === "build" ? "none" : "build");
   };
@@ -296,7 +294,6 @@ export const GameContainer: React.FC<GameContainerProps> = ({
     setCurrentAction(currentAction === "attack" ? "none" : "attack");
   };
 
-  // Define error messages for actions
   const errorMessages = {
     build: "No buildable territories",
     recruit: "No territories to recruit in",
@@ -321,18 +318,18 @@ export const GameContainer: React.FC<GameContainerProps> = ({
           territories={territories}
           players={players}
           selectedTerritory={selectedTerritory}
-          onTerritorySelect={handleTerritorySelect}
-          onClaimTerritory={handleClaimTerritory}
-          onAttackTerritory={handleAttackTerritory}
+          onTerritoryClick={handleTerritoryClick}
           currentPlayer={currentPlayer}
           phase={phase}
-          actionTaken={actionTaken}
           expandableTerritories={expandableTerritories}
           attackableTerritories={attackableTerritories}
           buildableTerritories={buildableTerritories}
           recruitableTerritories={recruitableTerritories}
           currentAction={currentAction}
+          actionTaken={actionTaken}
           actionsPerformed={actionsPerformed}
+          onClaimTerritory={handleClaimTerritory}
+          onAttackTerritory={handleAttackTerritory}
         />
       </div>
       

@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { HexGrid } from './HexGrid';
 import { HexGrid3D } from './HexGrid3D';
-// Use Cube icon from lucide-react (not Cube3d as it doesn't exist)
-import { Cube } from 'lucide-react';
+// Use Box3d icon instead of Cube as it's available in lucide-react
+import { Box3d } from 'lucide-react';
 
 interface GameBoardProps {
   territories: any[];
@@ -17,6 +17,15 @@ interface GameBoardProps {
   buildableTerritories?: number[];
   recruitableTerritories?: number[];
   currentAction?: "none" | "build" | "expand" | "attack" | "recruit";
+  actionTaken?: boolean;
+  actionsPerformed?: {
+    build: boolean;
+    recruit: boolean;
+    expand: boolean;
+    attack: boolean;
+  };
+  onClaimTerritory?: (id: number) => void;
+  onAttackTerritory?: (targetId: number) => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({ 
@@ -30,14 +39,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
   attackableTerritories = [],
   buildableTerritories = [],
   recruitableTerritories = [],
-  currentAction = "none"
+  currentAction = "none",
+  actionTaken = false,
+  actionsPerformed = { build: false, recruit: false, expand: false, attack: false },
+  onClaimTerritory,
+  onAttackTerritory
 }) => {
   const [view3D, setView3D] = useState(false);
-  
-  // Function to handle territory clicks
-  const handleTerritoryClick = (id: number) => {
-    onTerritoryClick(id);
-  };
 
   return (
     <div className="relative w-full h-full flex flex-col">
@@ -46,7 +54,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
           onClick={() => setView3D(!view3D)}
           className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded flex items-center gap-2"
         >
-          <Cube size={18} />
+          <Box3d size={18} />
           {view3D ? '2D View' : '3D View'}
         </button>
       </div>
