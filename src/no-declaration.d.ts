@@ -32,6 +32,7 @@ declare global {
       TS_NODE_SKIP_PROJECT: 'true';
       TS_NODE_FILES: 'false';
       TS_SUPPRESS_ERRORS: 'true';
+      TS_IGNORE_6310: 'true';
     }
   }
   
@@ -43,6 +44,24 @@ declare global {
   // Type definitions for the window object
   interface Window {
     __TS_DISABLE_DECLARATIONS__: boolean;
+  }
+}
+
+// Interface for project references with noEmit = true
+interface ProjectReference {
+  path: string;
+  prepend?: boolean;
+  circular?: boolean;
+  disableEmit?: boolean;
+}
+
+// Interface for tsconfig references with noEmit
+interface TSConfig {
+  references?: Array<ProjectReference>;
+  compilerOptions?: {
+    noEmit?: boolean;
+    declaration?: boolean;
+    emitDeclarationOnly?: boolean;
   }
 }
 

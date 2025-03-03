@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { HexGrid } from './HexGrid';
 import { HexGrid3D } from './HexGrid3D';
 // Use a valid icon from lucide-react
-import { Cube } from 'lucide-react';
+import { Box } from 'lucide-react';
 
 interface GameBoardProps {
   territories: any[];
@@ -54,7 +54,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
           onClick={() => setView3D(!view3D)}
           className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded flex items-center gap-2"
         >
-          <Cube size={18} />
+          <Box size={18} />
           {view3D ? '2D View' : '3D View'}
         </button>
       </div>

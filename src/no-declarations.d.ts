@@ -32,3 +32,19 @@ interface TSConfig {
     declaration?: boolean;
   }
 }
+
+// Add support for project references with noEmit true
+declare namespace TypeScript {
+  interface ProjectReference {
+    path: string;
+    prepend?: boolean;
+    circular?: boolean;
+    disableEmit?: boolean;
+  }
+  
+  interface CompilerOptions {
+    noEmit?: boolean;
+    declaration?: boolean;
+    emitDeclarationOnly?: boolean;
+  }
+}
