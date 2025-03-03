@@ -33,9 +33,9 @@ function suppressTSDeclarationErrors(): PluginOption {
       return null;
     },
     configResolved(config) {
-      // Add TypeScript compiler options to completely disable declaration generation
-      if (config.build && config.build.rollupOptions) {
-        config.optimizeDeps = config.optimizeDeps || {};
+      // Instead of trying to modify the optimizeDeps directly (it's read-only),
+      // we'll use the correct pattern for esbuild options
+      if (config.optimizeDeps) {
         config.optimizeDeps.esbuildOptions = config.optimizeDeps.esbuildOptions || {};
         config.optimizeDeps.esbuildOptions.tsconfigRaw = JSON.stringify({
           compilerOptions: {

@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Building2, Hammer, Users, ChevronsRight, Map, Sword } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
-export const GameControls: React.FC<{
+interface GameControlsProps {
   onBuildClick: () => void;
   onRecruitClick: () => void;
   onExpandClick: () => void;
@@ -30,7 +30,15 @@ export const GameControls: React.FC<{
     build: string;
     expand: string;
   };
-}> = ({ 
+  // These props were causing errors as they're used in GameContainer but not part of the interface
+  currentPlayer?: number;
+  players?: any[];
+  phase?: "setup" | "playing";
+  endTurn?: () => void;
+  setCurrentAction?: React.Dispatch<React.SetStateAction<"none" | "build" | "expand" | "attack" | "recruit">>;
+}
+
+export const GameControls: React.FC<GameControlsProps> = ({ 
   onBuildClick, 
   onRecruitClick, 
   onExpandClick,
@@ -45,7 +53,13 @@ export const GameControls: React.FC<{
   canRecruit,
   canBuild,
   actionsPerformed,
-  errorMessages
+  errorMessages,
+  // Not used in original component but included for type compatibility
+  currentPlayer,
+  players,
+  phase,
+  endTurn,
+  setCurrentAction
 }) => {
   
   const renderTooltipButton = (

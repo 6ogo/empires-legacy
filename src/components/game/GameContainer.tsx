@@ -1,3 +1,4 @@
+
 import React from "react";
 import { GameBoard } from "./GameBoard";
 import { GameControls } from "./GameControls";
@@ -38,6 +39,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({
     expand: false,
     attack: false,
   });
+  const [turn, setTurn] = React.useState(1);
 
   const handleError = React.useCallback((message: string) => {
     console.error("Game error:", message);
@@ -264,6 +266,10 @@ export const GameContainer: React.FC<GameContainerProps> = ({
 
   const endTurn = () => {
     setCurrentPlayer((currentPlayer + 1) % settings.playerCount);
+    if ((currentPlayer + 1) % settings.playerCount === 0) {
+      // If we've gone through all players, increment the turn counter
+      setTurn(prevTurn => prevTurn + 1);
+    }
     setActionsPerformed({
       build: false,
       recruit: false,
@@ -273,13 +279,41 @@ export const GameContainer: React.FC<GameContainerProps> = ({
     setCurrentAction("none");
   };
 
+  // Handler functions for actions
+  const handleBuildClick = () => {
+    setCurrentAction(currentAction === "build" ? "none" : "build");
+  };
+
+  const handleRecruitClick = () => {
+    setCurrentAction(currentAction === "recruit" ? "none" : "recruit");
+  };
+
+  const handleExpandClick = () => {
+    setCurrentAction(currentAction === "expand" ? "none" : "expand");
+  };
+
+  const handleAttackClick = () => {
+    setCurrentAction(currentAction === "attack" ? "none" : "attack");
+  };
+
+  // Define error messages for actions
+  const errorMessages = {
+    build: "No buildable territories",
+    recruit: "No territories to recruit in",
+    expand: "No expandable territories",
+    attack: "No attackable territories"
+  };
+
   return (
     <div className="h-full w-full flex flex-col">
       <GameTopBar 
         currentPlayer={currentPlayer} 
         players={players} 
         phase={phase} 
-        onExitGame={onExitGame} 
+        onExitGame={onExitGame}
+        turn={turn}
+        playerColor={players[currentPlayer]?.color}
+        playerName={players[currentPlayer]?.name}
       />
       
       <div className="flex-1 flex">
@@ -303,12 +337,21 @@ export const GameContainer: React.FC<GameContainerProps> = ({
       </div>
       
       <GameControls 
-        currentPlayer={currentPlayer}
-        players={players}
-        phase={phase}
-        endTurn={endTurn}
-        setCurrentAction={setCurrentAction}
+        onBuildClick={handleBuildClick}
+        onRecruitClick={handleRecruitClick}
+        onExpandClick={handleExpandClick}
+        onAttackClick={handleAttackClick}
+        onEndTurnClick={endTurn}
+        disabled={phase === "setup"}
+        actionTaken={actionTaken}
+        expandMode={currentAction === "expand"}
+        attackMode={currentAction === "attack"}
+        canAttack={attackableTerritories.length > 0}
+        hasResourcesForExpansion={expandableTerritories.length > 0} 
+        canRecruit={recruitableTerritories.length > 0}
+        canBuild={buildableTerritories.length > 0}
         actionsPerformed={actionsPerformed}
+        errorMessages={errorMessages}
       />
     </div>
   );
