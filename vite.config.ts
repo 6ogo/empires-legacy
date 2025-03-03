@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -53,6 +54,14 @@ export default defineConfig(({ mode }) => ({
   },
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    // Add an option to tell esbuild to skip declaration generation
+    tsconfigRaw: JSON.stringify({
+      compilerOptions: {
+        declaration: false,
+        emitDeclarationOnly: false,
+        noEmit: true
+      }
+    })
   },
   base: '/',
   build: {
@@ -123,3 +132,4 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kb
   },
 }));
+

@@ -1,0 +1,3 @@
+
+// This file signals to TypeScript not to generate declaration files
+// It's referenced by the build process
