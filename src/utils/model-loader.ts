@@ -39,26 +39,22 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
                       mat.side = THREE.DoubleSide;
                       mat.needsUpdate = true;
                       
-                      // Add emissiveIntensity only if it's a material that supports it
-                      if ('emissive' in mat) {
-                        // Type assertion to access emissive properties
-                        const phongMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-                        if ('emissiveIntensity' in phongMat) {
-                          phongMat.emissiveIntensity = 0.5;
-                        }
+                      // Check if the material has emissive properties before setting them
+                      if ('emissive' in mat && 'emissiveIntensity' in mat) {
+                        // Type assertion to a material type that supports emissive properties
+                        const emissiveMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+                        emissiveMat.emissiveIntensity = 0.5;
                       }
                     });
                   } else {
                     child.material.side = THREE.DoubleSide;
                     child.material.needsUpdate = true;
                     
-                    // Add emissiveIntensity only if it's a material that supports it
-                    if ('emissive' in child.material) {
-                      // Type assertion to access emissive properties
-                      const phongMat = child.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-                      if ('emissiveIntensity' in phongMat) {
-                        phongMat.emissiveIntensity = 0.5;
-                      }
+                    // Check if the material has emissive properties before setting them
+                    if ('emissive' in child.material && 'emissiveIntensity' in child.material) {
+                      // Type assertion to a material type that supports emissive properties
+                      const emissiveMat = child.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+                      emissiveMat.emissiveIntensity = 0.5;
                     }
                   }
                 }
@@ -127,19 +123,19 @@ export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number
     
     if (Array.isArray(highlightMaterial)) {
       highlightMaterial.forEach(material => {
-        // Check if the material has emissive properties
+        // Check if the material has emissive properties before updating
         if ('emissive' in material && 'emissiveIntensity' in material) {
           // Type assertion to access emissive properties
-          const phongMat = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-          phongMat.emissiveIntensity = pulseFactor;
+          const emissiveMat = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+          emissiveMat.emissiveIntensity = pulseFactor;
         }
       });
     } else if (highlightMaterial) {
-      // Check if the material has emissive properties
+      // Check if the material has emissive properties before updating
       if ('emissive' in highlightMaterial && 'emissiveIntensity' in highlightMaterial) {
         // Type assertion to access emissive properties
-        const phongMat = highlightMaterial as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-        phongMat.emissiveIntensity = pulseFactor;
+        const emissiveMat = highlightMaterial as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+        emissiveMat.emissiveIntensity = pulseFactor;
       }
     }
   };

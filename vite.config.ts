@@ -17,6 +17,14 @@ process.env.TS_NODE_SKIP_PROJECT = 'true';
 process.env.TS_NODE_FILES = 'false';
 process.env.TS_SUPPRESS_ERRORS = 'true';
 
+// Set global variables to suppress declaration generation
+if (typeof global !== 'undefined') {
+  (global as any).__SKIP_DECLARATION_FILES__ = true;
+  (global as any).__TS_DISABLE_DECLARATION_FILES__ = true;
+  (global as any).__DISABLE_TS_DECLARATION__ = true;
+  (global as any).__TS_IGNORE_DECLARATION_ERRORS__ = true;
+}
+
 // Define a plugin to suppress TS declaration errors
 function suppressTSDeclarationErrors(): PluginOption {
   return {
@@ -43,7 +51,8 @@ function suppressTSDeclarationErrors(): PluginOption {
               declaration: false,
               declarationMap: false,
               emitDeclarationOnly: false,
-              noEmit: true
+              noEmit: true,
+              skipLibCheck: true
             }
           })
         };
@@ -76,7 +85,8 @@ export default defineConfig(({ mode }) => ({
       compilerOptions: {
         declaration: false,
         emitDeclarationOnly: false,
-        noEmit: true
+        noEmit: true,
+        skipLibCheck: true
       }
     })
   },

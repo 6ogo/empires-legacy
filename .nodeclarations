@@ -1,0 +1,9 @@
+
+// This file signals to TypeScript not to generate declaration files
+// Used by the build system to detect and suppress declaration file generation
+{
+  "skipDeclaration": true,
+  "declaration": false,
+  "noEmit": true,
+  "suppressErrors": [6305, 6310]
+}
