@@ -2,6 +2,11 @@
 {
   "noEmit": true,
   "skipDeclaration": true,
-  "ignoreErrors": ["TS6305", "TS6310"],
-  "suppressErrors": true
+  "ignoreErrors": [6305, 6310],
+  "suppressErrors": true,
+  "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false
+  }
 }

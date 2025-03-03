@@ -1,7 +1,17 @@
 
-# Ignore TypeScript declaration files
+# Completely ignore TypeScript declaration files
 *.d.ts
 **/*.d.ts
 src/**/*.d.ts
 **/**/*.d.ts
 ./*.d.ts
+node_modules/**/*.d.ts
+dist/**/*.d.ts
+src/components/**/*.d.ts
+src/hooks/**/*.d.ts
+src/pages/**/*.d.ts
+src/lib/**/*.d.ts
+src/utils/**/*.d.ts
+src/types/**/*.d.ts
+src/App.d.ts
+src/main.d.ts
