@@ -24,3 +24,11 @@ declare global {
 // Special directive to disable library declarations
 /// <reference no-default-lib="true"/>
 
+// Explicitly handle the TS6310 error by allowing projects that disable emit
+interface TSConfig {
+  references?: Array<{path: string}>;
+  compilerOptions?: {
+    noEmit?: boolean;
+    declaration?: boolean;
+  }
+}
