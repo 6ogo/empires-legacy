@@ -1,10 +1,10 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
+import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { toast } from 'sonner';
-import { loadModel } from '../utils/model-loader';
+import { loadModel } from '../../utils/model-loader';
 
 interface HexGrid3DProps {
   territories: any[];
@@ -20,10 +20,10 @@ interface HexGrid3DProps {
   currentAction: "none" | "build" | "expand" | "attack" | "recruit";
 }
 
-// Constants for hex geometry
-const HEX_SIZE = 1.0; // Size of hexagons
-const HEX_SPACING_X = 1.75; // Horizontal spacing factor
-const HEX_SPACING_Z = 1.52; // Vertical spacing factor
+// Constants for hex geometry - updated for closer spacing
+const HEX_SIZE = 1.0;
+const HEX_SPACING_X = 1.15; // Reduced from 1.75 for closer spacing
+const HEX_SPACING_Z = 1.0; // Reduced from 1.52 for closer spacing
 
 const HexGrid3D: React.FC<HexGrid3DProps> = ({
   territories,
@@ -40,7 +40,6 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
 }) => {
   const [models, setModels] = useState<Record<string, THREE.Object3D>>({});
   const [loading, setLoading] = useState(true);
-  const controlsRef = useRef<any>(null);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -79,7 +78,7 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
   }, []);
 
   const hexPosition = (q: number, r: number) => {
-    // Calculate hex position using axial coordinates
+    // Calculate hex position using axial coordinates with tighter spacing
     const x = HEX_SIZE * (HEX_SPACING_X * q);
     const z = HEX_SIZE * (HEX_SPACING_Z * r + (HEX_SPACING_X * q) / 2);
     return [x, 0, z];
@@ -170,26 +169,39 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
           {models[modelType] && (
             <primitive 
               object={models[modelType].clone()} 
-              scale={[0.2, 0.2, 0.2]}
+              scale={[0.15, 0.15, 0.15]} // Slightly smaller to fit closer hexes
               position={[0, 0, 0]}
-              rotation={[0, Math.random() * Math.PI * 2, 0]} // Random rotation for variety
+              rotation={[0, Math.random() * Math.PI * 2, 0]}
             />
           )}
           
-          {/* Owner indicator */}
-          {territory.owner !== null && (
-            <mesh position={[0, 0.5, 0]}>
-              <sphereGeometry args={[0.3, 16, 16]} />
-              <meshStandardMaterial color={players[territory.owner]?.color || 'gray'} />
-            </mesh>
-          )}
+          {/* Territory type label */}
+          <mesh position={[0, 0.5, 0]}>
+            <sphereGeometry args={[0.2, 16, 16]} />
+            <meshStandardMaterial color={territory.owner !== null ? players[territory.owner]?.color || 'gray' : 'white'} />
+          </mesh>
           
-          {/* Show territory ID for debugging */}
-          {/* <Html position={[0, 1, 0]} center>
-            <div style={{ color: 'white', background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: '4px' }}>
-              {territory.id}
-            </div>
-          </Html> */}
+          {/* Show resources as a small indicator */}
+          {territory.resources && (
+            <group position={[0, 0.1, 0]}>
+              <mesh position={[0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
+                <boxGeometry />
+                <meshStandardMaterial color="gold" /> {/* Gold */}
+              </mesh>
+              <mesh position={[-0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
+                <boxGeometry />
+                <meshStandardMaterial color="brown" /> {/* Wood */}
+              </mesh>
+              <mesh position={[0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
+                <boxGeometry />
+                <meshStandardMaterial color="gray" /> {/* Stone */}
+              </mesh>
+              <mesh position={[-0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
+                <boxGeometry />
+                <meshStandardMaterial color="red" /> {/* Food */}
+              </mesh>
+            </group>
+          )}
         </group>
       );
     });
@@ -206,20 +218,11 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
         />
-        <PerspectiveCamera makeDefault position={[0, 15, 20]} />
-        <OrbitControls
-          ref={controlsRef}
-          minPolarAngle={Math.PI / 6}
-          maxPolarAngle={Math.PI / 2.5}
-          minDistance={10}
-          maxDistance={50}
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-        />
+        {/* Fixed camera position with no controls for non-rotatable view */}
+        <PerspectiveCamera makeDefault position={[0, 20, 0]} fov={60} near={0.1} far={1000} />
         
         {/* Grid floor for reference */}
-        <gridHelper args={[100, 100, 'gray', 'gray']} position={[0, -0.1, 0]} />
+        <gridHelper args={[100, 100, 'gray', 'gray']} position={[0, -0.15, 0]} />
         
         {/* Ground plane */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>

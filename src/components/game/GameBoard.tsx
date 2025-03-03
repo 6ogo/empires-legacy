@@ -49,6 +49,44 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 }) => {
   const [use3D, setUse3D] = useState<boolean>(true);
   
+  // Function to check if a territory is adjacent to any claimed territory
+  const isAdjacentToClaimedTerritory = (territoryId: number): boolean => {
+    const territory = territories.find(t => t.id === territoryId);
+    if (!territory) return false;
+    
+    // Get all adjacent territory IDs
+    const adjacentTerritoryIds = getAdjacentTerritoryIds(territory);
+    
+    // Check if any adjacent territory is already claimed
+    return adjacentTerritoryIds.some(adjId => {
+      const adjTerritory = territories.find(t => t.id === adjId);
+      return adjTerritory && adjTerritory.owner !== null;
+    });
+  };
+  
+  // Helper function to get adjacent territory IDs
+  const getAdjacentTerritoryIds = (territory: any): number[] => {
+    const { q, r } = territory.coordinates;
+    
+    // Axial coordinate directions for adjacent hexes
+    const directions = [
+      { q: 1, r: 0 }, { q: 1, r: -1 }, { q: 0, r: -1 },
+      { q: -1, r: 0 }, { q: -1, r: 1 }, { q: 0, r: 1 }
+    ];
+    
+    // Find all adjacent territories
+    return territories
+      .filter(t => {
+        const tq = t.coordinates.q;
+        const tr = t.coordinates.r;
+        
+        return directions.some(dir => {
+          return tq === q + dir.q && tr === r + dir.r;
+        });
+      })
+      .map(t => t.id);
+  };
+  
   const handleTerritoryClick = (territoryId: number) => {
     const territory = territories.find(t => t.id === territoryId);
     if (!territory) return;
@@ -58,6 +96,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         toast.error("Please wait for your turn to complete");
         return;
       }
+      
+      // In setup phase, check if the territory is adjacent to a claimed territory
+      const playerHasTerritory = territories.some(t => t.owner === currentPlayer);
+      
+      if (playerHasTerritory && isAdjacentToClaimedTerritory(territoryId)) {
+        toast.error("You cannot claim a territory adjacent to another player's territory during setup");
+        return;
+      }
+      
       onClaimTerritory(territoryId);
       return;
     }
