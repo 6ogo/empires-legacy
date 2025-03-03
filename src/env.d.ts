@@ -44,3 +44,12 @@ declare global {
 
 // Special directive to suppress declaration output
 // @ts-nocheck
+
+// Suppress TypeScript errors for missing declaration files
+interface ImportMeta {
+  readonly env: {
+    readonly VITE_SUPABASE_URL: string;
+    readonly VITE_SUPABASE_ANON_KEY: string;
+    [key: string]: any;
+  };
+}

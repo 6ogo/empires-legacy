@@ -1,0 +1,12 @@
+
+// This file is used as a hook to disable TypeScript declaration file generation
+{
+  "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "ignoreErrors": [6305, 6310]
+}

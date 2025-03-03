@@ -29,7 +29,16 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    // Add this to suppress TypeScript declaration generation
+    tsconfigRaw: {
+      compilerOptions: {
+        declaration: false,
+        declarationMap: false,
+        emitDeclarationOnly: false,
+        noEmit: true
+      }
+    }
   },
   base: '/',
   build: {
