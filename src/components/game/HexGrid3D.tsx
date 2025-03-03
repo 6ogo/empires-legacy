@@ -25,6 +25,94 @@ const HEX_SIZE = 1.0;
 const HEX_SPACING_X = 1.15; // Reduced from 1.75 for closer spacing
 const HEX_SPACING_Z = 1.0; // Reduced from 1.52 for closer spacing
 
+const HexModel: React.FC<{
+  modelType: string; 
+  models: Record<string, THREE.Object3D>;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+}> = ({ modelType, models, position = [0, 0, 0], rotation = [0, 0, 0] }) => {
+  if (!models[modelType]) {
+    return null;
+  }
+  
+  return (
+    <primitive 
+      object={models[modelType].clone()} 
+      scale={[0.15, 0.15, 0.15]}
+      position={position}
+      rotation={rotation}
+    />
+  );
+};
+
+const HexTile: React.FC<{
+  territory: any;
+  position: [number, number, number];
+  color: string;
+  isSelected: boolean;
+  models: Record<string, THREE.Object3D>;
+  onClick: () => void;
+  players: any[];
+  modelType: string;
+}> = ({ territory, position, color, isSelected, models, onClick, players, modelType }) => {
+  return (
+    <group 
+      position={position}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {/* Base hex tile */}
+      <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[HEX_SIZE, HEX_SIZE, 0.1, 6]} />
+        <meshStandardMaterial 
+          color={color} 
+          transparent={true}
+          opacity={0.7}
+          emissive={isSelected ? 'yellow' : undefined}
+          emissiveIntensity={isSelected ? 0.5 : 0}
+        />
+      </mesh>
+      
+      {/* Model for the hex (if available) */}
+      <HexModel 
+        modelType={modelType}
+        models={models}
+        rotation={[0, Math.random() * Math.PI * 2, 0]}
+      />
+      
+      {/* Territory type label */}
+      <mesh position={[0, 0.5, 0]}>
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshStandardMaterial color={territory.owner !== null ? players[territory.owner]?.color || 'gray' : 'white'} />
+      </mesh>
+      
+      {/* Show resources as a small indicator */}
+      {territory.resources && (
+        <group position={[0, 0.1, 0]}>
+          <mesh position={[0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
+            <boxGeometry />
+            <meshStandardMaterial color="gold" /> {/* Gold */}
+          </mesh>
+          <mesh position={[-0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
+            <boxGeometry />
+            <meshStandardMaterial color="brown" /> {/* Wood */}
+          </mesh>
+          <mesh position={[0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
+            <boxGeometry />
+            <meshStandardMaterial color="gray" /> {/* Stone */}
+          </mesh>
+          <mesh position={[-0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
+            <boxGeometry />
+            <meshStandardMaterial color="red" /> {/* Food */}
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
+};
+
 const HexGrid3D: React.FC<HexGrid3DProps> = ({
   territories,
   players,
@@ -77,7 +165,7 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
     loadModels();
   }, []);
 
-  const hexPosition = (q: number, r: number) => {
+  const hexPosition = (q: number, r: number): [number, number, number] => {
     // Calculate hex position using axial coordinates with tighter spacing
     const x = HEX_SIZE * (HEX_SPACING_X * q);
     const z = HEX_SIZE * (HEX_SPACING_Z * r + (HEX_SPACING_X * q) / 2);
@@ -139,70 +227,23 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
 
   const renderHexes = () => {
     return territories.map((territory) => {
-      const [x, y, z] = hexPosition(territory.coordinates.q, territory.coordinates.r);
+      const position = hexPosition(territory.coordinates.q, territory.coordinates.r);
       const color = getHexColor(territory);
       const modelType = getTerrainModel(territory);
       const isSelected = territory.id === selectedTerritory;
       
       return (
-        <group 
-          key={territory.id} 
-          position={[x, y, z]}
-          onClick={(e) => {
-            e.stopPropagation();
-            onTerritoryClick(territory.id);
-          }}
-        >
-          {/* Base hex tile */}
-          <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[HEX_SIZE, HEX_SIZE, 0.1, 6]} />
-            <meshStandardMaterial 
-              color={color} 
-              transparent={true}
-              opacity={0.7}
-              emissive={isSelected ? 'yellow' : undefined}
-              emissiveIntensity={isSelected ? 0.5 : 0}
-            />
-          </mesh>
-          
-          {/* Model for the hex (if available) */}
-          {models[modelType] && (
-            <primitive 
-              object={models[modelType].clone()} 
-              scale={[0.15, 0.15, 0.15]} // Slightly smaller to fit closer hexes
-              position={[0, 0, 0]}
-              rotation={[0, Math.random() * Math.PI * 2, 0]}
-            />
-          )}
-          
-          {/* Territory type label */}
-          <mesh position={[0, 0.5, 0]}>
-            <sphereGeometry args={[0.2, 16, 16]} />
-            <meshStandardMaterial color={territory.owner !== null ? players[territory.owner]?.color || 'gray' : 'white'} />
-          </mesh>
-          
-          {/* Show resources as a small indicator */}
-          {territory.resources && (
-            <group position={[0, 0.1, 0]}>
-              <mesh position={[0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
-                <boxGeometry />
-                <meshStandardMaterial color="gold" /> {/* Gold */}
-              </mesh>
-              <mesh position={[-0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
-                <boxGeometry />
-                <meshStandardMaterial color="brown" /> {/* Wood */}
-              </mesh>
-              <mesh position={[0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
-                <boxGeometry />
-                <meshStandardMaterial color="gray" /> {/* Stone */}
-              </mesh>
-              <mesh position={[-0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
-                <boxGeometry />
-                <meshStandardMaterial color="red" /> {/* Food */}
-              </mesh>
-            </group>
-          )}
-        </group>
+        <HexTile
+          key={territory.id}
+          territory={territory}
+          position={position}
+          color={color}
+          isSelected={isSelected}
+          models={models}
+          onClick={() => onTerritoryClick(territory.id)}
+          players={players}
+          modelType={modelType}
+        />
       );
     });
   };
