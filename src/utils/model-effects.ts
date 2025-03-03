@@ -1,91 +1,75 @@
 
 import * as THREE from 'three';
 
-// Create a highlight effect for selected objects
-export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number) => void } => {
-  // Check if the mesh has a material to modify
-  if (!mesh.material) {
-    console.warn('Cannot create highlight effect: mesh has no material');
-    return {
-      update: () => {} // Return empty update function
-    };
-  }
-
-  // Store original materials
-  const originalMaterials = Array.isArray(mesh.material) 
-    ? mesh.material.map(m => m.clone()) 
-    : mesh.material.clone();
+/**
+ * Adds emissive highlight effect to a mesh
+ * @param mesh The mesh to highlight
+ * @param color The highlight color
+ * @returns The update function to animate the highlight
+ */
+export const createEmissiveHighlight = (mesh: THREE.Mesh, color: THREE.Color = new THREE.Color(0x88ccff)) => {
+  // Clone the original material to preserve it
+  let originalMaterial: THREE.Material | THREE.Material[] | null = null;
   
-  // Create a pulsing effect function
-  const update = (time: number) => {
-    const pulseFactor = Math.sin(time * 3) * 0.1 + 0.9; // Pulse between 0.8 and 1.0
-    
-    try {
-      if (Array.isArray(mesh.material)) {
-        mesh.material.forEach(material => {
-          // We need to check if the material has emissive property (like MeshPhongMaterial, MeshStandardMaterial)
-          if ('emissive' in material && material.emissive instanceof THREE.Color) {
-            // TypeScript doesn't know this property exists, so we need to use type assertion
-            const phongMaterial = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-            if ('emissiveIntensity' in phongMaterial) {
-              phongMaterial.emissiveIntensity = pulseFactor;
-            }
-          }
-        });
-      } else if (mesh.material) {
-        // Single material
-        if ('emissive' in mesh.material && mesh.material.emissive instanceof THREE.Color) {
-          const phongMaterial = mesh.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-          if ('emissiveIntensity' in phongMaterial) {
-            phongMaterial.emissiveIntensity = pulseFactor;
+  // Store original material for reset
+  if (mesh.material) {
+    originalMaterial = Array.isArray(mesh.material) 
+      ? mesh.material.map(m => m.clone()) 
+      : mesh.material.clone();
+  }
+  
+  // Set emissive color on materials
+  if (mesh.material) {
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach(mat => {
+        // Type guard to check if material has emissive property
+        if ('emissive' in mat) {
+          // Type assertion to access emissive properties
+          const emissiveMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+          emissiveMat.emissive = color.clone();
+          if ('emissiveIntensity' in emissiveMat) {
+            emissiveMat.emissiveIntensity = 0.6;
           }
         }
+      });
+    } else if ('emissive' in mesh.material) {
+      // Type assertion to access emissive properties
+      const emissiveMat = mesh.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+      emissiveMat.emissive = color.clone();
+      if ('emissiveIntensity' in emissiveMat) {
+        emissiveMat.emissiveIntensity = 0.6;
       }
-    } catch (error) {
-      console.error('Error updating highlight effect:', error);
+    }
+  }
+  
+  // Animation update function
+  const update = (time: number) => {
+    if (mesh.material) {
+      const pulseFactor = Math.sin(time * 3) * 0.2 + 0.8; // Pulse between 0.6 and 1.0
+      
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(mat => {
+          // Type guard for materials with emissive properties
+          if ('emissiveIntensity' in mat) {
+            // Type assertion to access emissiveIntensity
+            const emissiveMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+            emissiveMat.emissiveIntensity = pulseFactor;
+          }
+        });
+      } else if ('emissiveIntensity' in mesh.material) {
+        // Type assertion to access emissiveIntensity
+        const emissiveMat = mesh.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+        emissiveMat.emissiveIntensity = pulseFactor;
+      }
     }
   };
   
-  return { update };
-};
-
-// Create a color pulse effect
-export const createColorPulseEffect = (mesh: THREE.Mesh, color: THREE.Color): { update: (time: number) => void } => {
-  // Check if the mesh has a material to modify
-  if (!mesh.material) {
-    console.warn('Cannot create color pulse effect: mesh has no material');
-    return {
-      update: () => {} // Return empty update function
-    };
-  }
-
-  const update = (time: number) => {
-    const pulseFactor = Math.sin(time * 2) * 0.5 + 0.5; // Pulse between 0 and 1
-    
-    try {
-      if (Array.isArray(mesh.material)) {
-        mesh.material.forEach(material => {
-          if ('emissive' in material && material.emissive instanceof THREE.Color) {
-            const phongMaterial = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-            phongMaterial.emissive.copy(color).multiplyScalar(pulseFactor);
-            if ('emissiveIntensity' in phongMaterial) {
-              phongMaterial.emissiveIntensity = pulseFactor;
-            }
-          }
-        });
-      } else if (mesh.material) {
-        if ('emissive' in mesh.material && mesh.material.emissive instanceof THREE.Color) {
-          const phongMaterial = mesh.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-          phongMaterial.emissive.copy(color).multiplyScalar(pulseFactor);
-          if ('emissiveIntensity' in phongMaterial) {
-            phongMaterial.emissiveIntensity = pulseFactor;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error updating color pulse effect:', error);
+  // Reset function to restore original material
+  const reset = () => {
+    if (originalMaterial) {
+      mesh.material = originalMaterial;
     }
   };
   
-  return { update };
+  return { update, reset };
 };

@@ -41,6 +41,7 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
                       
                       // Add emissiveIntensity only if it's a material that supports it
                       if ('emissive' in mat) {
+                        // Type assertion to access emissive properties
                         const phongMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
                         if ('emissiveIntensity' in phongMat) {
                           phongMat.emissiveIntensity = 0.5;
@@ -53,6 +54,7 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
                     
                     // Add emissiveIntensity only if it's a material that supports it
                     if ('emissive' in child.material) {
+                      // Type assertion to access emissive properties
                       const phongMat = child.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
                       if ('emissiveIntensity' in phongMat) {
                         phongMat.emissiveIntensity = 0.5;
@@ -127,6 +129,7 @@ export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number
       highlightMaterial.forEach(material => {
         // Check if the material has emissive properties
         if ('emissive' in material && 'emissiveIntensity' in material) {
+          // Type assertion to access emissive properties
           const phongMat = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
           phongMat.emissiveIntensity = pulseFactor;
         }
@@ -134,6 +137,7 @@ export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number
     } else if (highlightMaterial) {
       // Check if the material has emissive properties
       if ('emissive' in highlightMaterial && 'emissiveIntensity' in highlightMaterial) {
+        // Type assertion to access emissive properties
         const phongMat = highlightMaterial as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
         phongMat.emissiveIntensity = pulseFactor;
       }

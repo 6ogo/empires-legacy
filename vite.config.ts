@@ -33,18 +33,20 @@ function suppressTSDeclarationErrors(): PluginOption {
       return null;
     },
     configResolved(config) {
-      // Instead of trying to modify the optimizeDeps directly (it's read-only),
-      // we'll use the correct pattern for esbuild options
       if (config.optimizeDeps) {
-        config.optimizeDeps.esbuildOptions = config.optimizeDeps.esbuildOptions || {};
-        config.optimizeDeps.esbuildOptions.tsconfigRaw = JSON.stringify({
-          compilerOptions: {
-            declaration: false,
-            declarationMap: false,
-            emitDeclarationOnly: false,
-            noEmit: true
-          }
-        });
+        // Safely modify esbuild options
+        const esbuildOptions = config.optimizeDeps.esbuildOptions || {};
+        config.optimizeDeps.esbuildOptions = {
+          ...esbuildOptions,
+          tsconfigRaw: JSON.stringify({
+            compilerOptions: {
+              declaration: false,
+              declarationMap: false,
+              emitDeclarationOnly: false,
+              noEmit: true
+            }
+          })
+        };
       }
     }
   };
