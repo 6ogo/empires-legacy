@@ -6,34 +6,35 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    
-    /* Explicitly disable declaration file generation */
+
+    /* Declaration file generation is explicitly disabled */
     "declaration": false,
     "declarationMap": false,
     "emitDeclarationOnly": false,
     "noEmit": true,
-    
-    /* Disable composite projects to avoid TS6310 */
-    "composite": false,
-    "incremental": false,
-    "tsBuildInfoFile": null,
-    
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
     
     /* Error suppression */
     "suppressImplicitAnyIndexErrors": true,
     "suppressExcessPropertyErrors": true,
-    
+
     /* Path aliases */
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/no-declaration.d.ts"],
-  "exclude": ["node_modules", "**/*.d.ts", "tsconfig.*.json"]
+  "exclude": ["node_modules", "dist", "**/*.d.ts"]
 }

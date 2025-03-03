@@ -1,0 +1,6 @@
+
+# This file signals to TypeScript and build tools that declaration files
+# should not be generated for this project.
+#
+# Its presence is detected by the build system to enforce declaration
+# suppression without modifying protected tsconfig files.

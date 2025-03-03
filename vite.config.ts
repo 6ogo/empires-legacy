@@ -31,6 +31,21 @@ function suppressTSDeclarationErrors(): PluginOption {
         return { code, map: null };
       }
       return null;
+    },
+    configResolved(config) {
+      // Add TypeScript compiler options to completely disable declaration generation
+      if (config.build && config.build.rollupOptions) {
+        config.optimizeDeps = config.optimizeDeps || {};
+        config.optimizeDeps.esbuildOptions = config.optimizeDeps.esbuildOptions || {};
+        config.optimizeDeps.esbuildOptions.tsconfigRaw = JSON.stringify({
+          compilerOptions: {
+            declaration: false,
+            declarationMap: false,
+            emitDeclarationOnly: false,
+            noEmit: true
+          }
+        });
+      }
     }
   };
 }
@@ -54,7 +69,7 @@ export default defineConfig(({ mode }) => ({
   },
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    // Add an option to tell esbuild to skip declaration generation
+    // Add options to tell esbuild to skip declaration generation
     tsconfigRaw: JSON.stringify({
       compilerOptions: {
         declaration: false,
@@ -63,7 +78,6 @@ export default defineConfig(({ mode }) => ({
       }
     })
   },
-  base: '/',
   build: {
     sourcemap: true,
     rollupOptions: {
@@ -132,4 +146,3 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kb
   },
 }));
-

@@ -18,3 +18,6 @@ public/**/*.d.ts
 # Ignore declaration maps
 *.d.ts.map
 **/*.d.ts.map
+
+# Ensure the TypeScript compiler doesn't attempt to generate declarations
+.ts-nodeclaration
