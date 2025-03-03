@@ -147,8 +147,4 @@ We welcome contributions! Please check our issues page for current tasks or sugg
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please open an issue in the GitHub repository.
+no license
