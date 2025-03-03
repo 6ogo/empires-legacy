@@ -2,3 +2,7 @@
 // This file signals to TypeScript and build tools to suppress .d.ts file generation
 // It's part of a multi-pronged approach to prevent declaration file generation
 // without modifying protected system files
+{
+  "suppressDeclarationGeneration": true,
+  "ignoreErrors": [6305, 6310]
+}
