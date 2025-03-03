@@ -1,62 +1,91 @@
 
 import * as THREE from 'three';
 
-// Create a helper file for model effects to isolate the functionality
-
+// Create a highlight effect for selected objects
 export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number) => void } => {
-  // Create a pulsing highlight effect
-  if (!mesh) {
-    console.warn('Cannot create highlight effect: mesh is undefined');
-    return { update: () => {} };
+  // Check if the mesh has a material to modify
+  if (!mesh.material) {
+    console.warn('Cannot create highlight effect: mesh has no material');
+    return {
+      update: () => {} // Return empty update function
+    };
   }
+
+  // Store original materials
+  const originalMaterials = Array.isArray(mesh.material) 
+    ? mesh.material.map(m => m.clone()) 
+    : mesh.material.clone();
   
-  const originalMaterial = mesh.material;
-  
-  if (!originalMaterial) {
-    console.warn('Cannot create highlight effect: material is undefined');
-    return { update: () => {} };
-  }
-  
-  const highlightMaterial = Array.isArray(originalMaterial) 
-    ? originalMaterial.map(m => m.clone()) 
-    : originalMaterial.clone();
-    
-  // Add emissive properties if they don't exist
-  if (Array.isArray(highlightMaterial)) {
-    highlightMaterial.forEach(material => {
-      if (!material.emissive) {
-        material.emissive = new THREE.Color(0xffff00);
-      }
-      material.emissiveIntensity = 0.5;
-    });
-  } else if (highlightMaterial.emissive !== undefined) {
-    highlightMaterial.emissive = new THREE.Color(0xffff00);
-    highlightMaterial.emissiveIntensity = 0.5;
-  }
-    
-  // Set up the update function
+  // Create a pulsing effect function
   const update = (time: number) => {
     const pulseFactor = Math.sin(time * 3) * 0.1 + 0.9; // Pulse between 0.8 and 1.0
     
-    if (Array.isArray(highlightMaterial)) {
-      highlightMaterial.forEach(material => {
-        if (material.emissiveIntensity !== undefined) {
-          material.emissiveIntensity = pulseFactor;
+    try {
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(material => {
+          // We need to check if the material has emissive property (like MeshPhongMaterial, MeshStandardMaterial)
+          if ('emissive' in material && material.emissive instanceof THREE.Color) {
+            // TypeScript doesn't know this property exists, so we need to use type assertion
+            const phongMaterial = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+            if ('emissiveIntensity' in phongMaterial) {
+              phongMaterial.emissiveIntensity = pulseFactor;
+            }
+          }
+        });
+      } else if (mesh.material) {
+        // Single material
+        if ('emissive' in mesh.material && mesh.material.emissive instanceof THREE.Color) {
+          const phongMaterial = mesh.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+          if ('emissiveIntensity' in phongMaterial) {
+            phongMaterial.emissiveIntensity = pulseFactor;
+          }
         }
-      });
-    } else if (highlightMaterial.emissiveIntensity !== undefined) {
-      highlightMaterial.emissiveIntensity = pulseFactor;
+      }
+    } catch (error) {
+      console.error('Error updating highlight effect:', error);
     }
   };
   
   return { update };
 };
 
-export const getTerrainColor = (terrain: string): THREE.Color => {
-  switch(terrain) {
-    case 'mountains': return new THREE.Color(0x888888); // Gray
-    case 'forest': return new THREE.Color(0x228822); // Green
-    case 'plains': return new THREE.Color(0x88aa44); // Light green
-    default: return new THREE.Color(0xcccccc); // Light gray
+// Create a color pulse effect
+export const createColorPulseEffect = (mesh: THREE.Mesh, color: THREE.Color): { update: (time: number) => void } => {
+  // Check if the mesh has a material to modify
+  if (!mesh.material) {
+    console.warn('Cannot create color pulse effect: mesh has no material');
+    return {
+      update: () => {} // Return empty update function
+    };
   }
+
+  const update = (time: number) => {
+    const pulseFactor = Math.sin(time * 2) * 0.5 + 0.5; // Pulse between 0 and 1
+    
+    try {
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(material => {
+          if ('emissive' in material && material.emissive instanceof THREE.Color) {
+            const phongMaterial = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+            phongMaterial.emissive.copy(color).multiplyScalar(pulseFactor);
+            if ('emissiveIntensity' in phongMaterial) {
+              phongMaterial.emissiveIntensity = pulseFactor;
+            }
+          }
+        });
+      } else if (mesh.material) {
+        if ('emissive' in mesh.material && mesh.material.emissive instanceof THREE.Color) {
+          const phongMaterial = mesh.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+          phongMaterial.emissive.copy(color).multiplyScalar(pulseFactor);
+          if ('emissiveIntensity' in phongMaterial) {
+            phongMaterial.emissiveIntensity = pulseFactor;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating color pulse effect:', error);
+    }
+  };
+  
+  return { update };
 };

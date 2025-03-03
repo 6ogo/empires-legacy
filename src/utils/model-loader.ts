@@ -38,10 +38,26 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
                     child.material.forEach(mat => {
                       mat.side = THREE.DoubleSide;
                       mat.needsUpdate = true;
+                      
+                      // Add emissiveIntensity only if it's a material that supports it
+                      if ('emissive' in mat) {
+                        const phongMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+                        if ('emissiveIntensity' in phongMat) {
+                          phongMat.emissiveIntensity = 0.5;
+                        }
+                      }
                     });
                   } else {
                     child.material.side = THREE.DoubleSide;
                     child.material.needsUpdate = true;
+                    
+                    // Add emissiveIntensity only if it's a material that supports it
+                    if ('emissive' in child.material) {
+                      const phongMat = child.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+                      if ('emissiveIntensity' in phongMat) {
+                        phongMat.emissiveIntensity = 0.5;
+                      }
+                    }
                   }
                 }
               }
@@ -71,7 +87,7 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
   });
 };
 
-// Add the missing functions that Hex3DRenderer is trying to import
+// Functions that Hex3DRenderer is trying to import
 export const getTerritoryModel = (terrain: string, building: string | null): string => {
   // Return the appropriate model path based on terrain and building
   if (building) {
@@ -109,10 +125,18 @@ export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number
     
     if (Array.isArray(highlightMaterial)) {
       highlightMaterial.forEach(material => {
-        material.emissiveIntensity = pulseFactor;
+        // Check if the material has emissive properties
+        if ('emissive' in material && 'emissiveIntensity' in material) {
+          const phongMat = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+          phongMat.emissiveIntensity = pulseFactor;
+        }
       });
-    } else {
-      highlightMaterial.emissiveIntensity = pulseFactor;
+    } else if (highlightMaterial) {
+      // Check if the material has emissive properties
+      if ('emissive' in highlightMaterial && 'emissiveIntensity' in highlightMaterial) {
+        const phongMat = highlightMaterial as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
+        phongMat.emissiveIntensity = pulseFactor;
+      }
     }
   };
   

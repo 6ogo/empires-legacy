@@ -44,7 +44,10 @@ const GameScreen: React.FC = () => {
 
   // Mock data for testing
   const mockTerritories = [];
-  const mockPlayers = [];
+  const mockPlayers = [
+    { id: 0, name: "Player 1", color: "#FF5733" },
+    { id: 1, name: "Player 2", color: "#33A1FF" }
+  ];
   const mockExpandableTerritories = [];
   const mockAttackableTerritories = [];
   const mockBuildableTerritories = [];
@@ -71,6 +74,7 @@ const GameScreen: React.FC = () => {
         playerName="Player 1"
         onExitGame={() => console.log("Exit game")}
         phase="playing"
+        players={mockPlayers}
       />
       
       <div className="flex flex-1 overflow-hidden">
