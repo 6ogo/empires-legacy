@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { HexGrid } from './HexGrid';
-import HexGrid3D from './HexGrid3D';
-// Fix: Import Cube3d instead of Cube
-import { Cube3d as Cube } from 'lucide-react';
+import { HexGrid3D } from './HexGrid3D';
+// Use Cube icon from lucide-react (not Cube3d as it doesn't exist)
+import { Cube } from 'lucide-react';
 
 interface GameBoardProps {
   territories: any[];

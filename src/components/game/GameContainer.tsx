@@ -1,6 +1,6 @@
 
 import React from "react";
-import { GameBoard } from "./GameBoard";
+import GameBoard from "./GameBoard";
 import { GameControls } from "./GameControls";
 import { GameTopBar } from "./GameTopBar";
 import { toast } from "sonner";
