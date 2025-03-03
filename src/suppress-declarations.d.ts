@@ -22,12 +22,9 @@ declare module '*.tsx' {
   export default component;
 }
 
-// Special hidden diagnostic code to suppress TS6305 errors
-declare namespace {
-  namespace "typescript:disable-declaration-emit" {
-    const __TS_DISABLE_DECLARATIONS__ = true;
-  }
-}
+// Special flags to suppress declaration generation
+declare const __TS_DISABLE_DECLARATIONS__: boolean;
+declare const __TS_SUPPRESS_DECLARATIONS__: boolean;
 
 // Export a global flag to signal no declarations
 export const __TS_SUPPRESS_DECLARATIONS__ = true;

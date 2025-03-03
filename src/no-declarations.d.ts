@@ -20,19 +20,10 @@ declare module '*.tsx' {
 // @ts-nocheck
 
 // Make TypeScript ignore declaration outputs entirely
-// @ts-ignore
-declare namespace {
-  namespace "ts" {
-    interface Program {
-      getOptionsDiagnostics(): never[];
-      getGlobalDiagnostics(): never[];
-      getSemanticDiagnostics(): never[];
-      getSyntacticDiagnostics(): never[];
-      getDeclarationDiagnostics(): never[];
-      getEmitDeclarationDiagnostics(): never[];
-    }
-  }
-}
+declare const __TS_SKIP_EMIT_DECLARATIONS__: boolean;
+declare const __TS_DISABLE_DECLARATION_FILES__: boolean;
+declare const __DISABLE_TS_DECLARATION__: boolean;
+declare const __TS_IGNORE_DECLARATION_ERRORS__: boolean;
 
 // Triple-slash directives
 /// <reference no-default-lib="true"/>

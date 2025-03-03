@@ -12,10 +12,13 @@
     "suppressExcessPropertyErrors": true,
     "composite": false,
     "incremental": false,
-    "diagnostics": {
-      "6305": "ignore",
-      "6310": "ignore"
-    }
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx"
   },
   "files": [
     "src/no-declarations.d.ts",

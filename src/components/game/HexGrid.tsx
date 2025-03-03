@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { toast } from 'sonner';
 
@@ -98,17 +99,24 @@ export const HexGrid: React.FC<HexGridProps> = ({
           const color = getHexColor(territory);
           const icon = getTerrainIcon(territory);
           const isSelected = territory.id === selectedTerritory;
-
+          
+          // Calculate position with proper hex grid layout
+          const q = territory.coordinates.q;
+          const r = territory.coordinates.r;
+          
+          // Hex grid position calculation for proper spacing
+          const x = q * 60 + r * 30; // Offset for axial coordinates
+          const y = r * 52; // Height is 0.866 * size, simplified
+          
           return (
             <div
               key={territory.id}
-              className="absolute flex items-center justify-center"
+              className="absolute flex items-center justify-center cursor-pointer"
               style={{
-                top: `${territory.coordinates.r * 50}px`,
-                left: `${territory.coordinates.q * 50}px`,
+                top: `${y}px`,
+                left: `${x}px`,
                 width: '50px',
                 height: '50px',
-                cursor: 'pointer',
                 backgroundColor: color,
                 borderRadius: '50%',
                 border: isSelected ? '2px solid yellow' : 'none',
@@ -116,6 +124,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
                 color: 'black',
                 fontSize: '1.5em',
                 textAlign: 'center',
+                zIndex: isSelected ? 10 : 1,
               }}
               onClick={() => onTerritoryClick(territory.id)}
             >

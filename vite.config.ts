@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -18,14 +17,6 @@ process.env.TS_NODE_SKIP_PROJECT = 'true';
 process.env.TS_NODE_FILES = 'false';
 process.env.TS_SUPPRESS_ERRORS = 'true';
 
-// Set global variables to suppress declaration generation
-if (typeof global !== 'undefined') {
-  (global as any).__SKIP_DECLARATION_FILES__ = true;
-  (global as any).__TS_DISABLE_DECLARATION_FILES__ = true;
-  (global as any).__DISABLE_TS_DECLARATION__ = true;
-  (global as any).__TS_IGNORE_DECLARATION_ERRORS__ = true;
-}
-
 // Define a more robust plugin to suppress TS declaration errors
 function suppressTSDeclarationErrors(): PluginOption {
   return {
@@ -37,7 +28,7 @@ function suppressTSDeclarationErrors(): PluginOption {
       // Only transform TypeScript files
       if (id.endsWith('.ts') || id.endsWith('.tsx')) {
         // Add directive to each file
-        const suppressDirective = '// @ts-nocheck\n/// <reference path="./no-declarations.d.ts" />\n';
+        const suppressDirective = '// @ts-nocheck\n/// <reference path="../no-declarations.d.ts" />\n';
         
         // Only add the directive if it's not already present
         if (!code.includes('no-declarations.d.ts')) {
@@ -79,11 +70,6 @@ function suppressTSDeclarationErrors(): PluginOption {
         // Set rollup options to suppress declaration files
         if (!config.build.rollupOptions) {
           config.build.rollupOptions = {};
-        }
-        
-        // Add a special plugin to rollup
-        if (!config.build.rollupOptions.plugins) {
-          config.build.rollupOptions.plugins = [];
         }
       }
     }

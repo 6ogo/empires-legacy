@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { PerspectiveCamera } from '@react-three/drei';
+import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { toast } from 'sonner';
 import { loadModel } from '../../utils/model-loader';
@@ -20,10 +20,10 @@ interface HexGrid3DProps {
   currentAction: "none" | "build" | "expand" | "attack" | "recruit";
 }
 
-// Constants for hex geometry - updated for closer spacing
+// Constants for hex geometry
 const HEX_SIZE = 1.0;
-const HEX_SPACING_X = 1.15; // Reduced from 1.75 for closer spacing
-const HEX_SPACING_Z = 1.0; // Reduced from 1.52 for closer spacing
+const HEX_SPACING_X = 1.75; 
+const HEX_SPACING_Z = 1.52;
 
 const HexModel: React.FC<{
   modelType: string; 
@@ -31,6 +31,7 @@ const HexModel: React.FC<{
   position?: [number, number, number];
   rotation?: [number, number, number];
 }> = ({ modelType, models, position = [0, 0, 0], rotation = [0, 0, 0] }) => {
+  // Only render if we have the model
   if (!models[modelType]) {
     return null;
   }
@@ -64,7 +65,11 @@ const HexTile: React.FC<{
       }}
     >
       {/* Base hex tile */}
-      <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh 
+        position={[0, -0.1, 0]} 
+        rotation={[-Math.PI / 2, 0, 0]}
+        onClick={onClick} // Make sure click works on the base
+      >
         <cylinderGeometry args={[HEX_SIZE, HEX_SIZE, 0.1, 6]} />
         <meshStandardMaterial 
           color={color} 
@@ -83,7 +88,7 @@ const HexTile: React.FC<{
       />
       
       {/* Territory type label */}
-      <mesh position={[0, 0.5, 0]}>
+      <mesh position={[0, 0.5, 0]} onClick={onClick}>
         <sphereGeometry args={[0.2, 16, 16]} />
         <meshStandardMaterial color={territory.owner !== null ? players[territory.owner]?.color || 'gray' : 'white'} />
       </mesh>
@@ -91,19 +96,19 @@ const HexTile: React.FC<{
       {/* Show resources as a small indicator */}
       {territory.resources && (
         <group position={[0, 0.1, 0]}>
-          <mesh position={[0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
+          <mesh position={[0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]} onClick={onClick}>
             <boxGeometry />
             <meshStandardMaterial color="gold" /> {/* Gold */}
           </mesh>
-          <mesh position={[-0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]}>
+          <mesh position={[-0.3, 0, 0.3]} scale={[0.1, 0.1, 0.1]} onClick={onClick}>
             <boxGeometry />
             <meshStandardMaterial color="brown" /> {/* Wood */}
           </mesh>
-          <mesh position={[0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
+          <mesh position={[0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]} onClick={onClick}>
             <boxGeometry />
             <meshStandardMaterial color="gray" /> {/* Stone */}
           </mesh>
-          <mesh position={[-0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]}>
+          <mesh position={[-0.3, 0, -0.3]} scale={[0.1, 0.1, 0.1]} onClick={onClick}>
             <boxGeometry />
             <meshStandardMaterial color="red" /> {/* Food */}
           </mesh>
@@ -128,11 +133,13 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
 }) => {
   const [models, setModels] = useState<Record<string, THREE.Object3D>>({});
   const [loading, setLoading] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const loadModels = async () => {
       try {
         setLoading(true);
+        toast.info("Loading 3D models...");
         
         const modelTypes = [
           'base', 'mountain', 'forest', 'fortress', 
@@ -142,11 +149,14 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
         
         const loadedModels: Record<string, THREE.Object3D> = {};
         
+        // Load each model type
         for (const modelType of modelTypes) {
           try {
+            console.log(`Loading model: ${modelType}`);
             const model = await loadModel(`/models/${modelType}.dae`);
             if (model) {
               loadedModels[modelType] = model;
+              console.log(`Successfully loaded model: ${modelType}`);
             }
           } catch (err) {
             console.error(`Failed to load model ${modelType}:`, err);
@@ -155,6 +165,7 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
         
         setModels(loadedModels);
         setLoading(false);
+        toast.success("3D models loaded successfully!");
       } catch (error) {
         console.error('Error loading models:', error);
         toast.error('Failed to load 3D assets');
@@ -166,7 +177,7 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
   }, []);
 
   const hexPosition = (q: number, r: number): [number, number, number] => {
-    // Calculate hex position using axial coordinates with tighter spacing
+    // Calculate hex position using axial coordinates
     const x = HEX_SIZE * (HEX_SPACING_X * q);
     const z = HEX_SIZE * (HEX_SPACING_Z * r + (HEX_SPACING_X * q) / 2);
     return [x, 0, z];
@@ -250,7 +261,13 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
 
   return (
     <div className="w-full h-full">
-      <Canvas shadows>
+      <Canvas 
+        shadows 
+        ref={canvasRef}
+        onCreated={({ gl }) => {
+          gl.setClearColor(new THREE.Color('#101624'));
+        }}
+      >
         <ambientLight intensity={0.8} />
         <directionalLight
           position={[10, 10, 5]}
@@ -259,8 +276,18 @@ const HexGrid3D: React.FC<HexGrid3DProps> = ({
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
         />
-        {/* Fixed camera position with no controls for non-rotatable view */}
-        <PerspectiveCamera makeDefault position={[0, 20, 0]} fov={60} near={0.1} far={1000} />
+        
+        {/* Using OrbitControls for better user interaction */}
+        <OrbitControls 
+          enableZoom={true} 
+          maxPolarAngle={Math.PI / 2.1} 
+          minPolarAngle={Math.PI / 8}
+          maxDistance={30}
+          minDistance={5}
+        />
+        
+        {/* Camera positioned to see the board from a good angle */}
+        <PerspectiveCamera makeDefault position={[0, 15, 15]} fov={60} near={0.1} far={1000} />
         
         {/* Grid floor for reference */}
         <gridHelper args={[100, 100, 'gray', 'gray']} position={[0, -0.15, 0]} />

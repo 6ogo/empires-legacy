@@ -13,6 +13,7 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
     }, LOAD_TIMEOUT);
     
     try {
+      console.log(`Started loading model from ${url}`);
       const loader = new ColladaLoader();
       
       loader.load(
@@ -21,6 +22,7 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
           clearTimeout(timeoutId);
           
           try {
+            console.log(`Successfully loaded collada model from ${url}`, collada);
             const model = collada.scene;
             
             // Add default scale and rotation
@@ -69,7 +71,7 @@ export const loadModel = (url: string): Promise<THREE.Object3D> => {
         },
         (progress) => {
           // Progress callback
-          // console.log(`Loading ${url}: ${Math.round((progress.loaded / progress.total) * 100)}%`);
+          console.log(`Loading ${url}: ${Math.round((progress.loaded / progress.total) * 100)}%`);
         },
         (error) => {
           clearTimeout(timeoutId);

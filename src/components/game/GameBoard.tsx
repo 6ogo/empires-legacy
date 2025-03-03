@@ -5,7 +5,7 @@ import { HexGrid3D } from './HexGrid3D';
 import { Button } from '../ui/button';
 import LoadingScreen from './LoadingScreen';
 import { toast } from 'sonner';
-import { Box } from 'lucide-react';
+import { Box, Cube } from 'lucide-react';
 
 interface GameBoardProps {
   territories: any[];
@@ -88,6 +88,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   };
   
   const handleTerritoryClick = (territoryId: number) => {
+    console.log(`Territory clicked: ${territoryId}`);
     const territory = territories.find(t => t.id === territoryId);
     if (!territory) return;
     
@@ -230,7 +231,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             </>
           ) : (
             <>
-              <Box className="mr-1 h-4 w-4" />
+              <Cube className="mr-1 h-4 w-4" />
               3D View
             </>
           )}
