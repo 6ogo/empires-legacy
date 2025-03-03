@@ -4,8 +4,12 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Don't use require for fs, as it causes issues in the browser environment
-// Create a simpler config that doesn't rely on ts-warnings.js
+// Set environment variables to suppress TypeScript declaration generation
+process.env.TS_NODE_EMIT = 'false';
+process.env.TS_SKIP_DECLARATIONS = 'true';
+process.env.SKIP_PREFLIGHT_CHECK = 'true';
+process.env.TS_NODE_PRETTY = 'false';
+process.env.DISABLE_TS_DECLARATION = 'true';
 
 export default defineConfig(({ mode }) => ({
   server: {

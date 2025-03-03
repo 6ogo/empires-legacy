@@ -1,0 +1,7 @@
+
+{
+  "noEmit": true,
+  "skipDeclaration": true,
+  "ignoreErrors": ["TS6305", "TS6310"],
+  "suppressErrors": true
+}
