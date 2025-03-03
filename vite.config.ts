@@ -52,11 +52,37 @@ function suppressTSDeclarationErrors(): PluginOption {
               declarationMap: false,
               emitDeclarationOnly: false,
               noEmit: true,
-              skipLibCheck: true
+              skipLibCheck: true,
+              lib: ["dom", "dom.iterable", "esnext"]
             }
           })
         };
       }
+    }
+  };
+}
+
+// Create a plugin to fix DOM references
+function fixDOMReferences(): PluginOption {
+  return {
+    name: 'fix-dom-references',
+    // This plugin will run before TypeScript processes files
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      // Only transform TypeScript files
+      if (id.endsWith('.ts') || id.endsWith('.tsx')) {
+        // Add triple-slash reference to DOM lib
+        const domReference = '/// <reference lib="dom" />\n/// <reference lib="dom.iterable" />\n';
+        
+        // Only add the reference if it doesn't already exist
+        if (!code.includes('<reference lib="dom"')) {
+          return { 
+            code: domReference + code,
+            map: null 
+          };
+        }
+      }
+      return null;
     }
   };
 }
@@ -70,6 +96,7 @@ export default defineConfig(({ mode }) => ({
     react({
       tsDecorators: true,
     }),
+    fixDOMReferences(),
     suppressTSDeclarationErrors(),
     mode === 'development' && componentTagger(),
   ].filter(Boolean as any),
@@ -86,7 +113,8 @@ export default defineConfig(({ mode }) => ({
         declaration: false,
         emitDeclarationOnly: false,
         noEmit: true,
-        skipLibCheck: true
+        skipLibCheck: true,
+        lib: ["dom", "dom.iterable", "esnext"]
       }
     })
   },
