@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import type { PluginOption } from 'vite';
 
 // Set environment variables to suppress TypeScript declaration generation
 process.env.TS_NODE_EMIT = 'false';
@@ -16,18 +17,19 @@ process.env.TS_NODE_FILES = 'false';
 process.env.TS_SUPPRESS_ERRORS = 'true';
 
 // Define a plugin to suppress TS declaration errors
-function suppressTSDeclarationErrors() {
+function suppressTSDeclarationErrors(): PluginOption {
   return {
     name: 'suppress-ts-declaration-errors',
     // This plugin will run after TypeScript processes files
     enforce: 'post' as const,
     // Hook into Rollup's transform phase
-    transform(code, id) {
+    transform(code: string, id: string) {
       // Return the code unchanged, but intercept .ts and .tsx files
       // to prevent .d.ts file generation
       if (id.endsWith('.ts') || id.endsWith('.tsx')) {
         return { code, map: null };
       }
+      return null;
     }
   };
 }
@@ -43,7 +45,7 @@ export default defineConfig(({ mode }) => ({
     }),
     suppressTSDeclarationErrors(),
     mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  ].filter(Boolean as any),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

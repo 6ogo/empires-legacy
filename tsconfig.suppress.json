@@ -35,6 +35,6 @@
     "suppressImplicitAnyIndexErrors": true,
     "suppressExcessPropertyErrors": true
   },
-  "include": ["src"],
+  "include": ["src", "src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["**/*.d.ts", "node_modules"]
 }

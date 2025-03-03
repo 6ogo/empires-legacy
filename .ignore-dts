@@ -15,3 +15,8 @@ src/utils/**/*.d.ts
 src/types/**/*.d.ts
 src/App.d.ts
 src/main.d.ts
+src/contexts/**/*.d.ts
+src/data/**/*.d.ts
+src/integrations/**/*.d.ts
+src/routes/**/*.d.ts
+src/store/**/*.d.ts
