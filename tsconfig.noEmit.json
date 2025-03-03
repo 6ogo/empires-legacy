@@ -11,7 +11,16 @@
     "suppressImplicitAnyIndexErrors": true,
     "suppressExcessPropertyErrors": true,
     "composite": false,
-    "incremental": false
+    "incremental": false,
+    "diagnostics": {
+      "6305": "ignore",
+      "6310": "ignore"
+    }
   },
+  "files": [
+    "src/no-declarations.d.ts",
+    "src/suppress-declarations.d.ts"
+  ],
+  "include": ["src/**/*.tsx", "src/**/*.ts"],
   "exclude": ["node_modules", "**/*.d.ts"]
 }

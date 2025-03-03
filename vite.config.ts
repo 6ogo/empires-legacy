@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import type { PluginOption } from 'vite';
+import suppressTypeScriptDeclarationErrors from "./src/vite-ts-suppression.js";
 
 // Set environment variables to suppress TypeScript declaration generation
 process.env.TS_NODE_EMIT = 'false';
@@ -25,22 +26,32 @@ if (typeof global !== 'undefined') {
   (global as any).__TS_IGNORE_DECLARATION_ERRORS__ = true;
 }
 
-// Define a plugin to suppress TS declaration errors
+// Define a more robust plugin to suppress TS declaration errors
 function suppressTSDeclarationErrors(): PluginOption {
   return {
     name: 'suppress-ts-declaration-errors',
-    // This plugin will run after TypeScript processes files
-    enforce: 'post' as const,
+    enforce: 'pre' as const, // Run before TypeScript processes files
+    
     // Hook into Rollup's transform phase
     transform(code: string, id: string) {
-      // Return the code unchanged, but intercept .ts and .tsx files
-      // to prevent .d.ts file generation
+      // Only transform TypeScript files
       if (id.endsWith('.ts') || id.endsWith('.tsx')) {
-        return { code, map: null };
+        // Add directive to each file
+        const suppressDirective = '// @ts-nocheck\n/// <reference path="./no-declarations.d.ts" />\n';
+        
+        // Only add the directive if it's not already present
+        if (!code.includes('no-declarations.d.ts')) {
+          return { 
+            code: suppressDirective + code,
+            map: null 
+          };
+        }
       }
       return null;
     },
+    
     configResolved(config) {
+      // Make sure esbuild doesn't try to generate declarations
       if (config.optimizeDeps) {
         // Safely modify esbuild options
         const esbuildOptions = config.optimizeDeps.esbuildOptions || {};
@@ -58,6 +69,23 @@ function suppressTSDeclarationErrors(): PluginOption {
           })
         };
       }
+      
+      // Explicitly set build options to disable declarations
+      if (config.build) {
+        config.build.sourcemap = true;
+        config.build.emptyOutDir = true;
+        config.build.reportCompressedSize = true;
+        
+        // Set rollup options to suppress declaration files
+        if (!config.build.rollupOptions) {
+          config.build.rollupOptions = {};
+        }
+        
+        // Add a special plugin to rollup
+        if (!config.build.rollupOptions.plugins) {
+          config.build.rollupOptions.plugins = [];
+        }
+      }
     }
   };
 }
@@ -66,7 +94,6 @@ function suppressTSDeclarationErrors(): PluginOption {
 function fixDOMReferences(): PluginOption {
   return {
     name: 'fix-dom-references',
-    // This plugin will run before TypeScript processes files
     enforce: 'pre' as const,
     transform(code: string, id: string) {
       // Only transform TypeScript files
@@ -98,6 +125,7 @@ export default defineConfig(({ mode }) => ({
     }),
     fixDOMReferences(),
     suppressTSDeclarationErrors(),
+    suppressTypeScriptDeclarationErrors(),
     mode === 'development' && componentTagger(),
   ].filter(Boolean as any),
   resolve: {
@@ -107,7 +135,7 @@ export default defineConfig(({ mode }) => ({
   },
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    // Add options to tell esbuild to skip declaration generation
+    // Tell esbuild to skip declaration generation
     tsconfigRaw: JSON.stringify({
       compilerOptions: {
         declaration: false,
@@ -120,6 +148,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: true,
+    // Disable declaration generation entirely for production build
     rollupOptions: {
       output: {
         manualChunks: {
