@@ -23,3 +23,4 @@ declare global {
 
 // Special directive to disable library declarations
 /// <reference no-default-lib="true"/>
+

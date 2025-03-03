@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 import type { PluginOption } from 'vite';
 // Import using require() for CommonJS module
 // @ts-ignore
-import suppressTypeScriptDeclarationErrors from "./src/vite-ts-suppression.cjs";
+const suppressTypeScriptDeclarationErrors = require("./src/vite-ts-suppression.cjs");
 
 // Set environment variables to suppress TypeScript declaration generation
 process.env.TS_NODE_EMIT = 'false';
