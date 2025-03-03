@@ -59,4 +59,5 @@ const suppressTypeScriptDeclarationErrors = () => {
   };
 };
 
-export default suppressTypeScriptDeclarationErrors;
+// Export the function using module.exports for CommonJS compatibility
+module.exports = suppressTypeScriptDeclarationErrors;

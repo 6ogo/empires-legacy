@@ -4,7 +4,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import type { PluginOption } from 'vite';
-import suppressTypeScriptDeclarationErrors from "./src/vite-ts-suppression.js";
+// Import using require() for CommonJS module
+const suppressTypeScriptDeclarationErrors = require("./src/vite-ts-suppression.js");
 
 // Set environment variables to suppress TypeScript declaration generation
 process.env.TS_NODE_EMIT = 'false';
