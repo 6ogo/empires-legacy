@@ -46,11 +46,3 @@ declare module 'vaul' {
     Description: React.ForwardRefExoticComponent<DrawerDescriptionProps>
   }
 }
-
-// Suppress TS6305 errors by telling TypeScript not to generate declaration files
-// @ts-ignore
-// @ts-nocheck
-// Triple slash directives to control TypeScript behavior
-/// <reference no-default-lib="true"/>
-/// <reference lib="esnext" />
-/// <reference lib="dom" />

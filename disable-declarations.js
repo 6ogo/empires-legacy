@@ -22,42 +22,7 @@ if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'developme
     
     fs.writeFileSync('.nowEmitDeclarations', '// This file\'s presence signals to TypeScript not to emit declarations\n// It\'s a workaround since we can\'t modify tsconfig.json directly\n// The build system checks for this file to disable declaration generation');
     console.log('Created .nowEmitDeclarations file');
-    
-    // Create a specific tsconfig file for the build process only
-    const tsConfigContent = {
-      "extends": "./tsconfig.json",
-      "compilerOptions": {
-        "declaration": false,
-        "declarationMap": false,
-        "noEmit": true,
-        "skipLibCheck": true
-      }
-    };
-    fs.writeFileSync('tsconfig.suppressed.json', JSON.stringify(tsConfigContent, null, 2));
-    console.log('Created tsconfig.suppressed.json file');
   } catch (error) {
     console.error('Failed to create TypeScript declaration suppression files:', error);
   }
 }
-
-// Export a function that can be used in build scripts
-module.exports = function disableDeclarations() {
-  return {
-    name: 'disable-declarations',
-    config() {
-      return {
-        esbuild: {
-          // Tell esbuild not to generate declarations
-          tsconfigRaw: JSON.stringify({
-            compilerOptions: {
-              declaration: false,
-              declarationMap: false,
-              emitDeclarationOnly: false,
-              noEmit: true
-            }
-          })
-        }
-      };
-    }
-  };
-};

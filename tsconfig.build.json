@@ -1,6 +1,6 @@
 
 {
-  "extends": "./tsconfig.noEmit.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "declaration": false,
     "declarationMap": false,
@@ -8,20 +8,10 @@
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "suppressImplicitAnyIndexErrors": true,
     "suppressExcessPropertyErrors": true,
+    "suppressImplicitAnyIndexErrors": true,
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "composite": false,
-    "incremental": false
-  },
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      "module": "CommonJS",
-      "declaration": false,
-      "noEmit": true
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],

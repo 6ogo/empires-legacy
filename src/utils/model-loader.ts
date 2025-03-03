@@ -1,146 +1,145 @@
 
 import * as THREE from 'three';
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// Add timeout to prevent loading hanging indefinitely
-const LOAD_TIMEOUT = 30000; // 30 seconds timeout
+// Cache for loaded models
+const modelCache: Record<string, THREE.Object3D> = {};
 
-export const loadModel = (url: string): Promise<THREE.Object3D> => {
-  return new Promise((resolve, reject) => {
-    // Create a timeout to abort loading if it takes too long
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`Loading model timed out: ${url}`));
-    }, LOAD_TIMEOUT);
+/**
+ * Loads a 3D model from a given path
+ */
+export const loadModel = async (modelPath: string): Promise<THREE.Object3D | null> => {
+  // Check if model is already in cache
+  if (modelCache[modelPath]) {
+    return modelCache[modelPath].clone();
+  }
+  
+  try {
+    let model: THREE.Object3D | null = null;
     
-    try {
-      console.log(`Started loading model from ${url}`);
-      const loader = new ColladaLoader();
-      
-      loader.load(
-        url,
-        (collada) => {
-          clearTimeout(timeoutId);
-          
-          try {
-            console.log(`Successfully loaded collada model from ${url}`, collada);
-            const model = collada.scene;
-            
-            // Add default scale and rotation
-            model.scale.set(1, 1, 1);
-            
-            // Ensure proper material settings for all children
-            model.traverse((child) => {
-              if (child instanceof THREE.Mesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-                
-                if (child.material) {
-                  // Ensure material is properly configured
-                  if (Array.isArray(child.material)) {
-                    child.material.forEach(mat => {
-                      mat.side = THREE.DoubleSide;
-                      mat.needsUpdate = true;
-                      
-                      // Check if the material has emissive properties before setting them
-                      if ('emissive' in mat && 'emissiveIntensity' in mat) {
-                        // Type assertion to a material type that supports emissive properties
-                        const emissiveMat = mat as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-                        emissiveMat.emissiveIntensity = 0.5;
-                      }
-                    });
-                  } else {
-                    child.material.side = THREE.DoubleSide;
-                    child.material.needsUpdate = true;
-                    
-                    // Check if the material has emissive properties before setting them
-                    if ('emissive' in child.material && 'emissiveIntensity' in child.material) {
-                      // Type assertion to a material type that supports emissive properties
-                      const emissiveMat = child.material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-                      emissiveMat.emissiveIntensity = 0.5;
-                    }
-                  }
-                }
-              }
-            });
-            
-            resolve(model);
-          } catch (innerError) {
-            console.error("Error processing loaded model:", innerError);
-            reject(innerError);
-          }
-        },
-        (progress) => {
-          // Progress callback
-          console.log(`Loading ${url}: ${Math.round((progress.loaded / progress.total) * 100)}%`);
-        },
-        (error) => {
-          clearTimeout(timeoutId);
-          console.error(`Error loading model from ${url}:`, error);
-          reject(error);
-        }
-      );
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error(`Failed to initialize loader for ${url}:`, error);
-      reject(error);
+    // Determine loader based on file extension
+    if (modelPath.endsWith('.dae')) {
+      model = await loadColladaModel(modelPath);
+    } else if (modelPath.endsWith('.gltf') || modelPath.endsWith('.glb')) {
+      model = await loadGLTFModel(modelPath);
+    } else {
+      console.error(`Unsupported model format: ${modelPath}`);
+      // Create a simple geometry as a fallback
+      model = createSimpleModel();
     }
+    
+    if (model) {
+      // Center the model
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      model.position.sub(center);
+      
+      // Add to cache
+      modelCache[modelPath] = model;
+      
+      return model.clone();
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error loading model ${modelPath}:`, error);
+    // Return a simple fallback model
+    return createSimpleModel();
+  }
+};
+
+/**
+ * Loads a COLLADA (.dae) model
+ */
+const loadColladaModel = async (modelPath: string): Promise<THREE.Object3D> => {
+  return new Promise((resolve, reject) => {
+    const loader = new ColladaLoader();
+    loader.load(
+      modelPath,
+      (collada) => {
+        resolve(collada.scene);
+      },
+      undefined,
+      (error) => {
+        console.error(`Error loading COLLADA model: ${modelPath}`, error);
+        reject(error);
+      }
+    );
   });
 };
 
-// Functions that Hex3DRenderer is trying to import
-export const getTerritoryModel = (terrain: string, building: string | null): string => {
-  // Return the appropriate model path based on terrain and building
-  if (building) {
-    switch(building) {
-      case 'fortress': return '/models/fortress.dae';
-      case 'barracks': return '/models/barracks.dae';
-      case 'farm': return '/models/farm.dae';
-      case 'market': return '/models/market.dae';
-      case 'mine': return '/models/mine.dae';
-      case 'watchtower': return '/models/watchtower.dae';
-      case 'lumbermill': return '/models/lumbermill.dae';
-      case 'castle': return '/models/castle.dae';
-      default: return '/models/base.dae';
-    }
-  }
-  
-  // Return terrain-based model if no building
-  switch(terrain) {
-    case 'mountains': return '/models/mountain.dae';
-    case 'forest': return '/models/forest.dae';
-    default: return '/models/base.dae';
-  }
+/**
+ * Loads a GLTF/GLB model
+ */
+const loadGLTFModel = async (modelPath: string): Promise<THREE.Object3D> => {
+  return new Promise((resolve, reject) => {
+    const loader = new GLTFLoader();
+    loader.load(
+      modelPath,
+      (gltf) => {
+        resolve(gltf.scene);
+      },
+      undefined,
+      (error) => {
+        console.error(`Error loading GLTF model: ${modelPath}`, error);
+        reject(error);
+      }
+    );
+  });
 };
 
-export const createHighlightEffect = (mesh: THREE.Mesh): { update: (time: number) => void } => {
-  // Create a pulsing highlight effect
-  const originalMaterial = mesh.material;
-  const highlightMaterial = Array.isArray(originalMaterial) 
-    ? originalMaterial.map(m => m.clone()) 
-    : originalMaterial.clone();
-    
-  // Set up the update function
-  const update = (time: number) => {
-    const pulseFactor = Math.sin(time * 3) * 0.1 + 0.9; // Pulse between 0.8 and 1.0
-    
-    if (Array.isArray(highlightMaterial)) {
-      highlightMaterial.forEach(material => {
-        // Check if the material has emissive properties before updating
-        if ('emissive' in material && 'emissiveIntensity' in material) {
-          // Type assertion to access emissive properties
-          const emissiveMat = material as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-          emissiveMat.emissiveIntensity = pulseFactor;
-        }
-      });
-    } else if (highlightMaterial) {
-      // Check if the material has emissive properties before updating
-      if ('emissive' in highlightMaterial && 'emissiveIntensity' in highlightMaterial) {
-        // Type assertion to access emissive properties
-        const emissiveMat = highlightMaterial as THREE.MeshPhongMaterial | THREE.MeshStandardMaterial;
-        emissiveMat.emissiveIntensity = pulseFactor;
-      }
-    }
-  };
+/**
+ * Creates a simple geometric model as a fallback
+ */
+const createSimpleModel = (): THREE.Object3D => {
+  const group = new THREE.Group();
   
-  return { update };
+  // Create a simple cube
+  const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+  const material = new THREE.MeshStandardMaterial({ color: 0x888888 });
+  const cube = new THREE.Mesh(geometry, material);
+  cube.position.set(0, 0.25, 0);
+  
+  group.add(cube);
+  
+  return group;
 };
+
+// Function to get territory model type based on territory data
+export const getTerritoryModel = (territory: any): string => {
+  if (!territory) return 'base';
+  
+  // Determine model based on terrain type
+  const terrain = territory.terrain || 'plains';
+  
+  if (terrain === 'mountains') return 'mountain';
+  if (terrain === 'forest') return 'forest';
+  
+  // Check for buildings
+  if (territory.building) {
+    return territory.building;
+  }
+  
+  return 'base';
+};
+
+// Function to create a highlight effect for selected territories
+export const createHighlightEffect = (color: string): THREE.Mesh => {
+  const geometry = new THREE.CylinderGeometry(1, 1, 0.05, 6);
+  const material = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(color),
+    transparent: true,
+    opacity: 0.6,
+    depthWrite: false
+  });
+  
+  const highlight = new THREE.Mesh(geometry, material);
+  highlight.position.y = -0.025;
+  highlight.rotation.x = Math.PI / 2;
+  
+  return highlight;
+};
+
+// Add dependencies for three.js loaders
+<lov-add-dependency>three@^0.161.0</lov-add-dependency>

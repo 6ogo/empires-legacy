@@ -1,23 +1,6 @@
 
-# Comprehensive TypeScript declaration file ignore settings
-
-# Ignore all declaration files
+# Ignore TypeScript declaration files
 *.d.ts
 **/*.d.ts
-
-# Specifically ignore declaration files in all project directories
 src/**/*.d.ts
-node_modules/**/*.d.ts
-dist/**/*.d.ts
-public/**/*.d.ts
-
-# Ignore TypeScript build info files
-*.tsbuildinfo
-**/*.tsbuildinfo
-
-# Ignore declaration maps
-*.d.ts.map
-**/*.d.ts.map
-
-# Ensure the TypeScript compiler doesn't attempt to generate declarations
-.ts-nodeclaration
+**/**/*.d.ts

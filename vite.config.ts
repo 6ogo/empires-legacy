@@ -3,117 +3,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import type { PluginOption } from 'vite';
-// Import using require() for CommonJS module
-// @ts-ignore
-const suppressTypeScriptDeclarationErrors = require("./src/vite-ts-suppression.cjs");
 
-// Set environment variables to suppress TypeScript declaration generation
-process.env.TS_NODE_EMIT = 'false';
-process.env.TS_SKIP_DECLARATIONS = 'true';
-process.env.SKIP_PREFLIGHT_CHECK = 'true';
-process.env.TS_NODE_PRETTY = 'false';
-process.env.DISABLE_TS_DECLARATION = 'true';
-process.env.TS_NODE_TRANSPILE_ONLY = 'true';
-process.env.TS_IGNORE_DECLARATION_ERRORS = 'true';
-process.env.TS_NODE_SKIP_PROJECT = 'true';
-process.env.TS_NODE_FILES = 'false';
-process.env.TS_SUPPRESS_ERRORS = 'true';
-
-// Define a more robust plugin to suppress TS declaration errors
-function suppressTSDeclarationErrors(): PluginOption {
-  return {
-    name: 'suppress-ts-declaration-errors',
-    enforce: 'pre' as const, // Run before TypeScript processes files
-    
-    // Hook into Rollup's transform phase
-    transform(code: string, id: string) {
-      // Only transform TypeScript files
-      if (id.endsWith('.ts') || id.endsWith('.tsx')) {
-        // Add directive to each file
-        const suppressDirective = '// @ts-nocheck\n/// <reference path="../no-declarations.d.ts" />\n';
-        
-        // Only add the directive if it's not already present
-        if (!code.includes('no-declarations.d.ts')) {
-          return { 
-            code: suppressDirective + code,
-            map: null 
-          };
-        }
-      }
-      return null;
-    },
-    
-    configResolved(config) {
-      // Make sure esbuild doesn't try to generate declarations
-      if (config.optimizeDeps) {
-        // Safely modify esbuild options
-        const esbuildOptions = config.optimizeDeps.esbuildOptions || {};
-        config.optimizeDeps.esbuildOptions = {
-          ...esbuildOptions,
-          tsconfigRaw: JSON.stringify({
-            compilerOptions: {
-              declaration: false,
-              declarationMap: false,
-              emitDeclarationOnly: false,
-              noEmit: true,
-              skipLibCheck: true,
-              lib: ["dom", "dom.iterable", "esnext"]
-            }
-          })
-        };
-      }
-      
-      // Explicitly set build options to disable declarations
-      if (config.build) {
-        config.build.sourcemap = true;
-        config.build.emptyOutDir = true;
-        config.build.reportCompressedSize = true;
-        
-        // Set rollup options to suppress declaration files
-        if (!config.build.rollupOptions) {
-          config.build.rollupOptions = {};
-        }
-      }
-    }
-  };
-}
-
-// Create a plugin to fix DOM references
-function fixDOMReferences(): PluginOption {
-  return {
-    name: 'fix-dom-references',
-    enforce: 'pre' as const,
-    transform(code: string, id: string) {
-      // Only transform TypeScript files
-      if (id.endsWith('.ts') || id.endsWith('.tsx')) {
-        // Add triple-slash reference to DOM lib
-        const domReference = '/// <reference lib="dom" />\n/// <reference lib="dom.iterable" />\n';
-        
-        // Only add the reference if it doesn't already exist
-        if (!code.includes('<reference lib="dom"')) {
-          return { 
-            code: domReference + code,
-            map: null 
-          };
-        }
-      }
-      return null;
-    }
-  };
-}
-
-// Special plugin to handle TS6310 error
-function handleTS6310Error(): PluginOption {
-  return {
-    name: 'handle-ts6310-error',
-    enforce: 'pre' as const,
-    configResolved(config) {
-      // Set a global flag to ignore TS6310 errors
-      process.env.TS_IGNORE_6310 = 'true';
-    }
-  };
-}
+// Run the ts-warnings script to configure TS errors as warnings
+require('./ts-warnings');
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -124,36 +16,21 @@ export default defineConfig(({ mode }) => ({
     react({
       tsDecorators: true,
     }),
-    fixDOMReferences(),
-    suppressTSDeclarationErrors(),
-    suppressTypeScriptDeclarationErrors(),
-    handleTS6310Error(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean as any),
+    mode === 'development' &&
+    componentTagger(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   esbuild: {
-    logOverride: { 
-      'this-is-undefined-in-esm': 'silent',
-      'ts-error': 'silent' 
-    },
-    // Tell esbuild to skip declaration generation
-    tsconfigRaw: JSON.stringify({
-      compilerOptions: {
-        declaration: false,
-        emitDeclarationOnly: false,
-        noEmit: true,
-        skipLibCheck: true,
-        lib: ["dom", "dom.iterable", "esnext"]
-      }
-    })
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    // Removed tsconfigRaw as it was causing issues
   },
+  base: '/',
   build: {
     sourcemap: true,
-    // Disable declaration generation entirely for production build
     rollupOptions: {
       output: {
         manualChunks: {

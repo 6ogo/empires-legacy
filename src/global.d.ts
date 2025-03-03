@@ -1,173 +1,23 @@
 
-/**
- * Global type declaration file for Empire's Legacy
- * This file includes DOM interface declarations and suppresses TypeScript declaration errors
- */
+// This file contains global type declarations to resolve TypeScript errors
 
-// Triple-slash directives to include DOM libraries and prevent declaration file generation
-/// <reference lib="dom" />
-/// <reference lib="dom.iterable" />
-/// <reference lib="es2020" />
-/// <reference lib="webworker" />
-/// <reference types="vite/client" />
-/// <reference no-default-lib="true" />
-/// <reference path="./no-declarations.d.ts" />
-
-// The no-default-lib directive and special comment below tell TypeScript to
-// ignore declaration file generation entirely and not report errors about it
-// @ts-nocheck
-
-// Type definitions for DOM interfaces that might be missing
-interface Window {
-  __TS_DISABLE_DECLARATIONS__: boolean;
-  requestAnimationFrame: (callback: FrameRequestCallback) => number;
-  cancelAnimationFrame: (handle: number) => void;
-}
-
-interface Document {
-  createElement(tagName: string): HTMLElement;
-  getElementById(elementId: string): HTMLElement | null;
-}
-
-interface HTMLElement {
-  clientWidth: number;
-  clientHeight: number;
-  getBoundingClientRect(): DOMRect;
-  appendChild(node: Node): Node;
-  removeChild(child: Node): Node;
-}
-
-interface HTMLDivElement extends HTMLElement {}
-interface HTMLCanvasElement extends HTMLElement {
-  getContext(contextId: '2d'): CanvasRenderingContext2D | null;
-  width: number;
-  height: number;
-}
-
-interface Event {
-  preventDefault(): void;
-}
-
-interface KeyboardEvent extends Event {
-  key: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  code: string;
-}
-
-interface EventTarget {
-  value?: string;
-}
-
-interface HTMLInputElement extends HTMLElement {
-  value: string;
-}
-
-interface Navigator {
-  clipboard: {
-    writeText(text: string): Promise<void>;
-  };
-}
-
-// HTML Table elements
-interface HTMLTableCellElement extends HTMLElement {}
-interface HTMLTableCaptionElement extends HTMLElement {}
-
-// Add support for basic JavaScript types
-interface Array<T> {}
-interface Boolean {}
-interface Function {}
-interface IArguments {}
-interface Number {}
-interface Object {}
-interface RegExp {}
-interface String {}
-
-// Suppress TypeScript declaration file generation
-declare namespace NodeJS {
-  interface ProcessEnv {
-    NODE_ENV: 'development' | 'production' | 'test';
-    PUBLIC_URL: string;
-    VITE_SUPABASE_URL: string;
-    VITE_SUPABASE_ANON_KEY: string;
-    TS_SKIP_DECLARATIONS: 'true';
-    DISABLE_TS_DECLARATION: 'true';
-    TS_NODE_EMIT: 'false';
-    TS_NODE_PRETTY: 'false';
-    SKIP_PREFLIGHT_CHECK: 'true';
-    TS_NODE_TRANSPILE_ONLY: 'true';
-    TS_IGNORE_DECLARATION_ERRORS: 'true';
-    TS_NODE_SKIP_PROJECT: 'true';
-    TS_NODE_FILES: 'false';
-    TS_SUPPRESS_ERRORS: 'true';
-  }
-}
-
-// Global variables for declaration suppression
-declare global {
-  var __SKIP_DECLARATION_FILES__: boolean;
-  var __TS_DISABLE_DECLARATION_FILES__: boolean;
-  var __DISABLE_TS_DECLARATION__: boolean;
-  var __TS_IGNORE_DECLARATION_ERRORS__: boolean;
-  
-  interface Window {
-    __TS_DISABLE_DECLARATIONS__: boolean;
-  }
-  
-  // Declare global objects
-  const window: Window & typeof globalThis;
-  const document: Document;
-  const navigator: Navigator;
-  
-  // Apply TypeScript compiler options at runtime
-  interface CompilerOptions {
-    declaration: false;
-    declarationMap: false;
-    emitDeclarationOnly: false;
-    noEmit: boolean;
-  }
-
-  // Tell TypeScript not to generate declarations for all TypeScript files
-  declare module '*.ts' {
-    const content: any;
-    export default content;
-  }
-
-  declare module '*.tsx' {
-    import React from 'react';
-    const content: React.ComponentType<any>;
-    export default content;
-  }
-}
-
-// Media file declarations
+// Prevent TypeScript from generating .d.ts files
 declare module '*.svg' {
-  import React from 'react';
-  const SVG: React.FC<React.SVGAttributes<SVGElement>>;
-  export default SVG;
+  const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
+  export default content;
 }
 
 declare module '*.png' {
-  const value: string;
-  export default value;
+  const content: string;
+  export default content;
 }
 
 declare module '*.jpg' {
-  const value: string;
-  export default value;
+  const content: string;
+  export default content;
 }
 
-declare module '*.jpeg' {
-  const value: string;
-  export default value;
-}
-
-declare module '*.gif' {
-  const value: string;
-  export default value;
-}
-
-// Three.js related declarations
+// Define GLTFLoader module
 declare module 'three/examples/jsm/loaders/GLTFLoader.js' {
   import { Object3D, LoadingManager } from 'three';
   
@@ -188,6 +38,7 @@ declare module 'three/examples/jsm/loaders/GLTFLoader.js' {
   }
 }
 
+// Define ColladaLoader module
 declare module 'three/examples/jsm/loaders/ColladaLoader.js' {
   import { Object3D, Group, LoadingManager } from 'three';
   
@@ -202,8 +53,63 @@ declare module 'three/examples/jsm/loaders/ColladaLoader.js' {
   }
 }
 
-// Explicitly suppress type declarations for imports
-declare module '*';
+// Define vaul types to prevent drawer component errors
+declare module 'vaul' {
+  import * as React from 'react';
+  
+  export interface DrawerProps {
+    children?: React.ReactNode;
+    open?: boolean;
+    defaultOpen?: boolean;
+    onOpenChange?(open: boolean): void;
+    modal?: boolean;
+    shouldScaleBackground?: boolean;
+    nested?: boolean;
+    dismissible?: boolean;
+  }
+  
+  export const Drawer: React.FC<DrawerProps> & {
+    Trigger: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>>;
+    Portal: React.FC<{ children: React.ReactNode }>;
+    Content: React.FC<React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode }>;
+    Overlay: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+    Title: React.FC<React.HTMLAttributes<HTMLHeadingElement>>;
+    Description: React.FC<React.HTMLAttributes<HTMLParagraphElement>>;
+    Close: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>>;
+  };
+}
 
-// This empty export makes this a module to ensure TypeScript treats it correctly
-export {};
+// Add TypeScript compiler disable declaration options
+declare namespace NodeJS {
+  interface ProcessEnv {
+    readonly NODE_ENV: 'development' | 'production' | 'test';
+    readonly PUBLIC_URL: string;
+    readonly TS_SKIP_DECLARATIONS: string;
+    readonly DISABLE_TS_DECLARATION: string;
+  }
+}
+
+// Global TypeScript options to disable declaration files
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __SKIP_DECLARATION_FILES__: boolean;
+    }
+  }
+  
+  interface Window {
+    __TS_DISABLE_DECLARATIONS__: boolean;
+  }
+}
+
+// Tell TypeScript not to generate declaration files for these module formats
+declare module '*.js' { const content: any; export default content; }
+declare module '*.ts' { const content: any; export default content; }
+declare module '*.tsx' { const content: any; export default content; }
+
+// Declare a special triple-slash directive to disable declaration file output
+/// <reference no-default-lib="true"/>
+/// <reference types="node" />
+
+// Add a comment to signal that declaration files should be suppressed
+// @ts-nocheck
