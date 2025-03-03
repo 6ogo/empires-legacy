@@ -140,6 +140,3 @@ export const createHighlightEffect = (color: string): THREE.Mesh => {
   
   return highlight;
 };
-
-// Add dependencies for three.js loaders
-<lov-add-dependency>three@^0.161.0</lov-add-dependency>
