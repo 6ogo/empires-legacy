@@ -1,3 +1,4 @@
+// tsconfig.app.json
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -5,14 +6,19 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "composite": true,    
+    "composite": true, // Keep this as it's referenced
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": false,
-    "emitDeclarationOnly": true,
+
+    // Adjustments:
+    "noEmit": false,             // Keep false (means TSC *could* emit JS)
+    "emitDeclarationOnly": true, // Set to false
+    "declaration": true,          // Enable .d.ts generation for composite projects
+
     "jsx": "react-jsx",
 
     /* Linting */
