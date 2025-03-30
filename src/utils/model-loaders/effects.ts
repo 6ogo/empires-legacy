@@ -1,99 +1,86 @@
+// ================================================
+// File: src/utils/model-loaders/effects.ts
+// ================================================
 
 import * as THREE from 'three';
 
-// Create a visual highlight effect
-export const createHighlightEffect = (scene: THREE.Scene, position: THREE.Vector3, color: string = '#FFFFFF') => {
-  // Create a expanding ring effect
-  const geometry = new THREE.RingGeometry(0.2, 0.3, 16);
-  const material = new THREE.MeshBasicMaterial({ 
-    color: new THREE.Color(color),
-    transparent: true,
-    opacity: 0.7,
-    side: THREE.DoubleSide
-  });
-  
-  const ring = new THREE.Mesh(geometry, material);
-  ring.position.copy(position);
-  ring.position.y += 0.1;
-  ring.rotation.x = -Math.PI / 2;
-  scene.add(ring);
-  
-  // Animate the ring
-  let scale = 1;
-  let opacity = 0.7;
-  
-  const animate = () => {
-    scale += 0.05;
-    opacity -= 0.02;
-    
-    ring.scale.set(scale, scale, scale);
-    material.opacity = opacity;
-    
-    if (opacity <= 0) {
-      scene.remove(ring);
-      ring.geometry.dispose();
-      material.dispose();
-      return;
-    }
-    
-    requestAnimationFrame(animate);
-  };
-  
-  animate();
-};
-
-// Create a pulsing highlight for selected hexes
-export const createPulsingHighlight = (scene: THREE.Scene, position: THREE.Vector3, color: string = '#FFFFFF'): THREE.Mesh => {
-  const geometry = new THREE.RingGeometry(0.8, 0.9, 32);
+// Create a visual highlight effect (e.g., for selection)
+export const createHighlightEffect = (scene: THREE.Scene, position: THREE.Vector3, color: string = '#FFFF00', size = 1.1): THREE.Mesh => {
+  // Use a Cylinder or Ring geometry slightly larger than the hex base
+  const geometry = new THREE.CylinderGeometry(size * 0.95, size * 0.95, 0.05, 6); // Hexagon shape
   const material = new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
     transparent: true,
-    opacity: 0.5,
-    side: THREE.DoubleSide
+    opacity: 0.4,
+    side: THREE.DoubleSide,
+    depthWrite: false // Render on top without z-fighting
   });
-  
-  const ring = new THREE.Mesh(geometry, material);
-  ring.position.copy(position);
-  ring.position.y += 0.05;
-  ring.rotation.x = -Math.PI / 2;
-  scene.add(ring);
-  
-  // Return the mesh so it can be removed later
-  return ring;
+
+  const highlight = new THREE.Mesh(geometry, material);
+  highlight.position.copy(position);
+  highlight.position.y += 0.01; // Slightly above the base hex
+  highlight.rotation.x = Math.PI / 2; // Align with hex orientation if needed (depends on base hex)
+  scene.add(highlight);
+
+  return highlight; // Return the mesh so it can be managed (added/removed)
 };
 
-// Animate a pulsing highlight
-export const animatePulsingHighlight = (mesh: THREE.Mesh): { update: () => void, stop: () => void } => {
-  let scale = 1;
-  let opacity = 0.5;
-  let increasing = false;
-  let animationId: number | null = null;
-  
-  const update = () => {
-    if (increasing) {
-      scale += 0.005;
-      opacity += 0.01;
-      if (scale >= 1.1) increasing = false;
-    } else {
-      scale -= 0.005;
-      opacity -= 0.01;
-      if (scale <= 0.9) increasing = true;
+
+// Example of a simple particle effect for combat or events
+export const createParticleEffect = (scene: THREE.Scene, position: THREE.Vector3, count: number = 20, color: string = '#FF0000') => {
+    const particlesGeometry = new THREE.BufferGeometry();
+    const particlesMaterial = new THREE.PointsMaterial({
+        color: new THREE.Color(color),
+        size: 0.1,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending, // Nice effect for explosions/sparks
+        depthWrite: false
+    });
+
+    const vertices = [];
+    for (let i = 0; i < count; i++) {
+        // Random position spread around the target position
+        const x = position.x + (Math.random() - 0.5) * 1.5;
+        const y = position.y + Math.random() * 1.0; // Spread vertically
+        const z = position.z + (Math.random() - 0.5) * 1.5;
+        vertices.push(x, y, z);
     }
-    
-    mesh.scale.set(scale, scale, scale);
-    (mesh.material as THREE.MeshBasicMaterial).opacity = opacity;
-    
-    animationId = requestAnimationFrame(update);
-  };
-  
-  update();
-  
-  return {
-    update,
-    stop: () => {
-      if (animationId !== null) {
-        cancelAnimationFrame(animationId);
-      }
+    particlesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+    const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particles);
+
+    // Animate particles (fade out and remove)
+    let opacity = particlesMaterial.opacity;
+    const fadeOutDuration = 0.5; // seconds
+    const startTime = Date.now();
+
+    const animate = () => {
+        const elapsedTime = (Date.now() - startTime) / 1000;
+        opacity = Math.max(0, particlesMaterial.opacity - (elapsedTime / fadeOutDuration) * particlesMaterial.opacity);
+        particlesMaterial.opacity = opacity;
+
+        if (opacity <= 0) {
+            scene.remove(particles);
+            particlesGeometry.dispose();
+            particlesMaterial.dispose();
+            return;
+        }
+        requestAnimationFrame(animate);
+    };
+    animate();
+
+    return particles; // Return if further manipulation needed
+};
+
+
+// Utility function to update pulsing effect (example)
+export const updatePulseEffect = (mesh: THREE.Mesh | null, time: number) => {
+    if (!mesh) return;
+    const pulseFactor = Math.sin(time * 5) * 0.1 + 1.0; // Gentle pulsing scale
+    mesh.scale.set(pulseFactor, pulseFactor, pulseFactor);
+    if (mesh.material instanceof THREE.MeshBasicMaterial) {
+         mesh.material.opacity = Math.sin(time * 3) * 0.15 + 0.4; // Pulsing opacity
     }
-  };
 };
