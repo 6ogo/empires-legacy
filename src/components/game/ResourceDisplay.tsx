@@ -1,7 +1,9 @@
+// src/components/game/ResourceDisplay.tsx
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Coins, Tree, Mountain, Apple } from 'lucide-react';
+// Import the correctly named icon
+import { Coins, TreeDeciduous, Mountain, Apple } from 'lucide-react';
 
 interface ResourceDisplayProps {
   resources: {
@@ -23,7 +25,8 @@ export const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
 }) => {
   const resourceItems = [
     { name: 'Gold', value: resources.gold, icon: <Coins className="w-5 h-5 text-yellow-500" /> },
-    { name: 'Wood', value: resources.wood, icon: <Tree className="w-5 h-5 text-green-600" /> },
+    // Use the corrected icon name here
+    { name: 'Wood', value: resources.wood, icon: <TreeDeciduous className="w-5 h-5 text-green-600" /> },
     { name: 'Stone', value: resources.stone, icon: <Mountain className="w-5 h-5 text-gray-400" /> },
     { name: 'Food', value: resources.food, icon: <Apple className="w-5 h-5 text-red-500" /> }
   ];
@@ -66,7 +69,7 @@ export const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   }
 
   return (
-    <motion.div 
+    <motion.div
       className={`bg-gray-800 rounded-lg p-3 ${className}`}
       variants={containerVariants}
       initial="hidden"
@@ -74,7 +77,7 @@ export const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     >
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {resourceItems.map((resource, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             variants={itemVariants}
             className="flex flex-col items-center justify-center bg-gray-900 rounded p-2"
