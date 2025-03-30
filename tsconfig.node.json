@@ -1,17 +1,19 @@
+// tsconfig.node.json
 {
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "composite": true,
+    "composite": true, // Keep this as it's referenced
 
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": false,
+    // "noEmit": true,             // Remove this line
+    "emitDeclarationOnly": true, // Add this line instead
 
     /* Linting */
     "strict": true,

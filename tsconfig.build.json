@@ -5,7 +5,7 @@
     "declaration": false,
     "declarationMap": false,
     "emitDeclarationOnly": false,
-    "noEmit": true,
+    "noEmit": false,
     "skipLibCheck": true,
     "isolatedModules": true,
     "suppressExcessPropertyErrors": true,
