@@ -24,61 +24,18 @@ export default defineConfig(({ mode }) => ({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core dependencies
-          'vendor': [
-            'react',
-            'react-dom',
-            'react-router-dom',
-          ],
-          // State management and data fetching
-          'data-layer': [
-            '@tanstack/react-query',
-            '@supabase/supabase-js',
-          ],
-          // UI Components from Radix
-          'ui-core': [
-            '@radix-ui/react-slot',
-            '@radix-ui/react-label',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-dialog',
-          ],
-          'ui-overlay': [
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-dropdown-menu',
-          ],
-          'ui-navigation': [
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-navigation-menu',
-          ],
-          // Auth related components
-          'auth': [
-            './src/components/auth/PasswordLoginForm.tsx',
-            './src/components/auth/SignInForm.tsx',
-            './src/components/auth/SignUpForm.tsx',
-            './src/components/auth/MagicLinkForm.tsx',
-            './src/components/auth/GuestLoginButton.tsx',
-            './src/components/auth/Turnstile.tsx',
-          ],
-          // Game components split by functionality
-          'game-core': [
-            './src/components/game/GameBoard.tsx',
-            './src/components/game/GameContainer.tsx',
-            './src/components/game/GameScreen.tsx',
-          ],
-          'game-ui': [
-            './src/components/game/GameControls.tsx',
-            './src/components/game/GameMenus.tsx',
-            './src/components/game/GameTopBar.tsx',
-            './src/components/game/GameNavigation.tsx',
-          ],
-          'game-features': [
-            './src/components/game/Achievements.tsx',
-            './src/components/game/Stats.tsx',
-            './src/components/game/Leaderboard.tsx',
-          ],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor';
+            }
+            if (id.includes('@tanstack') || id.includes('@supabase')) {
+              return 'data-layer';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui';
+            }
+          }
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',

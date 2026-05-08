@@ -1,8 +1,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Gamepad, LogIn } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { ChevronRight, Gamepad } from "lucide-react";
 
 interface HeroSectionProps {
   handlePlayNowClick: () => void;
@@ -11,32 +10,18 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ handlePlayNowClick, mousePosition, backgroundRef }: HeroSectionProps) => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   return (
     <>
       <nav className="fixed top-0 right-0 z-50 p-4 flex items-center gap-4">
-        {user ? (
-          <Button 
-            onClick={() => navigate('/game')}
-            className="bg-[#ffd02f] text-black hover:bg-[#ffd02f]/90"
-          >
-            <Gamepad className="h-4 w-4 mr-2" />
-            Play Now
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/auth')}
-              className="bg-white/10 text-white hover:bg-white/20"
-            >
-              <LogIn className="h-4 w-4 mr-2" />
-              Login
-            </Button>
-          </>
-        )}
+        <Button
+          onClick={() => navigate('/game')}
+          className="bg-[#ffd02f] text-black hover:bg-[#ffd02f]/90"
+        >
+          <Gamepad className="h-4 w-4 mr-2" />
+          Play Now
+        </Button>
       </nav>
 
       <div 

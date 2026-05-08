@@ -65,6 +65,8 @@ export interface GamePlayer {
   ready: boolean;
 }
 
+export type Player = GamePlayer;
+
 export interface UIPlayer {
   id: string;
   username: string;

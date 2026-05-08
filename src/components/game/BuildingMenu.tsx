@@ -20,6 +20,7 @@ interface BuildingMenuProps {
   onBuild: (buildingType: string) => void;
   resources: Resources;
   selectedTerritory: Territory | null;
+  currentPlayerId?: string;
 }
 
 const buildings = [
@@ -76,7 +77,7 @@ const buildings = [
   },
 ];
 
-const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selectedTerritory }) => {
+const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selectedTerritory, currentPlayerId }) => {
   const canAfford = (costs: Partial<Resources>) => {
     return Object.entries(costs).every(
       ([resource, cost]) => (resources[resource as keyof Resources] || 0) >= (cost || 0)
@@ -89,7 +90,7 @@ const BuildingMenu: React.FC<BuildingMenuProps> = ({ onBuild, resources, selecte
       return false;
     }
 
-    if (selectedTerritory.owner !== selectedTerritory.owner) {
+    if (currentPlayerId && selectedTerritory.owner !== currentPlayerId) {
       toast.error("You can only build on your own territories!");
       return false;
     }

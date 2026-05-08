@@ -1,10 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameAction, ValidationResult, GamePhase, CombatResult } from '@/types/game';
-import { GameStateManager } from '@/lib/game-utils';
+import { GameState, GameAction, ValidationResult, GamePhase } from '@/types/game';
+import { GameStateManager, BUILDING_COSTS, checkVictoryCondition } from '@/lib/game-utils';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Json } from '@/integrations/supabase/types';
 
 interface GameStateOptions {
   persist?: boolean;
@@ -13,6 +11,23 @@ interface GameStateOptions {
 }
 
 const PERSIST_KEY = 'game:state';
+
+function deepCopyState(state: GameState): GameState {
+  return {
+    ...state,
+    players: state.players.map(p => ({
+      ...p,
+      resources: { ...p.resources },
+      territories: [...p.territories],
+    })),
+    territories: state.territories.map(t => ({
+      ...t,
+      resources: { ...t.resources },
+      militaryUnit: t.militaryUnit ? { ...t.militaryUnit } : null,
+    })),
+    updates: [...state.updates],
+  };
+}
 
 export const useGameState = (
   initialState: GameState,
@@ -23,11 +38,9 @@ export const useGameState = (
   const gameStateManagerRef = useRef(new GameStateManager(initialState));
   const queryClient = useQueryClient();
 
-  // Keep track of undo/redo history
   const historyRef = useRef<GameState[]>([initialState]);
   const currentIndexRef = useRef(0);
 
-  // Load persisted state if enabled
   useEffect(() => {
     if (options.persist) {
       const persistedState = localStorage.getItem(PERSIST_KEY);
@@ -42,7 +55,6 @@ export const useGameState = (
               historyRef.current = [parsedState];
               currentIndexRef.current = 0;
             } else {
-              console.error('Invalid persisted state:', validation.message);
               localStorage.removeItem(PERSIST_KEY);
             }
           } else {
@@ -51,19 +63,18 @@ export const useGameState = (
             historyRef.current = [parsedState];
             currentIndexRef.current = 0;
           }
-        } catch (error) {
-          console.error('Error loading persisted state:', error);
+        } catch {
           localStorage.removeItem(PERSIST_KEY);
         }
       }
     }
-  }, [options.persist, options.validateState]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addToHistory = useCallback((state: GameState) => {
     historyRef.current = historyRef.current.slice(0, currentIndexRef.current + 1);
     historyRef.current.push(state);
     currentIndexRef.current++;
-    
+
     if (historyRef.current.length > 50) {
       historyRef.current = historyRef.current.slice(-50);
       currentIndexRef.current = historyRef.current.length - 1;
@@ -71,56 +82,89 @@ export const useGameState = (
   }, []);
 
   const computeNewState = useCallback((action: GameAction, currentState: GameState): GameState => {
-    const newState = { ...currentState };
+    const newState = deepCopyState(currentState);
 
     switch (action.type) {
       case 'CLAIM_TERRITORY': {
         const territory = newState.territories.find(t => t.id === action.payload.territoryId);
-        if (territory) {
+        const player = newState.players.find(p => p.id === action.playerId);
+        if (territory && player) {
           territory.owner = action.playerId;
           territory.lastUpdated = action.timestamp;
+          if (!player.territories.includes(territory.id)) {
+            player.territories.push(territory.id);
+          }
         }
         break;
       }
+
       case 'BUILD': {
         const territory = newState.territories.find(t => t.id === action.payload.territoryId);
-        if (territory) {
+        const player = newState.players.find(p => p.id === action.playerId);
+        if (territory && player) {
+          const cost = BUILDING_COSTS[action.payload.buildingType] ?? {};
+          for (const [res, amt] of Object.entries(cost) as Array<[keyof typeof player.resources, number]>) {
+            player.resources[res] = Math.max(0, (player.resources[res] ?? 0) - (amt ?? 0));
+          }
           territory.building = action.payload.buildingType;
           territory.lastUpdated = action.timestamp;
         }
         break;
       }
+
       case 'RECRUIT': {
         const territory = newState.territories.find(t => t.id === action.payload.territoryId);
-        if (territory) {
-          territory.militaryUnit = action.payload.unit;
+        const player = newState.players.find(p => p.id === action.playerId);
+        if (territory && player) {
+          const unitCost = action.payload.unit?.cost ?? {};
+          for (const [res, amt] of Object.entries(unitCost) as Array<[keyof typeof player.resources, number]>) {
+            player.resources[res] = Math.max(0, (player.resources[res] ?? 0) - (amt ?? 0));
+          }
+          territory.militaryUnit = { ...action.payload.unit, hasMoved: false };
           territory.lastUpdated = action.timestamp;
         }
         break;
       }
+
       case 'ATTACK': {
         const fromTerritory = newState.territories.find(t => t.id === action.payload.fromTerritoryId);
         const toTerritory = newState.territories.find(t => t.id === action.payload.toTerritoryId);
-        
-        if (fromTerritory && toTerritory) {
+
+        if (fromTerritory && toTerritory && fromTerritory.militaryUnit) {
           const combatResult = gameStateManagerRef.current.getCombatResult(fromTerritory, toTerritory);
-          
-          if (combatResult.defenderDestroyed) {
-            toTerritory.owner = fromTerritory.owner;
-            toTerritory.militaryUnit = null;
-          }
-          
+
+          // Apply damage
           if (fromTerritory.militaryUnit) {
             fromTerritory.militaryUnit.health -= combatResult.attackerDamage;
+            fromTerritory.militaryUnit.hasMoved = true;
           }
           if (toTerritory.militaryUnit) {
             toTerritory.militaryUnit.health -= combatResult.defenderDamage;
           }
-          
-          if (fromTerritory.militaryUnit?.health <= 0) {
+
+          // Resolve deaths
+          if (fromTerritory.militaryUnit && fromTerritory.militaryUnit.health <= 0) {
             fromTerritory.militaryUnit = null;
           }
-          if (toTerritory.militaryUnit?.health <= 0) {
+
+          const prevDefenderOwner = toTerritory.owner;
+          if (combatResult.defenderDestroyed || !toTerritory.militaryUnit) {
+            if (toTerritory.militaryUnit && toTerritory.militaryUnit.health <= 0) {
+              toTerritory.militaryUnit = null;
+            }
+            toTerritory.owner = fromTerritory.owner;
+            toTerritory.building = null;
+
+            // Update territory lists
+            if (prevDefenderOwner && prevDefenderOwner !== toTerritory.owner) {
+              const oldOwner = newState.players.find(p => p.id === prevDefenderOwner);
+              if (oldOwner) oldOwner.territories = oldOwner.territories.filter(id => id !== toTerritory.id);
+              const newOwner = newState.players.find(p => p.id === toTerritory.owner);
+              if (newOwner && !newOwner.territories.includes(toTerritory.id)) {
+                newOwner.territories.push(toTerritory.id);
+              }
+            }
+          } else if (toTerritory.militaryUnit && toTerritory.militaryUnit.health <= 0) {
             toTerritory.militaryUnit = null;
           }
 
@@ -129,45 +173,72 @@ export const useGameState = (
         }
         break;
       }
+
       case 'END_TURN': {
+        // Building income for the player ending their turn
+        const turningPlayer = newState.players.find(p => p.id === action.playerId);
+        if (turningPlayer) {
+          const playerTerritories = newState.territories.filter(t => t.owner === turningPlayer.id);
+          for (const territory of playerTerritories) {
+            if (territory.building === 'lumber_mill') turningPlayer.resources.wood += 5;
+            else if (territory.building === 'mine')   turningPlayer.resources.stone += 5;
+            else if (territory.building === 'market') turningPlayer.resources.gold += 5;
+            else if (territory.building === 'farm')   turningPlayer.resources.food += 5;
+          }
+        }
+
         const currentPlayerIndex = newState.players.findIndex(p => p.id === newState.currentPlayer);
         const nextPlayerIndex = (currentPlayerIndex + 1) % newState.players.length;
-        
         newState.currentPlayer = newState.players[nextPlayerIndex].id;
         newState.turn += 1;
-        
-        newState.territories.forEach(territory => {
-          if (territory.militaryUnit) {
-            territory.militaryUnit.hasMoved = false;
-          }
-        });
-        break;
-      }
-      case 'END_PHASE': {
-        const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
-        const currentPhaseIndex = phases.indexOf(newState.phase);
-        
-        if (currentPhaseIndex === phases.length - 1) {
-          newState.phase = 'end';
-        } else {
-          newState.phase = phases[currentPhaseIndex + 1];
+
+        for (const territory of newState.territories) {
+          if (territory.militaryUnit) territory.militaryUnit.hasMoved = false;
         }
         break;
       }
+
+      case 'END_PHASE': {
+        const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
+        const currentPhaseIndex = phases.indexOf(newState.phase);
+        if (currentPhaseIndex < phases.length - 1) {
+          newState.phase = phases[currentPhaseIndex + 1];
+        }
+        // When moving to building phase from setup, reset currentPlayer to first player
+        if (newState.phase === 'building') {
+          newState.currentPlayer = newState.players[0].id;
+        }
+        break;
+      }
+
       case 'SET_STATE': {
-        return action.payload.state;
+        return action.payload.state as GameState;
       }
     }
 
     newState.version += 1;
     newState.lastUpdated = action.timestamp;
 
-    return newState;
-  }, []);
+    // Check victory after every game action
+    if (action.type !== 'SET_STATE' && newState.phase !== 'end') {
+      const victory = checkVictoryCondition(newState);
+      if (victory.winner) {
+        newState.phase = 'end';
+        newState.updates.push({
+          type: 'system',
+          message: `${victory.winner} wins by ${victory.type}!`,
+          timestamp: action.timestamp,
+        });
+        toast.success(`${victory.winner} wins by ${victory.type} victory!`);
+      }
+    }
 
-  const dispatchAction = useCallback(async (action: GameAction) => {
+    return newState;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dispatchAction = useCallback(async (action: GameAction): Promise<boolean> => {
     try {
-      const validation = await gameStateManagerRef.current.validateGameAction(action);
+      const validation = gameStateManagerRef.current.validateGameAction(action);
       if (!validation.valid) {
         toast.error(validation.message || 'Invalid action');
         return false;
@@ -178,7 +249,7 @@ export const useGameState = (
       if (options.validateState) {
         const stateValidation = options.validateState(newState);
         if (!stateValidation.valid) {
-          toast.error('Invalid game state');
+          toast.error('Invalid game state after action');
           return false;
         }
       }
@@ -190,16 +261,12 @@ export const useGameState = (
 
       queryClient.setQueryData(['gameState', newState.id], newState);
 
-      if (action.type !== 'SET_STATE' && newState.id) {
-        await supabase
-          .from('games')
-          .update({ 
-            state: JSON.stringify(newState) as unknown as Json,
-            last_action_timestamp: action.timestamp.toString(),
-            current_player: newState.currentPlayer,
-            phase: newState.phase
-          })
-          .eq('id', parseInt(newState.id));
+      if (options.persist) {
+        localStorage.setItem(PERSIST_KEY, JSON.stringify(newState));
+      }
+
+      if (options.onStateChange) {
+        options.onStateChange(newState);
       }
 
       return true;
@@ -208,7 +275,7 @@ export const useGameState = (
       toast.error('Error processing game action');
       return false;
     }
-  }, [gameState, computeNewState, options.validateState, addToHistory, queryClient]);
+  }, [gameState, computeNewState, options, addToHistory, queryClient]);
 
   const undo = useCallback(() => {
     if (currentIndexRef.current > 0) {
@@ -234,7 +301,7 @@ export const useGameState = (
     historyRef.current = [newState];
     currentIndexRef.current = 0;
     setLastAction(null);
-    
+
     if (options.persist) {
       localStorage.setItem(PERSIST_KEY, JSON.stringify(newState));
     }

@@ -219,10 +219,14 @@ const HexGrid: React.FC<HexGridProps> = ({
     });
   };
 
-  const playerColors = {
+  const playerColors: Record<string, string> = {
     player1: "fill-purple-500",
     player2: "fill-orange-500",
-    neutral: "fill-gray-700"
+    player3: "fill-blue-500",
+    player4: "fill-green-500",
+    player5: "fill-red-500",
+    player6: "fill-yellow-500",
+    neutral: "fill-gray-700",
   };
 
   const resourceColors = {
@@ -344,7 +348,7 @@ const HexGrid: React.FC<HexGridProps> = ({
                   <polygon
                     points={getHexagonPoints()}
                     className={`
-                      ${territory.owner ? playerColors[territory.owner] : playerColors.neutral}
+                      ${territory.owner ? (playerColors[territory.owner] ?? playerColors.neutral) : playerColors.neutral}
                       stroke-gray-400 stroke-2
                       transition-colors duration-300
                       ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}

@@ -10,6 +10,7 @@ interface GameMenusProps {
   onBuild: (buildingType: string) => void;
   onRecruit: (unitType: string) => void;
   resources: Resources;
+  currentPlayerId?: string;
 }
 
 const GameMenus: React.FC<GameMenusProps> = ({
@@ -18,17 +19,19 @@ const GameMenus: React.FC<GameMenusProps> = ({
   onBuild,
   onRecruit,
   resources,
+  currentPlayerId,
 }) => {
-  if (!showMenus || !selectedTerritory) return null;
+  if (!showMenus) return null;
 
   return (
-    <div className="absolute top-24 inset-x-4 md:inset-x-auto md:left-4 md:right-4 flex flex-col md:flex-row justify-center gap-4">
-      <BuildingMenu 
+    <div className="flex flex-col gap-4">
+      <BuildingMenu
         onBuild={onBuild}
         selectedTerritory={selectedTerritory}
         resources={resources}
+        currentPlayerId={currentPlayerId}
       />
-      <RecruitmentMenu 
+      <RecruitmentMenu
         onRecruit={onRecruit}
         resources={resources}
         selectedTerritory={selectedTerritory}
