@@ -1,25 +1,25 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { useGameStore } from "@/store/gameStore";
-import { routes, getRoute } from "@/routes";
 import { withErrorHandling, handleGameError } from "@/utils/error-handling";
+import { toast } from "sonner";
+import { GameStatus, GameMode } from "@/types/game";
 import GameStartMenu from "./GameStartMenu";
 import TopBar from "./menu/TopBar";
 import RandomEventsDialog from "./menu/RandomEventsDialog";
-import { toast } from "sonner";
-import { GameStatus, GameMode } from "@/types/game";
 
 interface MainMenuProps {
   gameStatus: GameStatus;
   gameMode: GameMode | null;
   onCreateGame: (numPlayers: number, boardSize: number) => Promise<void>;
-  onJoinGame: () => Promise<void>;
+  onJoinGame: (roomId: string) => Promise<void>;
   joinRoomId: string;
   onJoinRoomIdChange: (value: string) => void;
   isHost: boolean;
   onStartAnyway: () => void;
+  onSelectMode: (mode: GameMode) => void;
   connectedPlayers: { username: string }[];
+  onBackToMenu: () => void;
 }
 
 const MainMenu: React.FC<MainMenuProps> = ({
@@ -31,63 +31,28 @@ const MainMenu: React.FC<MainMenuProps> = ({
   onJoinRoomIdChange,
   isHost,
   onStartAnyway,
+  onSelectMode,
   connectedPlayers,
+  onBackToMenu,
 }) => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const {
-    setGameMode,
-    setGameStatus,
-    setShowLeaderboard,
-    showLeaderboard
-  } = useGameStore();
-
+  const { setGameStatus } = useGameStore();
   const [showRandomEventsInfo, setShowRandomEventsInfo] = React.useState(false);
-  const gameStartMenuStatus = gameStatus === 'stats' ? 'menu' : gameStatus;
+  const [pendingJoinRoomId, setPendingJoinRoomId] = React.useState('');
 
-  const handleShowLeaderboard = () => {
-    setShowLeaderboard(true);
-    navigate(getRoute('leaderboard'));
-  };
+  // Map creating/joining status so BoardSizeSelect renders in "mode_select" slot
+  const gameStartMenuStatus =
+    gameStatus === 'creating' || gameStatus === 'joining'
+      ? 'mode_select'
+      : gameStatus === 'stats'
+      ? 'menu'
+      : gameStatus;
 
-  const handleShowStats = () => {
-    setGameStatus('stats');
-    navigate(getRoute('stats'));
-  };
-
-  const handleSelectMode = async (mode: GameMode | null) => {
-    try {
-      await withErrorHandling(
-        (async () => {
-          setGameMode(mode);
-          if (mode === 'local') {
-            setGameStatus('creating');
-          } else if (mode === 'online') {
-            setGameStatus('joining');
-          } else {
-            setGameStatus('menu');
-          }
-        })(),
-        { context: 'Game Mode Selection' }
-      );
-    } catch (error) {
-      handleGameError(error, 'Mode Selection Failed');
-      setGameStatus('menu');
-    }
-  };
-
-  const handleBackClick = async () => {
-    try {
-      if (["mode_select", "stats", "creating", "joining", "waiting"].includes(gameStatus)) {
-        await handleSelectMode(null);
-        if (gameStatus === "joining" || gameStatus === "waiting") {
-          onJoinRoomIdChange('');
-        }
-        navigate(getRoute('game'));
-      }
-    } catch (error) {
-      handleGameError(error, 'Navigation Failed');
-      toast.error('Failed to return to menu');
+  const handleBackClick = () => {
+    if (["mode_select", "creating", "joining", "waiting", "stats"].includes(gameStatus)) {
+      onBackToMenu();
+    } else {
+      navigate('/');
     }
   };
 
@@ -106,13 +71,18 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const handleJoinGame = async () => {
     try {
       await withErrorHandling(
-        onJoinGame(),
+        onJoinGame(pendingJoinRoomId || joinRoomId),
         { context: 'Game Join' }
       );
     } catch (error) {
       handleGameError(error, 'Game Join Failed');
-      setGameStatus('menu');
+      toast.error('Failed to join game');
     }
+  };
+
+  const handleJoinRoomIdChange = (value: string) => {
+    setPendingJoinRoomId(value);
+    onJoinRoomIdChange(value);
   };
 
   return (
@@ -120,9 +90,9 @@ const MainMenu: React.FC<MainMenuProps> = ({
       <TopBar
         gameStatus={gameStatus}
         handleBackClick={handleBackClick}
-        onShowLeaderboard={handleShowLeaderboard}
-        onShowStats={handleShowStats}
-        profile={profile}
+        onShowLeaderboard={() => {}}
+        onShowStats={() => {}}
+        profile={null}
       />
 
       <div className="h-full flex items-center justify-center">
@@ -130,11 +100,11 @@ const MainMenu: React.FC<MainMenuProps> = ({
           <GameStartMenu
             gameStatus={gameStartMenuStatus}
             gameMode={gameMode}
-            onSelectMode={handleSelectMode}
+            onSelectMode={onSelectMode}
             onCreateGame={handleCreateGame}
             onJoinGame={handleJoinGame}
-            joinRoomId={joinRoomId}
-            onJoinRoomIdChange={onJoinRoomIdChange}
+            joinRoomId={joinRoomId || pendingJoinRoomId}
+            onJoinRoomIdChange={handleJoinRoomIdChange}
             isHost={isHost}
             onStartAnyway={onStartAnyway}
             connectedPlayers={connectedPlayers}
@@ -143,9 +113,9 @@ const MainMenu: React.FC<MainMenuProps> = ({
         </div>
       </div>
 
-      <RandomEventsDialog 
-        open={showRandomEventsInfo} 
-        onOpenChange={setShowRandomEventsInfo} 
+      <RandomEventsDialog
+        open={showRandomEventsInfo}
+        onOpenChange={setShowRandomEventsInfo}
       />
     </div>
   );

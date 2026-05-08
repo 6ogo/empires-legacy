@@ -1,11 +1,10 @@
-
 import React from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Territory, Resources } from "@/types/game";
 import { Button } from "@/components/ui/button";
-import { Territory, Resources, MilitaryUnit } from "@/types/game";
 import { toast } from "sonner";
-import { Shield, Sword, Heart } from "lucide-react";
+import { Heart, Sword } from "lucide-react";
 import { militaryUnits } from "@/data/military-units";
+import { ResourceChip } from "./ResourceChip";
 
 interface RecruitmentMenuProps {
   onRecruit: (unitType: string) => void;
@@ -13,87 +12,59 @@ interface RecruitmentMenuProps {
   selectedTerritory: Territory | null;
 }
 
-const RecruitmentMenu: React.FC<RecruitmentMenuProps> = ({
-  onRecruit,
-  resources,
-  selectedTerritory,
-}) => {
-  const canAfford = (costs: Partial<Resources>) => {
-    return Object.entries(costs).every(
-      ([resource, cost]) => resources[resource as keyof Resources] >= (cost || 0)
-    );
-  };
-
-  const canRecruitInTerritory = (unit: MilitaryUnit) => {
-    if (!selectedTerritory) {
-      toast.error("Please select a territory first!");
-      return false;
-    }
-
-    if (selectedTerritory.militaryUnit) {
-      toast.error("This territory already has a military unit!");
-      return false;
-    }
-
-    if (!canAfford(unit.cost)) {
-      toast.error("Insufficient resources!");
-      return false;
-    }
-
-    return true;
-  };
+const RecruitmentMenu: React.FC<RecruitmentMenuProps> = ({ onRecruit, resources, selectedTerritory }) => {
+  const canAfford = (costs: Partial<Resources>) =>
+    Object.entries(costs).every(([r, c]) => (resources[r as keyof Resources] ?? 0) >= (c ?? 0));
 
   const handleRecruitClick = (unitType: string) => {
     const unit = militaryUnits[unitType];
-    if (canRecruitInTerritory(unit)) {
-      onRecruit(unitType);
-    }
+    if (!selectedTerritory) { toast.error("Select a territory first"); return; }
+    if (selectedTerritory.militaryUnit) { toast.error("Territory already has a unit"); return; }
+    if (!canAfford(unit.cost)) { toast.error("Insufficient resources"); return; }
+    onRecruit(unitType);
   };
 
   return (
-    <ScrollArea className="h-[300px] bg-white/10 backdrop-blur-sm rounded-lg p-4">
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg text-game-gold">Military Units</h3>
-        <div className="grid gap-3">
-          {Object.entries(militaryUnits).map(([unitType, unit]) => (
-            <div
-              key={unitType}
-              className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-2 items-center">
-                    <Heart className="w-4 h-4 text-red-400" />
-                    <span>{unit.health}</span>
-                    <Sword className="w-4 h-4 text-blue-400" />
-                    <span>{unit.damage}</span>
-                  </div>
-                  <div>
-                    <h4 className="font-medium capitalize">{unit.type}</h4>
-                    <p className="text-sm text-gray-400">
-                      Cost: {Object.entries(unit.cost).map(([resource, amount], i) => (
-                        <span key={resource}>
-                          {i > 0 && ", "}
-                          {amount} {resource}
-                        </span>
-                      ))}
-                    </p>
-                  </div>
+    <div className="space-y-2">
+      {Object.entries(militaryUnits).map(([unitType, unit]) => {
+        const affordable = canAfford(unit.cost);
+        return (
+          <div key={unitType} className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium text-sm text-white capitalize">{unit.type}</p>
+                <div className="flex items-center gap-3 mt-1 text-xs">
+                  <span className="flex items-center gap-1 text-red-400">
+                    <Heart className="w-3 h-3" /> {unit.health}
+                  </span>
+                  <span className="flex items-center gap-1 text-blue-400">
+                    <Sword className="w-3 h-3" /> {unit.damage}
+                  </span>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleRecruitClick(unitType)}
-                  disabled={!selectedTerritory || !canAfford(unit.cost)}
-                  className="ml-2"
-                >
-                  Recruit
-                </Button>
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {Object.entries(unit.cost).map(([res, amt]) => (
+                    <ResourceChip
+                      key={res}
+                      resource={res as keyof Resources}
+                      amount={amt!}
+                      affordable={(resources[res as keyof Resources] ?? 0) >= amt!}
+                    />
+                  ))}
+                </div>
               </div>
+              <Button
+                size="sm"
+                onClick={() => handleRecruitClick(unitType)}
+                disabled={!selectedTerritory || !affordable}
+                className="shrink-0 h-7 text-xs"
+              >
+                Recruit
+              </Button>
             </div>
-          ))}
-        </div>
-      </div>
-    </ScrollArea>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
