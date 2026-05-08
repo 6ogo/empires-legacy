@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useGameActions } from '@/hooks/useGameActions';
 import { GameState, GameAction, Territory, Resources } from '@/types/game';
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import HexGrid from './HexGrid';
 import GameControls from './GameControls';
 import GameTopBar from './GameTopBar';
-import GameMenus from './GameMenus';
+import TerritoryInfoPanel from './TerritoryInfoPanel';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -28,15 +28,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onBack,
 }) => {
   const { selectedTerritory, setSelectedTerritory } = useGameStore();
-
   const { claimTerritory, buildStructure, recruitUnit, attackTerritory } = useGameActions(dispatchAction);
 
   const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayer);
   const resources: Resources = currentPlayer?.resources ?? { gold: 0, wood: 0, stone: 0, food: 0 };
 
-  const showMenus = ['building', 'recruitment'].includes(gameState.phase);
-
-  const handleTerritoryClick = async (territory: Territory) => {
+  // Stable callback so React.memo(HexGrid) only re-renders when game phase/selection changes
+  const handleTerritoryClick = useCallback(async (territory: Territory) => {
     try {
       await withErrorHandling(
         (async () => {
@@ -49,7 +47,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
           if (gameState.phase === 'combat') {
             if (selectedTerritory) {
-              // Second click — attack if it's an enemy adjacent territory
               if (territory.owner !== currentPlayer.id && territory.id !== selectedTerritory.id) {
                 await attackTerritory(selectedTerritory.id, territory.id, currentPlayer.id);
                 setSelectedTerritory(null);
@@ -59,7 +56,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 setSelectedTerritory(territory);
               }
             } else {
-              // First click — select own territory with unit
               if (territory.owner === currentPlayer.id && territory.militaryUnit) {
                 setSelectedTerritory(territory);
               } else if (territory.owner !== currentPlayer.id) {
@@ -69,11 +65,11 @@ const GameBoard: React.FC<GameBoardProps> = ({
             return;
           }
 
-          // Building or recruitment phase — select own territories
+          // Building or recruitment phase — select own territories to show info panel
           if (territory.owner === currentPlayer.id) {
             setSelectedTerritory(selectedTerritory?.id === territory.id ? null : territory);
           } else {
-            toast.error('Select one of your own territories');
+            setSelectedTerritory(selectedTerritory?.id === territory.id ? null : territory);
           }
         })(),
         { context: 'Territory Action' }
@@ -82,9 +78,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
       handleGameError(error, 'Territory Action Failed');
       setSelectedTerritory(null);
     }
-  };
+  }, [currentPlayer, gameState.phase, selectedTerritory, claimTerritory, attackTerritory, setSelectedTerritory]);
 
-  const handleBuild = async (buildingType: string) => {
+  const handleBuild = useCallback(async (buildingType: string) => {
     if (!selectedTerritory || !currentPlayer) return;
     try {
       await withErrorHandling(
@@ -95,35 +91,35 @@ const GameBoard: React.FC<GameBoardProps> = ({
     } catch (error) {
       handleGameError(error, 'Building Construction Failed');
     }
-  };
+  }, [selectedTerritory, currentPlayer, buildStructure, setSelectedTerritory]);
 
-  const handleRecruit = async (unitType: string) => {
+  const handleRecruit = useCallback(async (unitType: string) => {
     if (!selectedTerritory || !currentPlayer) return;
     const unitTemplate = militaryUnits[unitType.toUpperCase()];
-    if (!unitTemplate) {
-      toast.error('Unknown unit type');
-      return;
-    }
+    if (!unitTemplate) { toast.error('Unknown unit type'); return; }
     try {
       await withErrorHandling(
-        recruitUnit(
-          selectedTerritory.id,
-          { ...unitTemplate, hasMoved: false },
-          currentPlayer.id
-        ),
+        recruitUnit(selectedTerritory.id, { ...unitTemplate, hasMoved: false }, currentPlayer.id),
         { context: 'Unit Recruitment' }
       );
       setSelectedTerritory(null);
     } catch (error) {
       handleGameError(error, 'Recruitment Failed');
     }
-  };
+  }, [selectedTerritory, currentPlayer, recruitUnit, setSelectedTerritory]);
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
-      <GameTopBar onBack={onBack} resources={resources} />
+      {/* Top bar — h-14 */}
+      <GameTopBar
+        onBack={onBack}
+        resources={resources}
+        territories={gameState.territories}
+        currentPlayerId={currentPlayer?.id ?? ''}
+      />
 
-      <div className="absolute inset-0 pt-16 pb-32">
+      {/* Hex grid — fills below top bar, leaving room on right for TerritoryInfoPanel on desktop */}
+      <div className="absolute inset-0 pt-14 md:pr-72">
         <HexGrid
           territories={gameState.territories}
           selectedTerritory={selectedTerritory}
@@ -134,7 +130,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
         />
       </div>
 
-      <div className="absolute bottom-4 right-4 left-4 md:left-auto md:right-4 md:w-64">
+      {/* Game controls — bottom-left */}
+      <div className={`absolute left-4 z-30 w-64 transition-all duration-200 ${selectedTerritory ? 'bottom-68 md:bottom-4' : 'bottom-4'}`}>
         <GameControls
           gameState={gameState}
           onEndTurn={onEndTurn}
@@ -143,31 +140,21 @@ const GameBoard: React.FC<GameBoardProps> = ({
         />
       </div>
 
-      {showMenus && (
-        <div className="absolute top-20 left-4 right-4 md:left-4 md:right-auto md:w-72 max-h-[60vh] overflow-y-auto">
-          <GameMenus
-            showMenus={showMenus}
-            selectedTerritory={selectedTerritory}
-            onBuild={handleBuild}
-            onRecruit={handleRecruit}
-            resources={resources}
-            currentPlayerId={currentPlayer?.id ?? ''}
-          />
-        </div>
-      )}
-
-      {/* Phase and turn indicator */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-full px-4 py-1 text-white text-sm">
-        <span className="text-game-gold font-bold capitalize">{gameState.phase}</span>
-        {' — '}
-        <span className="capitalize">{gameState.currentPlayer}&apos;s turn</span>
-        {' — '}Turn {gameState.turn}
-      </div>
+      {/* Territory info panel — right sidebar (desktop) / bottom sheet (mobile) */}
+      <TerritoryInfoPanel
+        territory={selectedTerritory}
+        phase={gameState.phase}
+        currentPlayerId={currentPlayer?.id ?? ''}
+        resources={resources}
+        onClose={() => setSelectedTerritory(null)}
+        onBuild={handleBuild}
+        onRecruit={handleRecruit}
+      />
 
       {/* Win screen */}
       {gameState.phase === 'end' && (
         <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-[#1a2237] border border-game-gold rounded-xl p-8 text-center max-w-sm">
+          <div className="bg-[#1a2237] border border-game-gold rounded-xl p-8 text-center max-w-sm mx-4">
             <h2 className="text-3xl font-bold text-game-gold mb-4">Game Over!</h2>
             <p className="text-white mb-2">
               {gameState.updates.filter(u => u.type === 'system').pop()?.message ?? 'The game has ended.'}

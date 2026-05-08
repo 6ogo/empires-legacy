@@ -1,86 +1,41 @@
-
-import React from "react";
-import { Resources } from "@/types/game";
-import { Coins, Trees, Mountain, Wheat } from "lucide-react";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import React, { useMemo } from "react";
+import { Resources, Territory } from "@/types/game";
+import { BUILDING_INCOME } from "@/lib/game-constants";
+import { RESOURCE_CONFIG } from "./ResourceChip";
 
 interface ResourceDisplayProps {
   resources: Resources;
+  territories: Territory[];
+  currentPlayerId: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources, territories, currentPlayerId }) => {
+  const income = useMemo(() => {
+    const base: Resources = { gold: 0, wood: 0, stone: 0, food: 0 };
+    for (const t of territories) {
+      if (t.owner !== currentPlayerId || !t.building) continue;
+      const inc = BUILDING_INCOME[t.building] ?? {};
+      for (const [k, v] of Object.entries(inc) as [keyof Resources, number][]) {
+        base[k] += v;
+      }
+    }
+    return base;
+  }, [territories, currentPlayerId]);
+
   return (
-    <div className="relative flex gap-6 p-4 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg">
-      <HoverCard>
-        <HoverCardTrigger>
-          <div className="flex items-center gap-2 cursor-help">
-            <Coins className="w-6 h-6 text-game-gold" />
-            <span className="font-semibold text-lg">{resources.gold}</span>
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent sideOffset={5} className="w-80 bg-background/95 backdrop-blur-sm border border-border/50">
-          <div className="flex flex-col space-y-2">
-            <h4 className="font-semibold text-sm">Gold Income Sources</h4>
-            <p className="text-sm">Base income: 10 per territory</p>
-            <p className="text-sm">Market bonus: +20 gold, +2 per wood/stone, +5 per food</p>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
-
-      <HoverCard>
-        <HoverCardTrigger>
-          <div className="flex items-center gap-2 cursor-help">
-            <Trees className="w-6 h-6 text-game-wood" />
-            <span className="font-semibold text-lg">{resources.wood}</span>
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent sideOffset={5} className="w-80 bg-background/95 backdrop-blur-sm border border-border/50">
-          <div className="flex flex-col space-y-2">
-            <h4 className="font-semibold text-sm">Wood Income Sources</h4>
-            <p className="text-sm">Base income: 5 per territory</p>
-            <p className="text-sm">Forest bonus: x3 wood production</p>
-            <p className="text-sm">Lumber Mill bonus: +20 wood</p>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
-
-      <HoverCard>
-        <HoverCardTrigger>
-          <div className="flex items-center gap-2 cursor-help">
-            <Mountain className="w-6 h-6 text-game-stone" />
-            <span className="font-semibold text-lg">{resources.stone}</span>
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent sideOffset={5} className="w-80 bg-background/95 backdrop-blur-sm border border-border/50">
-          <div className="flex flex-col space-y-2">
-            <h4 className="font-semibold text-sm">Stone Income Sources</h4>
-            <p className="text-sm">Base income: 5 per territory</p>
-            <p className="text-sm">Mountain bonus: x3 stone production</p>
-            <p className="text-sm">Mine bonus: +20 stone</p>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
-
-      <HoverCard>
-        <HoverCardTrigger>
-          <div className="flex items-center gap-2 cursor-help">
-            <Wheat className="w-6 h-6 text-game-food" />
-            <span className="font-semibold text-lg">{resources.food}</span>
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent sideOffset={5} className="w-80 bg-background/95 backdrop-blur-sm border border-border/50">
-          <div className="flex flex-col space-y-2">
-            <h4 className="font-semibold text-sm">Food Income Sources</h4>
-            <p className="text-sm">Base income: 5 per territory</p>
-            <p className="text-sm">Plains bonus: x3 food production</p>
-            <p className="text-sm">Farm bonus: +8 food</p>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
+    <div className="flex items-center bg-black/60 backdrop-blur-sm rounded-full border border-white/10 shadow-lg overflow-hidden">
+      {RESOURCE_CONFIG.map(({ key, Icon, colorClass }, i) => (
+        <div
+          key={key}
+          className={`flex items-center gap-1.5 px-3 py-2 ${i < RESOURCE_CONFIG.length - 1 ? "border-r border-white/10" : ""}`}
+        >
+          <Icon className={`w-4 h-4 ${colorClass} shrink-0`} />
+          <span className="font-bold text-sm text-white tabular-nums">{resources[key]}</span>
+          {income[key] > 0 && (
+            <span className={`text-xs font-medium ${colorClass} opacity-75`}>+{income[key]}</span>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

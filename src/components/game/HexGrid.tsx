@@ -1,9 +1,168 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Territory } from "@/types/game";
-import { Trees, Mountain, Wheat, Coins, ZoomIn, ZoomOut } from "lucide-react";
-import { toast } from "sonner";
+import { TerrainType } from "@/types/game";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+
+// ---------------------------------------------------------------------------
+// Module-level constants — computed exactly once, never recreated per render
+// ---------------------------------------------------------------------------
+
+const HEX_SIZE = 40;
+const SQRT3 = Math.sqrt(3);
+
+// Flat-top hexagon vertices: 0°, 60°, 120°, 180°, 240°, 300°
+const HEX_POINTS = Array.from({ length: 6 }, (_, i) => {
+  const rad = (Math.PI / 3) * i;
+  return `${HEX_SIZE * Math.cos(rad)},${HEX_SIZE * Math.sin(rad)}`;
+}).join(" ");
+
+// Flat-top axial coordinate → pixel center
+// x = size * 1.5 * q
+// y = size * √3 * (r + q/2)
+function getHexPosition(q: number, r: number) {
+  return {
+    x: HEX_SIZE * 1.5 * q,
+    y: HEX_SIZE * SQRT3 * (r + q / 2),
+  };
+}
+
+// Axial adjacency check (cube coordinates)
+function isAdjacentAxial(q1: number, r1: number, q2: number, r2: number): boolean {
+  const dq = Math.abs(q1 - q2);
+  const dr = Math.abs(r1 - r2);
+  const ds = Math.abs((-q1 - r1) - (-q2 - r2));
+  return dq <= 1 && dr <= 1 && ds <= 1 && (dq + dr + ds) > 0;
+}
+
+const TERRAIN_FILL: Record<TerrainType, string> = {
+  plains:    "#6B8E4E",
+  forest:    "#2D5A27",
+  hills:     "#8B7355",
+  mountains: "#5A5A6E",
+  river:     "#3A6B8C",
+};
+
+const PLAYER_OVERLAY: Record<string, string> = {
+  player1: "rgba(159,122,234,0.35)",
+  player2: "rgba(248,187,92,0.35)",
+  player3: "rgba(72,187,120,0.35)",
+  player4: "rgba(66,153,225,0.35)",
+  player5: "rgba(245,101,101,0.35)",
+  player6: "rgba(236,201,75,0.35)",
+};
+
+const PLAYER_STROKE: Record<string, string> = {
+  player1: "#9F7AEA",
+  player2: "#F8BB5C",
+  player3: "#48BB78",
+  player4: "#42A0E1",
+  player5: "#F56565",
+  player6: "#ECC94B",
+};
+
+// ---------------------------------------------------------------------------
+// HexTile — memoized per-territory tile, only re-renders when its data changes
+// ---------------------------------------------------------------------------
+
+interface HexTileProps {
+  territory: Territory;
+  isSelected: boolean;
+  isHovered: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}
+
+const HexTile = React.memo<HexTileProps>(({
+  territory,
+  isSelected,
+  isHovered,
+  onMouseEnter,
+  onMouseLeave,
+}) => {
+  const { x, y } = getHexPosition(territory.coordinates.q, territory.coordinates.r);
+
+  const strokeColor = isSelected
+    ? "#F5D547"
+    : isHovered
+    ? "#FFFFFF"
+    : territory.owner
+    ? (PLAYER_STROKE[territory.owner] ?? "#6B7280")
+    : "#4B5563";
+
+  const strokeWidth = isSelected ? 3 : isHovered ? 2.5 : 1.5;
+
+  return (
+    <g
+      data-territory-id={territory.id}
+      transform={`translate(${x},${y})`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{ cursor: "pointer" }}
+    >
+      {/* Layer 1: terrain fill */}
+      <polygon
+        points={HEX_POINTS}
+        fill={TERRAIN_FILL[territory.terrain] ?? TERRAIN_FILL.plains}
+        stroke={strokeColor}
+        strokeWidth={strokeWidth}
+      />
+
+      {/* Layer 2: owner overlay */}
+      {territory.owner && (
+        <polygon
+          points={HEX_POINTS}
+          fill={PLAYER_OVERLAY[territory.owner] ?? "transparent"}
+          stroke="none"
+          style={{ pointerEvents: "none" }}
+        />
+      )}
+
+      {/* Building indicator: gold dot top-right */}
+      {territory.building && (
+        <circle
+          cx={HEX_SIZE * 0.55}
+          cy={-HEX_SIZE * 0.55}
+          r={5}
+          fill="#F5D547"
+          stroke="#1a1a2e"
+          strokeWidth={1}
+          style={{ pointerEvents: "none" }}
+        />
+      )}
+
+      {/* Unit indicator: red dot bottom-right */}
+      {territory.militaryUnit && (
+        <circle
+          cx={HEX_SIZE * 0.55}
+          cy={HEX_SIZE * 0.55}
+          r={5}
+          fill="#EF4444"
+          stroke="#1a1a2e"
+          strokeWidth={1}
+          style={{ pointerEvents: "none" }}
+        />
+      )}
+
+      {/* Terrain label (subtle, center) */}
+      <text
+        x={0}
+        y={3}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={9}
+        fill="rgba(255,255,255,0.35)"
+        style={{ pointerEvents: "none", userSelect: "none" }}
+      >
+        {territory.terrain.slice(0, 2).toUpperCase()}
+      </text>
+    </g>
+  );
+});
+
+// ---------------------------------------------------------------------------
+// HexGrid — main component
+// ---------------------------------------------------------------------------
 
 interface HexGridProps {
   territories: Territory[];
@@ -18,424 +177,204 @@ const HexGrid: React.FC<HexGridProps> = ({
   territories,
   onTerritoryClick,
   selectedTerritory,
-  currentPlayer,
-  playerResources,
-  phase,
 }) => {
   const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const draggingRef = useRef(false);
+  const dragThresholdRef = useRef(false);
+  const dragStartRef = useRef({ mx: 0, my: 0, px: 0, py: 0 });
+  const pinchStartRef = useRef(0);
+  const touchPanStartRef = useRef({ tx: 0, ty: 0, px: 0, py: 0 });
 
-  const hexSize = 40;
-  const xSpacing = hexSize * 2;
-  const ySpacing = hexSize * 1.8;
+  // Memoize the SVG viewBox — only recompute when territories change
+  const viewBox = useMemo(() => {
+    if (territories.length === 0) return "-100 -100 200 200";
+    const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
+    const xs = positions.map(p => p.x);
+    const ys = positions.map(p => p.y);
+    const pad = HEX_SIZE * 2.5;
+    const minX = Math.min(...xs) - pad;
+    const minY = Math.min(...ys) - pad;
+    const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
+    const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+    return `${minX} ${minY} ${w} ${h}`;
+  }, [territories]);
 
-  const getHexagonPoints = () => {
-    const points = [];
-    for (let i = 0; i < 6; i++) {
-      const angleDeg = 60 * i;
-      const angleRad = (Math.PI / 180) * angleDeg;
-      const x = hexSize * Math.cos(angleRad);
-      const y = hexSize * Math.sin(angleRad);
-      points.push(`${x},${y}`);
+  // Memoize road lines — deduplicated, only road territories
+  const roadLines = useMemo(() => {
+    const roadTerrs = territories.filter(t => t.building === "road");
+    const seen = new Set<string>();
+    const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
+    for (const t of roadTerrs) {
+      for (const other of territories) {
+        if (other.owner !== t.owner) continue;
+        if (!isAdjacentAxial(t.coordinates.q, t.coordinates.r, other.coordinates.q, other.coordinates.r)) continue;
+        const pairKey = [t.id, other.id].sort().join("|");
+        if (seen.has(pairKey)) continue;
+        seen.add(pairKey);
+        const s = getHexPosition(t.coordinates.q, t.coordinates.r);
+        const e = getHexPosition(other.coordinates.q, other.coordinates.r);
+        lines.push({ x1: s.x, y1: s.y, x2: e.x, y2: e.y, key: pairKey });
+      }
     }
-    return points.join(" ");
-  };
+    return lines;
+  }, [territories]);
 
-  const getHexPosition = (q: number, r: number) => {
-    const x = q * xSpacing + (r % 2) * (xSpacing / 2);
-    const y = r * ySpacing;
-    return { x, y };
-  };
-
-  const isAdjacent = (t1: Territory, t2: Territory) => {
-    const dx = Math.abs(t1.coordinates.q - t2.coordinates.q);
-    const dy = Math.abs(t1.coordinates.r - t2.coordinates.r);
-    const ds = Math.abs((t1.coordinates.q + t1.coordinates.r) - (t2.coordinates.q + t2.coordinates.r));
-    return (dx <= 1 && dy <= 1 && ds <= 1) && !(dx === 0 && dy === 0);
-  };
-
-  const hasAdjacentOwnedTerritory = (territory: Territory) => {
-    return territories.some(t => 
-      t.owner === currentPlayer && isAdjacent(t, territory)
-    );
-  };
-
-  const canClaimTerritory = (territory: Territory) => {
-    if (phase !== "setup") return false;
-    if (territory.owner) {
-      toast.error("This territory is already claimed!");
-      return false;
+  // Stable per-tile hover handlers via refs to avoid breaking HexTile memo
+  const hoverHandlers = useMemo(() => {
+    const handlers: Record<string, { enter: () => void; leave: () => void }> = {};
+    for (const t of territories) {
+      handlers[t.id] = {
+        enter: () => setHoveredId(t.id),
+        leave: () => setHoveredId(null),
+      };
     }
+    return handlers;
+  }, [territories]);
 
-    // Check if current player already has claimed a territory
-    const playerTerritoryCount = territories.filter(
-      t => t.owner === currentPlayer
-    ).length;
+  // Single click handler via event delegation
+  const handleSvgClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (dragThresholdRef.current) return;
+    const el = (e.target as Element).closest("[data-territory-id]");
+    if (!el) return;
+    const territory = territories.find(t => t.id === el.getAttribute("data-territory-id"));
+    if (territory) onTerritoryClick(territory);
+  }, [territories, onTerritoryClick]);
 
-    if (playerTerritoryCount >= 1) {
-      toast.error("You can only claim one starting territory!");
-      return false;
-    }
+  // Mouse drag (desktop pan)
+  const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button !== 0) return;
+    draggingRef.current = true;
+    dragThresholdRef.current = false;
+    dragStartRef.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
+  }, [pan]);
 
-    // Check if territory is adjacent to opponent's territory
-    const hasAdjacentOpponentTerritory = territories.some(t => 
-      t.owner && t.owner !== currentPlayer && isAdjacent(t, territory)
-    );
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!draggingRef.current) return;
+    const dx = e.clientX - dragStartRef.current.mx;
+    const dy = e.clientY - dragStartRef.current.my;
+    if (Math.hypot(dx, dy) > 4) dragThresholdRef.current = true;
+    // Divide by scale so 1px drag = 1 SVG unit regardless of zoom
+    setPan({ x: dragStartRef.current.px + dx / scale, y: dragStartRef.current.py + dy / scale });
+  }, [scale]);
 
-    if (hasAdjacentOpponentTerritory) {
-      toast.error("Starting territories cannot be adjacent to each other!");
-      return false;
-    }
+  const handleMouseUp = useCallback(() => { draggingRef.current = false; }, []);
 
-    return true;
-  };
-  
-  const validateTerritorySelection = (territory: Territory, phase: string, currentPlayer: string): boolean => {
-  // Setup phase validation
-  if (phase === 'setup') {
-    if (territory.owner !== null) {
-      return false;
-    }
-    
-    // Check if there are any adjacent claimed territories
-    const hasAdjacentClaimed = territories.some(t => 
-      t.owner !== null && isAdjacent(territory, t)
-    );
-    
-    return !hasAdjacentClaimed;
-  }
-
-  // Building phase validation
-  if (phase === 'building') {
-    if (territory.owner !== currentPlayer) {
-      return false;
-    }
-    
-    // Can only build in territories adjacent to owned territories
-    return hasAdjacentOwnedTerritory(territory);
-  }
-
-  // Recruitment phase validation
-  if (phase === 'recruitment') {
-    if (territory.owner !== currentPlayer) {
-      return false;
-    }
-    
-    // Can only recruit in territories with barracks
-    return territory.building === 'barracks';
-  }
-
-  // Combat phase validation
-  if (phase === 'combat') {
-    // Can select own territories with units for attack
-    if (territory.owner === currentPlayer) {
-      return territory.militaryUnit !== null;
-    }
-    
-    // Can select enemy territories adjacent to selected territory
-    if (selectedTerritory && territory.owner !== currentPlayer) {
-      return isAdjacent(territory, selectedTerritory);
-    }
-  }
-
-  return false;
-};
-  const canPurchaseTerritory = (territory: Territory) => {
-    if (phase !== "building") return false;
-    if (territory.owner) return false;
-    if (!hasAdjacentOwnedTerritory(territory)) return false;
-    
-    const cost = {
-      gold: 50,
-      wood: 20,
-      stone: 20,
-      food: 20
-    };
-
-    const canAfford = Object.entries(cost).every(
-      ([resource, amount]) => playerResources[resource as keyof typeof playerResources] >= amount
-    );
-
-    return canAfford;
-  };
-
-  const canInteractWithTerritory = (territory: Territory) => {
-    if (phase === "setup") return canClaimTerritory(territory);
-    if (phase === "building") return canPurchaseTerritory(territory);
-    return territory.owner === currentPlayer;
-  };
-
-  const renderResourceIcon = (resource: keyof typeof resourceColors, amount: number, index: number, total: number) => {
-    const IconComponent = resourceIcons[resource];
-    const angleStep = (2 * Math.PI) / total;
-    const angle = angleStep * index - Math.PI / 2;
-    const radius = hexSize * 0.45;
-    const x = radius * Math.cos(angle);
-    const y = radius * Math.sin(angle);
-    
-    return (
-      <g key={resource} transform={`translate(${x}, ${y})`}>
-        <IconComponent 
-          className={`w-4 h-4 ${resourceColors[resource]}`}
-        />
-        <text
-          x="0"
-          y="10"
-          className="text-xs fill-white font-bold text-center select-none pointer-events-none"
-          textAnchor="middle"
-          dominantBaseline="middle"
-        >
-          {amount}
-        </text>
-      </g>
-    );
-  };
-
-  const renderRoad = (territory: Territory) => {
-    if (!territory.building || territory.building !== "road") return null;
-    
-    const adjacentTerritories = territories.filter(t => isAdjacent(territory, t));
-    return adjacentTerritories.map(adjTerritory => {
-      if (adjTerritory.owner !== territory.owner) return null;
-      
-      const start = getHexPosition(territory.coordinates.q, territory.coordinates.r);
-      const end = getHexPosition(adjTerritory.coordinates.q, adjTerritory.coordinates.r);
-      
-      return (
-        <line
-          key={`road-${territory.id}-${adjTerritory.id}`}
-          x1={start.x}
-          y1={start.y}
-          x2={end.x}
-          y2={end.y}
-          className="stroke-gray-400 stroke-2"
-          strokeLinecap="round"
-        />
-      );
-    });
-  };
-
-  const playerColors: Record<string, string> = {
-    player1: "fill-purple-500",
-    player2: "fill-orange-500",
-    player3: "fill-blue-500",
-    player4: "fill-green-500",
-    player5: "fill-red-500",
-    player6: "fill-yellow-500",
-    neutral: "fill-gray-700",
-  };
-
-  const resourceColors = {
-    wood: "text-game-wood",
-    stone: "text-game-stone",
-    food: "text-game-food",
-    gold: "text-game-gold"
-  };
-
-  const resourceIcons = {
-    wood: Trees,
-    stone: Mountain,
-    food: Wheat,
-    gold: Coins
-  };
-
-  const positions = territories.map(t => getHexPosition(t.coordinates.q, t.coordinates.r));
-  const minX = Math.min(...positions.map(p => p.x));
-  const maxX = Math.max(...positions.map(p => p.x));
-  const minY = Math.min(...positions.map(p => p.y));
-  const maxY = Math.max(...positions.map(p => p.y));
-  
-  const padding = hexSize * 2;
-  const viewBoxWidth = (maxX - minX) + padding * 2;
-  const viewBoxHeight = (maxY - minY) + padding * 2;
-
-  const handleWheel = (e: React.WheelEvent) => {
+  // Wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
-  };
+    setScale(prev => Math.min(Math.max(prev * delta, 0.3), 4));
+  }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  // Touch handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
+      const d = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY
       );
-      setPinchStart(distance);
+      pinchStartRef.current = d;
     } else if (e.touches.length === 1) {
-      setIsDragging(true);
-      setStartPos({
-        x: e.touches[0].clientX - position.x,
-        y: e.touches[0].clientY - position.y,
-      });
+      touchPanStartRef.current = { tx: e.touches[0].clientX, ty: e.touches[0].clientY, px: pan.x, py: pan.y };
+      dragThresholdRef.current = false;
     }
-  };
+  }, [pan]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
     if (e.touches.length === 2) {
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
+      const d = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY
       );
-      const delta = distance / pinchStart;
-      setScale(prev => Math.min(Math.max(prev * delta, 0.5), 3));
-      setPinchStart(distance);
-    } else if (isDragging) {
-      setPosition({
-        x: e.touches[0].clientX - startPos.x,
-        y: e.touches[0].clientY - startPos.y,
-      });
+      const ratio = d / (pinchStartRef.current || d);
+      pinchStartRef.current = d;
+      setScale(prev => Math.min(Math.max(prev * ratio, 0.3), 4));
+    } else if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - touchPanStartRef.current.tx;
+      const dy = e.touches[0].clientY - touchPanStartRef.current.ty;
+      if (Math.hypot(dx, dy) > 4) dragThresholdRef.current = true;
+      setPan({ x: touchPanStartRef.current.px + dx / scale, y: touchPanStartRef.current.py + dy / scale });
     }
-  };
+  }, [scale]);
 
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    setPinchStart(0);
-  };
+  const handleTouchEnd = useCallback(() => {}, []);
 
-  const [pinchStart, setPinchStart] = useState(0);
-
-  const zoomIn = () => setScale(prev => Math.min(prev * 1.2, 3));
-  const zoomOut = () => setScale(prev => Math.max(prev * 0.8, 0.5));
+  const zoomIn  = useCallback(() => setScale(s => Math.min(s * 1.2, 4)), []);
+  const zoomOut = useCallback(() => setScale(s => Math.max(s * 0.8, 0.3)), []);
 
   return (
-    <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-xl overflow-hidden">
-      <div
-        ref={containerRef}
-        className="w-full h-full overflow-hidden touch-none"
+    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-800">
+      <svg
+        viewBox={viewBox}
+        className="w-full h-full touch-none select-none"
+        style={{ cursor: draggingRef.current ? "grabbing" : "grab" }}
+        onClick={handleSvgClick}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <svg 
-          viewBox={`${minX - padding} ${minY - padding} ${viewBoxWidth} ${viewBoxHeight}`}
-          className="w-full h-full origin-center transition-transform"
-          style={{
-            transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-          }}
-        >
-          {territories.map(territory => renderRoad(territory))}
-          
-          {territories.map((territory) => {
-            const { x, y } = getHexPosition(
-              territory.coordinates.q,
-              territory.coordinates.r
-            );
-            
-            const resourceEntries = Object.entries(territory.resources);
-            const isInteractable = canInteractWithTerritory(territory);
+        {/*
+          SVG transforms are applied right-to-left:
+          scale(s) translate(x,y) → translate first in SVG units, then scale.
+          This means pan.x/pan.y are in unscaled SVG coordinates — 1 drag pixel
+          = 1 SVG unit regardless of zoom level. Correct for independent pan+zoom.
+        */}
+        <g transform={`scale(${scale}) translate(${pan.x},${pan.y})`}>
+          {/* Road lines */}
+          {roadLines.map(r => (
+            <line
+              key={r.key}
+              x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2}
+              stroke="#9CA3AF"
+              strokeWidth={2}
+              strokeLinecap="round"
+              style={{ pointerEvents: "none" }}
+            />
+          ))}
 
-            return (
-              <g
-                key={territory.id}
-                transform={`translate(${x}, ${y})`}
-                onClick={() => onTerritoryClick(territory)}
-                className="origin-center"
-              >
-                <g className={`
-                  transform-gpu transition-transform duration-200
-                  ${isInteractable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed opacity-75'}
-                `}>
-                  <polygon
-                    points={getHexagonPoints()}
-                    className={`
-                      ${territory.owner ? (playerColors[territory.owner] ?? playerColors.neutral) : playerColors.neutral}
-                      stroke-gray-400 stroke-2
-                      transition-colors duration-300
-                      ${selectedTerritory?.id === territory.id ? "stroke-game-gold stroke-3" : ""}
-                      ${isInteractable ? "hover:stroke-white" : ""}
-                    `}
-                  />
-                  {territory.building && (
-                    <text
-                      x="0"
-                      y="-15"
-                      className="text-base fill-white font-bold text-center select-none pointer-events-none"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                    >
-                      {territory.building.replace(/_/g, ' ')}
-                    </text>
-                  )}
-                  {territory.militaryUnit && (
-                    <g>
-                      <text
-                        x="0"
-                        y="0"
-                        className="text-xs fill-white font-bold text-center select-none pointer-events-none"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        {territory.militaryUnit.type}
-                      </text>
-                      <text
-                        x="-15"
-                        y="15"
-                        className="text-xs fill-red-400 font-bold text-center select-none pointer-events-none"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        ❤️{territory.militaryUnit.health}
-                      </text>
-                      <text
-                        x="15"
-                        y="15"
-                        className="text-xs fill-blue-400 font-bold text-center select-none pointer-events-none"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        ⚔️{territory.militaryUnit.damage}
-                      </text>
-                    </g>
-                  )}
-                  <g>
-                    {resourceEntries.map(([resource, amount], index) => 
-                      renderResourceIcon(
-                        resource as keyof typeof resourceColors,
-                        amount,
-                        index,
-                        resourceEntries.length
-                      )
-                    )}
-                  </g>
-                </g>
-              </g>
-            );
-          })}
-        </svg>
+          {/* Territory hexes */}
+          {territories.map(t => (
+            <HexTile
+              key={t.id}
+              territory={t}
+              isSelected={selectedTerritory?.id === t.id}
+              isHovered={hoveredId === t.id}
+              onMouseEnter={hoverHandlers[t.id]?.enter ?? (() => {})}
+              onMouseLeave={hoverHandlers[t.id]?.leave ?? (() => {})}
+            />
+          ))}
+        </g>
+      </svg>
+
+      {/* Zoom controls */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={zoomIn}
+          className="rounded-full bg-black/50 backdrop-blur-sm border border-white/10 hover:bg-black/70"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={zoomOut}
+          className="rounded-full bg-black/50 backdrop-blur-sm border border-white/10 hover:bg-black/70"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
       </div>
-      
-      {isMobile && (
-        <div className="absolute bottom-4 right-4 flex gap-2">
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={zoomOut}
-            className="rounded-full bg-white/10 backdrop-blur-sm"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={zoomIn}
-            className="rounded-full bg-white/10 backdrop-blur-sm"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
 
-export default HexGrid;
+export default React.memo(HexGrid);
