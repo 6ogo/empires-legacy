@@ -1,5 +1,5 @@
 import { GameState, GameAction, Territory, GamePlayer, Resources, MilitaryUnit, ValidationResult, GamePhase } from '@/types/game';
-import { BUILDING_COSTS } from './game-utils';
+import { BUILDING_COSTS } from './game-constants';
 
 export class GameStateValidator {
   private state: GameState;
