@@ -15,12 +15,16 @@ function deductResources(player: GamePlayer, cost: Partial<Resources>): boolean 
 }
 
 export function checkVictoryCondition(state: GameState): { winner: string | null; type: 'domination' | 'economic' | 'military' | null } {
+  // Never check during setup — players haven't all claimed their starting territories yet
+  if (state.phase === 'setup') return { winner: null, type: null };
+
   const totalTerritories = state.territories.length;
   const activePlayers = state.players.filter(p =>
     state.territories.some(t => t.owner === p.id)
   );
 
-  if (activePlayers.length === 1 && state.turn > 1) {
+  // Military victory: last player standing. Require everyone to have had at least one full round.
+  if (activePlayers.length === 1 && state.players.length > 1 && state.turn > state.players.length * 2) {
     return { winner: activePlayers[0].id, type: 'military' };
   }
 

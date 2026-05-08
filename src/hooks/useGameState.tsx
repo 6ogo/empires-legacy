@@ -199,14 +199,24 @@ export const useGameState = (
       }
 
       case 'END_PHASE': {
-        const phases: GamePhase[] = ['setup', 'building', 'recruitment', 'combat', 'end'];
-        const currentPhaseIndex = phases.indexOf(newState.phase);
-        if (currentPhaseIndex < phases.length - 1) {
-          newState.phase = phases[currentPhaseIndex + 1];
-        }
-        // When moving to building phase from setup, reset currentPlayer to first player
+        // Phases cycle: setup (once) → building → recruitment → combat → building → ...
+        // 'end' is only ever set by checkVictoryCondition, never by END_PHASE.
+        const NEXT_PHASE: Partial<Record<GamePhase, GamePhase>> = {
+          setup:       'building',
+          building:    'recruitment',
+          recruitment: 'combat',
+          combat:      'building',  // loop back — game ends only via victory condition
+        };
+        const nextPhase = NEXT_PHASE[newState.phase as GamePhase];
+        if (nextPhase) newState.phase = nextPhase;
+
+        // On every entry into building (start of a new round), reset to player 1
+        // and clear hasMoved so all units can act in the coming combat phase
         if (newState.phase === 'building') {
           newState.currentPlayer = newState.players[0].id;
+          for (const territory of newState.territories) {
+            if (territory.militaryUnit) territory.militaryUnit.hasMoved = false;
+          }
         }
         break;
       }
